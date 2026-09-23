@@ -1,0 +1,84 @@
+{
+  "id": "/?source=pwa",
+  "name": "Krushi Baandhava - ಕೃಷಿ ಬಾಂಧವ",
+  "short_name": "Krushi Baandhava",
+  "description": "Karnataka Farmers Market Prices, Transparent Price Forecasts, Nearby APMC Mandis, and Weather Advisories.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#064e3b",
+  "theme_color": "#047857",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "kn-IN",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities", "agriculture"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Market Prices - ಮಾರುಕಟ್ಟೆ ದರಗಳು",
+      "short_name": "Prices",
+      "description": "View today's mandi prices across Karnataka",
+      "url": "/?source=shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Where to Sell - ಎಲ್ಲಿ ಮಾರಾಟ ಮಾಡಬೇಕು",
+      "short_name": "Where to Sell",
+      "description": "Compare nearby mandi net returns with transport haulage",
+      "url": "/where-to-sell?source=shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Weather Forecast - ಹವಾಮಾನ ಮಾಹಿತಿ",
+      "short_name": "Weather",
+      "description": "Hyperlocal 7-day weather and farming advisory",
+      "url": "/weather?source=shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Govt Schemes - ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
+      "short_name": "Schemes",
+      "description": "Agricultural subsidies and welfare programs",
+      "url": "/schemes?source=shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
