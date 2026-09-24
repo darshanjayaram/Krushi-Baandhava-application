@@ -73,6 +73,17 @@
                             <td class="px-5 py-4">
                                 <div class="font-bold text-stone-900">{{ $source->name }}</div>
                                 <div class="text-xs text-stone-400 font-mono mt-0.5">{{ $source->code }} · {{ $source->auth_type }}</div>
+                                @if(in_array($source->code, ['coffee_board', 'coconut_board']))
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 mt-1">
+                                        <span>🕷️</span>
+                                        <span>Direct Web Scraper (HTML Parser)</span>
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-900 border border-blue-200 mt-1">
+                                        <span>🔌</span>
+                                        <span>Government REST API</span>
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-4 py-4">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/50">

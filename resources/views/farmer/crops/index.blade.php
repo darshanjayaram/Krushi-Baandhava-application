@@ -81,19 +81,19 @@
             <div class="bg-white border border-stone-200/90 rounded-2xl p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between group">
                 <div>
                     <!-- Top header: Crop Name & Category -->
-                    <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-start justify-between gap-3">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-black text-base shadow-inner group-hover:scale-105 transition shrink-0">
-                                {{ substr($crop->name, 0, 2) }}
-                            </div>
+                            <img src="{{ $crop->photo_url }}" 
+                                 alt="{{ $crop->name }}" 
+                                 class="w-14 h-14 rounded-2xl object-cover shrink-0 shadow-sm border border-stone-200 group-hover:scale-105 transition duration-300">
                             <div>
                                 <h2 class="font-black text-stone-900 text-base leading-snug">
-                                    <a href="{{ route('farmer.crops.show', $crop->slug) }}" class="hover:text-emerald-700 transition">
+                                    <a href="{{ route('farmer.crops.show', $crop->slug) }}" class="hover:text-[#1C5A2C] transition">
                                         {{ $crop->name }}
                                     </a>
                                 </h2>
                                 @if($crop->name_kn)
-                                    <span class="text-xs font-semibold text-emerald-800 font-kannada">
+                                    <span class="text-xs font-semibold text-[#1C5A2C] font-kannada">
                                         {{ $crop->name_kn }}
                                     </span>
                                 @endif
@@ -111,7 +111,7 @@
                         @if($crop->varieties->isNotEmpty())
                             <span>{{ $crop->varieties->pluck('name')->take(3)->implode(', ') }}</span>
                             @if($crop->varieties->count() > 3)
-                                <span class="text-emerald-700 font-semibold">+{{ $crop->varieties->count() - 3 }} more</span>
+                                <span class="text-[#1C5A2C] font-semibold">+{{ $crop->varieties->count() - 3 }} more</span>
                             @endif
                         @else
                             <span class="text-stone-400">Standard / All</span>
@@ -123,9 +123,9 @@
                         <div class="mt-3.5 p-3 rounded-xl bg-stone-50 border border-stone-100">
                             <div class="text-[10px] uppercase font-bold text-stone-400 flex items-center justify-between">
                                 <span>ಮಾದರಿ ದರ ಶ್ರೇಣಿ (State Range)</span>
-                                <span class="text-emerald-700 font-bold lowercase">{{ $priceInfo->mandi_count }} mandis</span>
+                                <span class="text-[#1C5A2C] font-bold lowercase">{{ $priceInfo->mandi_count }} mandis</span>
                             </div>
-                            <div class="text-lg font-black text-emerald-950 mt-0.5 tracking-tight">
+                            <div class="text-lg font-black text-[#1C5A2C] mt-0.5 tracking-tight">
                                 ₹{{ number_format($priceInfo->min_modal, 0) }} - ₹{{ number_format($priceInfo->max_modal, 0) }}
                                 <span class="text-xs font-normal text-stone-400">/ {{ $crop->standard_unit ?? 'Qtl' }}</span>
                             </div>
@@ -137,7 +137,7 @@
                 <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
                     <span class="text-[11px] text-stone-400 font-medium">ಮಾನಕ: {{ $crop->standard_unit ?? 'Quintal' }}</span>
                     <a href="{{ route('farmer.crops.show', $crop->slug) }}" 
-                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs">
+                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1C5A2C] hover:bg-[#154622] text-white text-xs font-bold transition shadow-xs">
                         <span>ದರ ಹೋಲಿಕೆ ವೀಕ್ಷಿಸಿ</span>
                         <span>&rarr;</span>
                     </a>

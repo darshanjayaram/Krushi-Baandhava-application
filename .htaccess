@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Prevent direct access to sensitive files
+    <FilesMatch "\.(bak|config|sql|ini|log|sh|env|yaml|yml)$">
+        Require all denied
+    </FilesMatch>
+    <Files .env>
+        Require all denied
+    </Files>
+
+    # Forward traffic to public/
+    RewriteCond %{REQUEST_URI} !/public/
+    RewriteRule ^(.*)$ /Krushi-Baandhava-application/public/$1 [R=301,L]
+</IfModule>

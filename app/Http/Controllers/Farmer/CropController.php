@@ -68,50 +68,145 @@ class CropController extends Controller
      * Display the detailed price profile and APMC mandi comparison for a specific crop.
      * Supports filtering by Karnataka APMC mandi (?market=BINNY%20MILL%20%28F%26V%29).
      */
-    public function show(string $slug, Request $request): View
+    public function show(string $cropIdentifier, Request $request): View
     {
-        $crop = Crop::with(['category', 'varieties' => fn ($q) => $q->where('is_active', true)])
-            ->where('slug', $slug)
-            ->where('is_active', true)
-            ->firstOrFail();
+        $cropQuery = Crop::with(['category', 'varieties' => fn ($q) => $q->where('is_active', true)])
+            ->where('is_active', true);
+
+        if (is_numeric($cropIdentifier)) {
+            $crop = (clone $cropQuery)->where('id', (int) $cropIdentifier)->first()
+                ?? $cropQuery->where('slug', $cropIdentifier)->firstOrFail();
+        } else {
+            $crop = $cropQuery->where('slug', $cropIdentifier)->firstOrFail();
+        }
 
         $varietyId = $request->query('variety');
         $marketParam = trim((string) $request->query('market', ''));
 
-        // Resolve latest date specifically for this crop in Karnataka
-        $latestDate = MarketPrice::karnataka()
-            ->where('crop_id', $crop->id)
-            ->max('price_date') ?? Carbon::today()->toDateString();
+        // Determine if this crop is governed by an official commodity board (Coffee Board or Coconut Board)
+        $boardMeta = null;
+        if ($crop->isCoffeeBoard()) {
+            $boardMeta = [
+                'type' => 'coffee_board',
+                'badge_en' => 'Coffee Board of India',
+                'badge_kn' => 'ಕಾಫಿ ಮಂಡಳಿ ಅಧಿಕೃತ ದರಗಳು',
+                'icon' => '☕',
+                'authority' => 'Coffee Board of India (Ministry of Commerce & Industry, Govt. of India)',
+                'centre_label_kn' => 'ಕಾಫಿ ಮಂಡಳಿ ಕೇಂದ್ರ ಆಯ್ಕೆ',
+                'centre_label_en' => 'Select Coffee Board Centre',
+                'rates_heading_kn' => 'ಕಾಫಿ ಮಂಡಳಿ ಕೇಂದ್ರವಾರು ದರ ಹೋಲಿಕೆ',
+                'rates_heading_en' => 'Official Coffee Board Rates by Centre',
+                'theme' => 'coffee',
+            ];
+        } elseif ($crop->isCoconutBoard()) {
+            $boardMeta = [
+                'type' => 'coconut_board',
+                'badge_en' => 'Coconut Development Board',
+                'badge_kn' => 'ತೆಂಗು ಅಭಿವೃದ್ಧಿ ಮಂಡಳಿ ದರಗಳು',
+                'icon' => '🥥',
+                'authority' => 'Coconut Development Board (Ministry of Agriculture, Govt. of India)',
+                'centre_label_kn' => 'ತೆಂಗು ಮಂಡಳಿ ಖರೀದಿ ಕೇಂದ್ರ ಆಯ್ಕೆ',
+                'centre_label_en' => 'Select CDB Purchase Centre',
+                'rates_heading_kn' => 'ತೆಂಗು ಮಂಡಳಿ ಕೇಂದ್ರವಾರು ದರ ಹೋಲಿಕೆ',
+                'rates_heading_en' => 'Official CDB Rates by Centre',
+                'theme' => 'coconut',
+            ];
+        }
 
-        // 1. Fetch all distinct Karnataka mandis reporting this crop on the date (for dropdown filter & quick chips)
-        $availableMarkets = MarketPrice::karnataka()
+        // Base price query builder with strict board / APMC authority isolation
+        $basePricesQuery = MarketPrice::karnataka()->where('crop_id', $crop->id);
+        if ($boardMeta) {
+            $boardSourceCode = $boardMeta['type'];
+            $basePricesQuery->whereHas('dataSource', function ($dq) use ($boardSourceCode) {
+                $dq->where('code', $boardSourceCode);
+            });
+        }
+
+        // Resolve latest date specifically for this crop in Karnataka
+        $latestDate = (clone $basePricesQuery)->max('price_date') ?? Carbon::today()->toDateString();
+
+        // Filter available varieties to only those that actually have recorded prices for this crop on $latestDate
+        $pricedVarietyIds = (clone $basePricesQuery)
+            ->where('price_date', $latestDate)
+            ->whereNotNull('variety_id')
+            ->pluck('variety_id')
+            ->unique()
+            ->toArray();
+
+        $availableVarieties = $crop->varieties
+            ->whereIn('id', $pricedVarietyIds)
+            ->values();
+
+        // Resolve reference coordinates to find nearby markets
+        $refLat = null;
+        $refLon = null;
+        $selectedDistrictId = $request->cookie('selected_district_id') ?? session('selected_district_id');
+        $userDistrict = null;
+        if ($selectedDistrictId) {
+            $userDistrict = \App\Models\District::find($selectedDistrictId);
+            if ($userDistrict && $userDistrict->latitude && $userDistrict->longitude) {
+                $refLat = (float) $userDistrict->latitude;
+                $refLon = (float) $userDistrict->longitude;
+            }
+        }
+
+        if ($refLat === null || $refLon === null) {
+            $refLat = 13.9299;
+            $refLon = 75.5681;
+        }
+
+        // 1. Fetch all distinct Karnataka mandis/centres reporting this crop on the date, sorted by nearby proximity
+        $availableMarkets = (clone $basePricesQuery)
             ->with(['market.district'])
-            ->where('crop_id', $crop->id)
             ->where('price_date', $latestDate)
             ->get()
-            ->map(function ($mp) {
+            ->map(function ($mp) use ($refLat, $refLon, $userDistrict) {
                 $m = $mp->market;
                 if ($m) {
                     $m->today_modal_price = (float) $mp->modal_price;
+                    $m->is_same_district = ($userDistrict && $m->district_id === $userDistrict->id);
+
+                    if ($m->latitude && $m->longitude) {
+                        $latFrom = deg2rad($refLat);
+                        $lonFrom = deg2rad($refLon);
+                        $latTo = deg2rad($m->latitude);
+                        $lonTo = deg2rad($m->longitude);
+
+                        $latDelta = $latTo - $latFrom;
+                        $lonDelta = $lonTo - $lonFrom;
+
+                        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+                            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+                        $m->distance_km = round($angle * 6371, 1);
+                    } else {
+                        $m->distance_km = 9999;
+                    }
                 }
                 return $m;
             })
             ->filter()
             ->unique('id')
-            ->sortBy('name')
+            ->sort(function ($a, $b) {
+                if ($a->is_same_district !== $b->is_same_district) {
+                    return $b->is_same_district <=> $a->is_same_district;
+                }
+                if ($a->distance_km !== $b->distance_km) {
+                    return $a->distance_km <=> $b->distance_km;
+                }
+                return strcmp($a->name, $b->name);
+            })
             ->values();
 
-        // 2. Base query for Karnataka mandi prices on this date
-        $mandiPricesQuery = MarketPrice::karnataka()
+        // 2. Base query for Karnataka mandi/board prices on this date
+        $mandiPricesQuery = (clone $basePricesQuery)
             ->with(['variety', 'market.district', 'dataSource'])
-            ->where('crop_id', $crop->id)
             ->where('price_date', $latestDate);
 
         if ($varietyId) {
             $mandiPricesQuery->where('variety_id', $varietyId);
         }
 
-        // Filter by specific Karnataka mandi if requested (e.g. ?market=BINNY%20MILL%20%28F%26V%29 or code)
+        // Filter by specific Karnataka mandi/centre if requested
         if ($marketParam !== '') {
             $mandiPricesQuery->whereHas('market', function ($mq) use ($marketParam) {
                 $mq->karnataka()->where(function ($sub) use ($marketParam) {
@@ -127,10 +222,9 @@ class CropController extends Controller
             ->orderBy('modal_price', 'desc')
             ->get();
 
-        // State-level analytics summary for this commodity across all Karnataka mandis
-        $allKarnatakaPrices = MarketPrice::karnataka()
+        // State-level analytics summary for this commodity across all Karnataka mandis/centres
+        $allKarnatakaPrices = (clone $basePricesQuery)
             ->with(['market'])
-            ->where('crop_id', $crop->id)
             ->where('price_date', $latestDate)
             ->get();
 
@@ -145,12 +239,39 @@ class CropController extends Controller
             'date_formatted' => Carbon::parse($latestDate)->format('d M Y'),
         ];
 
-        // Matched selected market if filtered
+        // Matched selected market if filtered or auto-resolve nearest
         $selectedMarket = null;
         if ($marketParam !== '') {
             $selectedMarket = $availableMarkets->first(function ($m) use ($marketParam) {
                 return $m->name === $marketParam || $m->name_kn === $marketParam || $m->code === $marketParam;
             });
+        }
+
+        if (!$selectedMarket && $availableMarkets->isNotEmpty()) {
+            // Priority 1: Market in user's home district
+            // Priority 2: Nearest market by proximity
+            $selectedMarket = $availableMarkets->firstWhere('is_same_district', true) ?? $availableMarkets->first();
+        }
+
+        // Check if selected market is outside user's home district and extract distance
+        $isNearestFallback = false;
+        $nearestDistanceKm = null;
+        if ($selectedMarket) {
+            $isNearestFallback = (!$userDistrict || $selectedMarket->district_id !== $userDistrict->id);
+            $nearestDistanceKm = (isset($selectedMarket->distance_km) && $selectedMarket->distance_km < 1000)
+                ? $selectedMarket->distance_km
+                : null;
+        }
+
+        // Fetch varieties specifically trading at this selected market
+        $selectedMarketPrices = collect();
+        if ($selectedMarket) {
+            $selectedMarketPrices = (clone $basePricesQuery)
+                ->with(['variety'])
+                ->where('price_date', $latestDate)
+                ->where('market_id', $selectedMarket->id)
+                ->orderBy('modal_price', 'desc')
+                ->get();
         }
 
         // Fetch Historical Analytics (Trends, Seasonality, Volatility)
@@ -201,6 +322,9 @@ class CropController extends Controller
             'availableMarkets',
             'marketParam',
             'selectedMarket',
+            'isNearestFallback',
+            'nearestDistanceKm',
+            'selectedMarketPrices',
             'rangeParam',
             'rangeDays',
             'dailyTrends',
@@ -209,7 +333,9 @@ class CropController extends Controller
             'forecast',
             'cropVideos',
             'cropArticles',
-            'cropSchemes'
+            'cropSchemes',
+            'boardMeta',
+            'availableVarieties'
         ));
     }
 }

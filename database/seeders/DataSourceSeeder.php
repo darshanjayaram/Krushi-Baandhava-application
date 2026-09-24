@@ -80,15 +80,15 @@ class DataSourceSeeder extends Seeder
             ]
         );
 
-        // 3. Coffee Board
-        DataSource::firstOrCreate(
+        // 3. Coffee Board (Direct Website Web Scraper)
+        DataSource::updateOrCreate(
             ['code' => 'coffee_board'],
             [
-                'name' => 'Coffee Board of India',
+                'name' => 'Coffee Board of India (Direct Web Scraper)',
                 'provider_class' => CoffeeBoardDataProvider::class,
                 'type' => 'market_prices',
                 'base_url' => 'https://coffeeboard.gov.in',
-                'endpoint' => 'market-intelligence/daily-prices',
+                'endpoint' => '',
                 'auth_type' => 'none',
                 'sync_frequency' => 'daily',
                 'is_active' => true,
@@ -96,15 +96,15 @@ class DataSourceSeeder extends Seeder
             ]
         );
 
-        // 4. Coconut Development Board
-        DataSource::firstOrCreate(
+        // 4. Coconut Development Board (Direct Website Web Scraper)
+        DataSource::updateOrCreate(
             ['code' => 'coconut_board'],
             [
-                'name' => 'Coconut Development Board',
+                'name' => 'Coconut Development Board (Direct Web Scraper)',
                 'provider_class' => CoconutBoardDataProvider::class,
                 'type' => 'market_prices',
                 'base_url' => 'https://coconutboard.gov.in',
-                'endpoint' => 'market-rates/today',
+                'endpoint' => '',
                 'auth_type' => 'none',
                 'sync_frequency' => 'daily',
                 'is_active' => true,

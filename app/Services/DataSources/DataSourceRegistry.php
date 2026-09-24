@@ -23,8 +23,8 @@ class DataSourceRegistry
         return [
             DataGovMarketDataProvider::class => 'data.gov.in Mandi Prices Provider (Official Open Data)',
             AgmarknetMarketDataProvider::class => 'Agmarknet Market Data Provider (National APMC Portal)',
-            CoffeeBoardDataProvider::class => 'Coffee Board of India Provider (Arabica & Robusta Daily Rates)',
-            CoconutBoardDataProvider::class => 'Coconut Development Board Provider (Coconut & Copra Rates)',
+            CoffeeBoardDataProvider::class => 'Coffee Board of India (Direct Website Web Scraper — Arabica & Robusta Daily Rates)',
+            CoconutBoardDataProvider::class => 'Coconut Development Board (Direct Website Web Scraper — Coconut & Copra Rates)',
             KramaMarketDataProvider::class => 'KRAMA Karnataka State APMC Provider (State Access Placeholder)',
         ];
     }

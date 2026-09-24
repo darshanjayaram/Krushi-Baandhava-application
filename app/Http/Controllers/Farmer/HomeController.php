@@ -19,7 +19,7 @@ class HomeController extends Controller
      */
     public function index(Request $request): View
     {
-        $districtId = $request->query('district');
+        $districtId = $request->query('district') ?? $request->cookie('selected_district_id') ?? session('selected_district_id');
         $selectedCategory = $request->query('category', 'all');
         $search = trim((string) $request->query('search', ''));
         $viewScope = $request->query('scope', 'district'); // 'district' or 'all'
@@ -41,50 +41,104 @@ class HomeController extends Controller
                 ?? $allDistricts->first();
         }
 
+        if ($activeDistrict) {
+            cookie()->queue('selected_district_id', $activeDistrict->id, 525600);
+            session(['selected_district_id' => $activeDistrict->id]);
+        }
+
         // 2. Resolve Latest Date in DB (Strictly Karnataka)
         $latestPriceDate = MarketPrice::karnataka()->max('price_date') ?? Carbon::today()->toDateString();
 
-        // 3. Query Live Market Prices (Strictly Karnataka)
-        $pricesQuery = MarketPrice::karnataka()
-            ->with(['crop.category', 'variety', 'market.district', 'dataSource'])
-            ->where('price_date', $latestPriceDate);
-
-        // Apply District Scope if requested and available
-        if ($viewScope === 'district' && $activeDistrict) {
-            $districtPricesCount = (clone $pricesQuery)
-                ->whereHas('market', fn ($m) => $m->where('district_id', $activeDistrict->id))
-                ->count();
-
-            if ($districtPricesCount > 0) {
-                $pricesQuery->whereHas('market', fn ($m) => $m->where('district_id', $activeDistrict->id));
-            } else {
-                // District has no direct reports today; fall back to state view with notice
-                $viewScope = 'state_fallback';
-            }
-        }
+        // 3. Resolve Crops for the Homepage Directory (Negilu Krishi Architecture)
+        $cropsQuery = Crop::with(['category', 'varieties' => fn ($q) => $q->where('is_active', true)])
+            ->where('is_active', true)
+            ->where('is_major', true);
 
         // Category Filter
         if ($selectedCategory && $selectedCategory !== 'all') {
-            $pricesQuery->whereHas('crop.category', fn ($c) => $c->where('slug', $selectedCategory));
+            $cropsQuery->whereHas('category', fn ($c) => $c->where('slug', $selectedCategory));
         }
 
         // Search Filter
         if ($search !== '') {
-            $pricesQuery->where(function ($q) use ($search) {
-                $q->whereHas('crop', function ($cq) use ($search) {
-                    $cq->where('name', 'like', "%{$search}%")
-                       ->orWhere('name_kn', 'like', "%{$search}%");
-                })->orWhereHas('market', function ($mq) use ($search) {
-                    $mq->where('name', 'like', "%{$search}%")
-                       ->orWhere('name_kn', 'like', "%{$search}%");
-                });
+            $cropsQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('name_kn', 'like', "%{$search}%")
+                  ->orWhere('scientific_name', 'like', "%{$search}%");
             });
         }
 
-        $latestPrices = $pricesQuery
-            ->orderBy('modal_price', 'desc')
-            ->paginate(12)
-            ->withQueryString();
+        $allCrops = $cropsQuery->orderBy('name')->get();
+
+        // For each crop, resolve the best price for the farmer's location on latestDate:
+        // Priority 1: Direct report from active district on latestPriceDate (Reliable)
+        // Priority 2: Closest market in Karnataka or state average on latestPriceDate (Benchmark)
+        // Priority 3: Most recent historical price in DB
+        $curatedPrices = collect();
+        foreach ($allCrops as $crop) {
+            $price = null;
+            $isLocal = false;
+
+            if ($viewScope !== 'all' && $activeDistrict) {
+                $price = MarketPrice::karnataka()
+                    ->with(['crop.category', 'variety', 'market.district', 'dataSource'])
+                    ->where('crop_id', $crop->id)
+                    ->where('price_date', $latestPriceDate)
+                    ->whereHas('market', fn ($m) => $m->where('district_id', $activeDistrict->id))
+                    ->orderBy('modal_price', 'desc')
+                    ->first();
+
+                if ($price) {
+                    $isLocal = true;
+                }
+            }
+
+            if (!$price) {
+                $price = MarketPrice::karnataka()
+                    ->with(['crop.category', 'variety', 'market.district', 'dataSource'])
+                    ->where('crop_id', $crop->id)
+                    ->where('price_date', $latestPriceDate)
+                    ->orderBy('modal_price', 'desc')
+                    ->first();
+                $isLocal = false;
+            }
+
+            if (!$price) {
+                $price = MarketPrice::karnataka()
+                    ->with(['crop.category', 'variety', 'market.district', 'dataSource'])
+                    ->where('crop_id', $crop->id)
+                    ->orderBy('price_date', 'desc')
+                    ->orderBy('modal_price', 'desc')
+                    ->first();
+                $isLocal = false;
+            }
+
+            if ($price) {
+                $price->is_local = $isLocal;
+                $price->reliability_badge = $isLocal ? 'Reliable' : 'Benchmark';
+                $curatedPrices->push($price);
+            }
+        }
+
+        // Sort: local prices first, then highest modal price
+        $sortedPrices = $curatedPrices->sort(function ($a, $b) {
+            if ($a->is_local !== $b->is_local) {
+                return $b->is_local <=> $a->is_local;
+            }
+            return $b->modal_price <=> $a->modal_price;
+        })->values();
+
+        // Paginate results so mobile pagination and hasPages() work seamlessly
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage('page') ?: 1;
+        $perPage = 20;
+        $latestPrices = new \Illuminate\Pagination\LengthAwarePaginator(
+            $sortedPrices->forPage($page, $perPage)->values(),
+            $sortedPrices->count(),
+            $perPage,
+            $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
+        $distinctCropPrices = $sortedPrices->forPage($page, $perPage)->values();
 
         // 4. Categories with Active Crop Counts
         $categories = CropCategory::where('is_active', true)
@@ -92,15 +146,16 @@ class HomeController extends Controller
             ->orderBy('display_order')
             ->get();
 
-        // 5. Top Market Highlights / Price Movers (Featured Karnataka Commodities)
+        // 5. Top Market Highlights / Price Movers (Featured Karnataka Commodities - 4 Spotlight Cards)
         $topMovers = MarketPrice::karnataka()
             ->with(['crop', 'variety', 'market.district'])
             ->where('price_date', $latestPriceDate)
             ->whereHas('crop', fn ($c) => $c->where('is_major', true))
             ->orderBy('modal_price', 'desc')
-            ->take(6)
             ->get()
-            ->unique('crop_id');
+            ->unique('crop_id')
+            ->take(4)
+            ->values();
 
         // 6. Major Crops Catalog Grid
         $majorCrops = Crop::with(['category', 'varieties' => fn ($q) => $q->where('is_active', true)])
@@ -138,7 +193,8 @@ class HomeController extends Controller
             'majorCrops',
             'stats',
             'latestPriceDate',
-            'todayWeather'
+            'todayWeather',
+            'distinctCropPrices'
         ));
     }
 
@@ -148,6 +204,58 @@ class HomeController extends Controller
     public function offline(): View
     {
         return view('farmer.offline');
+    }
+
+    /**
+     * Persist user's selected or GPS detected district in session and cookie.
+     */
+    public function setLocation(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $districtId = $request->input('district_id');
+        $lat = $request->input('latitude');
+        $lon = $request->input('longitude');
+
+        $district = null;
+        if ($districtId) {
+            $district = District::whereHas('state', fn ($s) => $s->where('code', 'KA')->orWhere('name', 'Karnataka'))
+                ->find($districtId);
+        } elseif ($lat && $lon) {
+            $districts = District::whereHas('state', fn ($s) => $s->where('code', 'KA')->orWhere('name', 'Karnataka'))
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->get();
+
+            $minDist = PHP_FLOAT_MAX;
+            foreach ($districts as $d) {
+                $latFrom = deg2rad((float) $lat);
+                $lonFrom = deg2rad((float) $lon);
+                $latTo = deg2rad((float) $d->latitude);
+                $lonTo = deg2rad((float) $d->longitude);
+                $latDelta = $latTo - $latFrom;
+                $lonDelta = $lonTo - $lonFrom;
+                $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) + cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+                $dist = 6371 * $angle;
+
+                if ($dist < $minDist) {
+                    $minDist = $dist;
+                    $district = $d;
+                }
+            }
+        }
+
+        if ($district) {
+            session(['selected_district_id' => $district->id]);
+            cookie()->queue('selected_district_id', $district->id, 525600);
+
+            return response()->json([
+                'success' => true,
+                'district_id' => $district->id,
+                'district_name' => $district->name,
+                'district_name_kn' => $district->name_kn,
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'District not found'], 404);
     }
 }
 

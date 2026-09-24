@@ -8,10 +8,13 @@ use App\Models\CuratedVideo;
 use App\Models\NewsArticle;
 use App\Models\Scheme;
 use App\Models\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class AdminCmsTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected User $admin;
     protected User $farmer;
 

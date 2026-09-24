@@ -23,7 +23,8 @@ class DataQualityController extends Controller
         $search = $request->query('search');
 
         $query = MarketPriceRaw::with('dataSource')
-            ->orderByDesc('received_at');
+            ->orderByDesc('received_at')
+            ->orderByDesc('id');
 
         if ($status && $status !== 'all') {
             $query->where('processing_status', $status);

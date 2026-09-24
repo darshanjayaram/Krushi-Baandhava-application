@@ -11,10 +11,13 @@ use App\Models\Market;
 use App\Models\State;
 use App\Models\Taluk;
 use App\Models\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class AdminMasterDataTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected User $admin;
     protected User $farmer;
 
@@ -129,6 +132,77 @@ class AdminMasterDataTest extends TestCase
 
         $response->assertRedirect('/admin/markets');
         $this->assertDatabaseHas('markets', ['name' => $name]);
+    }
+
+    /**
+     * Test admin can create a market without APMC code and it auto-generates a clean unique code.
+     */
+    public function test_admin_can_create_market_without_code_and_auto_generates(): void
+    {
+        $district = District::first();
+        $name = 'Tarikere Sub Yard ' . rand(100, 999);
+
+        $response = $this->actingAs($this->admin)->post('/admin/markets', [
+            'district_id' => $district->id,
+            'name' => $name,
+            'name_kn' => 'ತರೀಕೆರೆ ಉಪ ಮಾರುಕಟ್ಟೆ',
+            'code' => '', // Left blank intentionally
+            'market_type' => 'Sub-market',
+            'latitude' => 13.71,
+            'longitude' => 75.81,
+            'is_active' => '1',
+        ]);
+
+        $response->assertRedirect('/admin/markets');
+        $market = Market::where('name', $name)->first();
+        $this->assertNotNull($market);
+        $this->assertNotEmpty($market->code);
+        $this->assertStringStartsWith('KA_APMC_', $market->code);
+    }
+
+    /**
+     * Test admin can view market edit form with quick-fill presets and mapped aliases.
+     */
+    public function test_admin_can_view_market_edit_form_with_presets_and_aliases(): void
+    {
+        $market = Market::first();
+
+        $response = $this->actingAs($this->admin)->get("/admin/markets/{$market->id}/edit");
+
+        $response->assertStatus(200);
+        $response->assertSee('Quick-Fill from Standard Karnataka Mandi Directory', false);
+        $response->assertSee('Official APMC Code', false);
+        $response->assertSee('Raw Feed Aliases Mapped to this Mandi', false);
+        $response->assertSee('Map New Feed Alias', false);
+    }
+
+    /**
+     * Test admin can add and remove a feed alias directly from the market edit screen.
+     */
+    public function test_admin_can_add_and_remove_feed_alias_from_market(): void
+    {
+        $market = Market::first();
+        $aliasName = 'Raw Alias ' . rand(1000, 9999);
+
+        // Add alias
+        $addResponse = $this->actingAs($this->admin)->post("/admin/markets/{$market->id}/aliases", [
+            'source_market_name' => $aliasName,
+            'source_district_name' => 'Shivamogga',
+        ]);
+
+        $addResponse->assertRedirect();
+        $this->assertDatabaseHas('market_source_mappings', [
+            'market_id' => $market->id,
+            'source_market_name' => $aliasName,
+            'is_verified' => true,
+        ]);
+
+        $mapping = \App\Models\MarketSourceMapping::where('source_market_name', $aliasName)->first();
+
+        // Delete alias
+        $deleteResponse = $this->actingAs($this->admin)->delete("/admin/markets/{$market->id}/aliases/{$mapping->id}");
+        $deleteResponse->assertRedirect();
+        $this->assertDatabaseMissing('market_source_mappings', ['id' => $mapping->id]);
     }
 
     /**

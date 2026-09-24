@@ -9,11 +9,14 @@ use App\Models\DataSourceMapping;
 use App\Models\SyncLog;
 use App\Models\User;
 use App\Services\DataSources\DataGov\DataGovMarketDataProvider;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AdminDataSourceTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected User $admin;
 
     protected function setUp(): void

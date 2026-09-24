@@ -12,11 +12,14 @@ use App\Models\MarketPriceRaw;
 use App\Models\MarketSourceMapping;
 use App\Models\SystemSetting;
 use App\Models\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class AdminAnalyticsAndSettingsTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected User $admin;
     protected DataSource $dataSource;
 
@@ -191,8 +194,9 @@ class AdminAnalyticsAndSettingsTest extends TestCase
             'error_message' => "Unmapped commodity alias: 'Test-Special-Crop-Reject'. Add mapping in admin.",
         ]);
 
-        // View data quality screen
-        $viewResponse = $this->actingAs($this->admin)->get('/admin/data-quality');
+        // View data quality screen — use the unique error message as a search filter
+        // so the assertion is not affected by how many records accumulate in the shared DB.
+        $viewResponse = $this->actingAs($this->admin)->get('/admin/data-quality?search=Test-Special-Crop-Reject');
         $viewResponse->assertStatus(200);
         $viewResponse->assertSee('Data Quality', false);
         $viewResponse->assertSee('Ingestion Inspector', false);

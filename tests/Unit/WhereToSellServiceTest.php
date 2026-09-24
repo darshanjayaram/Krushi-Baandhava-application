@@ -10,10 +10,13 @@ use App\Models\State;
 use App\Models\Taluk;
 use App\Services\Market\WhereToSellService;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class WhereToSellServiceTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected WhereToSellService $service;
 
     protected function setUp(): void

@@ -7,11 +7,14 @@ use App\Models\CropCategory;
 use App\Models\District;
 use App\Models\Market;
 use App\Models\MarketPrice;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class FarmerPriceDiscoveryTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected function setUp(): void
     {
         parent::setUp();

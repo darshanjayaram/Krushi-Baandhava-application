@@ -30,8 +30,10 @@ use App\Http\Controllers\Farmer\WeatherController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::post('/set-location', [HomeController::class, 'setLocation'])->name('set-location');
 Route::get('/crops', [FarmerCropController::class, 'index'])->name('farmer.crops.index');
 Route::get('/crops/{slug}', [FarmerCropController::class, 'show'])->name('farmer.crops.show');
+Route::get('/crop/{crop}', [FarmerCropController::class, 'show'])->name('farmer.crop.detail');
 Route::get('/markets', [MarketProfileController::class, 'index'])->name('farmer.markets.index');
 Route::get('/nearby-markets', [NearbyMarketController::class, 'index'])->name('farmer.markets.nearby');
 Route::get('/where-to-sell', [\App\Http\Controllers\Farmer\WhereToSellController::class, 'index'])->name('farmer.decision.where-to-sell');
@@ -93,6 +95,8 @@ Route::prefix('admin')->group(function () {
 
         // Master Data: APMC Mandis
         Route::patch('/markets/{market}/toggle', [MarketController::class, 'toggleStatus'])->name('admin.markets.toggle');
+        Route::post('/markets/{market}/aliases', [MarketController::class, 'addAlias'])->name('admin.markets.aliases.add');
+        Route::delete('/markets/{market}/aliases/{mapping}', [MarketController::class, 'removeAlias'])->name('admin.markets.aliases.remove');
         Route::resource('markets', MarketController::class)->names('admin.markets');
 
         // Master Data: Crops & Varieties

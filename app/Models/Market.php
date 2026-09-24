@@ -45,6 +45,11 @@ class Market extends Model
         return $this->hasMany(MarketPrice::class)->orderBy('price_date', 'desc');
     }
 
+    public function sourceMappings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MarketSourceMapping::class);
+    }
+
     /**
      * Scope query to only include markets located in Karnataka.
      */

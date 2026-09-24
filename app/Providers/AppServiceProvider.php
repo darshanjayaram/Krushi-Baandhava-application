@@ -41,5 +41,29 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('admin-login', function (Request $request) {
             return Limit::perMinute(5)->by($request->ip());
         });
+
+        // Share active district & all Karnataka districts with all farmer layout views & location modal
+        \Illuminate\Support\Facades\View::composer(['layouts.farmer', 'components.location-modal'], function ($view) {
+            $request = request();
+            $districtId = $request->query('district') ?? $request->cookie('selected_district_id') ?? session('selected_district_id');
+
+            $allDistricts = \Illuminate\Support\Facades\Cache::remember('karnataka_districts_list', 3600, function () {
+                return \App\Models\District::whereHas('state', fn ($s) => $s->where('code', 'KA')->orWhere('name', 'Karnataka'))
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'name_kn', 'latitude', 'longitude', 'code']);
+            });
+
+            $activeDistrict = null;
+            if ($districtId) {
+                $activeDistrict = $allDistricts->firstWhere('id', $districtId);
+            }
+            if (!$activeDistrict) {
+                $activeDistrict = $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
+            }
+
+            $view->with('allDistricts', $allDistricts)
+                 ->with('activeDistrict', $activeDistrict);
+        });
     }
 }

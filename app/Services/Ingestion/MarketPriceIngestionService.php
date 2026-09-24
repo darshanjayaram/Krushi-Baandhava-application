@@ -140,6 +140,29 @@ class MarketPriceIngestionService
                     continue;
                 }
 
+                // 3.1 Enforce Authority Source Isolation:
+                // Coffee is strictly governed by Coffee Board of India (exclude APMC feeds)
+                if ($crop->isCoffeeBoard() && $dataSource->code !== 'coffee_board') {
+                    $rawModel->update([
+                        'processing_status' => 'skipped',
+                        'processed_at' => Carbon::now(),
+                        'error_message' => "Skipped: Coffee commodity rates are strictly managed via Coffee Board of India data source.",
+                    ]);
+                    $counts['skipped'] = ($counts['skipped'] ?? 0) + 1;
+                    continue;
+                }
+
+                // Coconut & Copra are strictly governed by Coconut Development Board (exclude generic APMC feeds)
+                if ($crop->isCoconutBoard() && $dataSource->code !== 'coconut_board') {
+                    $rawModel->update([
+                        'processing_status' => 'skipped',
+                        'processed_at' => Carbon::now(),
+                        'error_message' => "Skipped: Coconut/Copra commodity rates are strictly managed via Coconut Development Board data source.",
+                    ]);
+                    $counts['skipped'] = ($counts['skipped'] ?? 0) + 1;
+                    continue;
+                }
+
                 // 4. Resolve Canonical Variety
                 $variety = $this->resolveVariety($crop->id, $normalized['source_variety'] ?? null);
 
@@ -185,22 +208,28 @@ class MarketPriceIngestionService
                 }
 
                 // 7. Persist Canonical Record to market_prices
+                // Match key is (crop, variety, market, date) ONLY — data_source_id is NOT
+                // part of the unique key. Each (mandi, crop, date) has one canonical row;
+                // the last-winning data source wins (most recent ingest updates the row).
+                // variety_id_key mirrors variety_id with NULL→0 for the DB-level UNIQUE index.
+                $varietyKey = $variety?->id ?? 0;
                 $canonical = MarketPrice::updateOrCreate(
                     [
-                        'crop_id' => $crop->id,
-                        'variety_id' => $variety?->id,
-                        'market_id' => $market->id,
-                        'price_date' => $priceDate->format('Y-m-d'),
-                        'data_source_id' => $dataSource->id,
+                        'crop_id'         => $crop->id,
+                        'variety_id_key'  => $varietyKey,
+                        'market_id'       => $market->id,
+                        'price_date'      => $priceDate->format('Y-m-d'),
                     ],
                     [
-                        'district_id' => $market->district_id,
-                        'min_price' => $minPrice,
-                        'max_price' => $maxPrice,
-                        'modal_price' => $modalPrice,
+                        'variety_id'       => $variety?->id,
+                        'district_id'      => $market->district_id,
+                        'data_source_id'   => $dataSource->id,
+                        'min_price'        => $minPrice,
+                        'max_price'        => $maxPrice,
+                        'modal_price'      => $modalPrice,
                         'arrival_quantity' => $arrivalQty,
-                        'unit' => $normalized['unit'] ?? 'Quintal',
-                        'raw_record_id' => $rawModel->id,
+                        'unit'             => $normalized['unit'] ?? 'Quintal',
+                        'raw_record_id'    => $rawModel->id,
                     ]
                 );
 
@@ -299,6 +328,14 @@ class MarketPriceIngestionService
             return $aliasMapping->crop;
         }
 
+        // Global verified mapping fallback across any data source
+        $globalCropMapping = CropSourceMapping::where('source_crop_name', $sourceCropName)
+            ->where('is_verified', true)
+            ->first();
+        if ($globalCropMapping && $globalCropMapping->crop) {
+            return $globalCropMapping->crop;
+        }
+
         // Fallback: direct name / slug lookup
         $clean = trim($sourceCropName);
         return Crop::where('name', $clean)
@@ -350,6 +387,17 @@ class MarketPriceIngestionService
         $aliasMapping = $mappingQuery->whereNull('source_district_name')->first();
         if ($aliasMapping && $aliasMapping->market) {
             $m = $aliasMapping->market;
+            if ($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') {
+                return $m;
+            }
+        }
+
+        // Global verified mapping fallback across any data source
+        $globalMarketMapping = MarketSourceMapping::where('source_market_name', $sourceMarketName)
+            ->where('is_verified', true)
+            ->first();
+        if ($globalMarketMapping && $globalMarketMapping->market) {
+            $m = $globalMarketMapping->market;
             if ($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') {
                 return $m;
             }
@@ -439,15 +487,17 @@ class MarketPriceIngestionService
             $priceDate = Carbon::today();
         }
 
+        $varietyKey = $variety?->id ?? 0;
         $canonical = MarketPrice::updateOrCreate(
             [
                 'crop_id' => $crop->id,
-                'variety_id' => $variety?->id,
+                'variety_id_key' => $varietyKey,
                 'market_id' => $market->id,
                 'price_date' => $priceDate->format('Y-m-d'),
-                'data_source_id' => $dataSource->id,
             ],
             [
+                'variety_id' => $variety?->id,
+                'data_source_id' => $dataSource->id,
                 'district_id' => $market->district_id,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,

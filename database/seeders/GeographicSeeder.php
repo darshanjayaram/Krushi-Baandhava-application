@@ -190,6 +190,138 @@ class GeographicSeeder extends Seeder
                     ['name' => 'Belagavi APMC', 'name_kn' => 'ಬೆಳಗಾವಿ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_BLG', 'market_type' => 'APMC', 'latitude' => 15.8520, 'longitude' => 74.5000, 'address' => 'APMC Yard, Belagavi'],
                 ],
             ],
+            [
+                'name' => 'Bagalkote', 'name_kn' => 'ಬಾಗಲಕೋಟೆ', 'code' => 'KA_BGK', 'latitude' => 16.1875, 'longitude' => 75.6989,
+                'taluks' => [['name' => 'Bagalkote', 'name_kn' => 'ಬಾಗಲಕೋಟೆ', 'latitude' => 16.1875, 'longitude' => 75.6989]],
+                'markets' => [['name' => 'Bagalkote APMC', 'name_kn' => 'ಬಾಗಲಕೋಟೆ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_BGK', 'market_type' => 'APMC', 'latitude' => 16.1880, 'longitude' => 75.7000, 'address' => 'APMC Yard, Bagalkote']],
+            ],
+            [
+                'name' => 'Ballari', 'name_kn' => 'ಬಳ್ಳಾರಿ', 'code' => 'KA_BAL', 'latitude' => 15.1394, 'longitude' => 76.9214,
+                'taluks' => [['name' => 'Ballari', 'name_kn' => 'ಬಳ್ಳಾರಿ', 'latitude' => 15.1394, 'longitude' => 76.9214]],
+                'markets' => [['name' => 'Ballari APMC', 'name_kn' => 'ಬಳ್ಳಾರಿ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_BAL', 'market_type' => 'APMC', 'latitude' => 15.1400, 'longitude' => 76.9220, 'address' => 'APMC Yard, Ballari']],
+            ],
+            [
+                'name' => 'Bengaluru Rural', 'name_kn' => 'ಬೆಂಗಳೂರು ಗ್ರಾಮಾಂತರ', 'code' => 'KA_BLR_R', 'latitude' => 13.2847, 'longitude' => 77.5684,
+                'taluks' => [['name' => 'Devanahalli', 'name_kn' => 'ದೇವನಹಳ್ಳಿ', 'latitude' => 13.2483, 'longitude' => 77.7126]],
+                'markets' => [['name' => 'Devanahalli APMC', 'name_kn' => 'ದೇವನಹಳ್ಳಿ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_DEV', 'market_type' => 'APMC', 'latitude' => 13.2500, 'longitude' => 77.7150, 'address' => 'APMC Yard, Devanahalli']],
+            ],
+            [
+                'name' => 'Bidar', 'name_kn' => 'ಬೀದರ್', 'code' => 'KA_BDR', 'latitude' => 17.9104, 'longitude' => 77.5199,
+                'taluks' => [['name' => 'Bidar', 'name_kn' => 'ಬೀದರ್', 'latitude' => 17.9104, 'longitude' => 77.5199]],
+                'markets' => [['name' => 'Bidar APMC', 'name_kn' => 'ಬೀದರ್ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_BDR', 'market_type' => 'APMC', 'latitude' => 17.9120, 'longitude' => 77.5210, 'address' => 'APMC Yard, Bidar']],
+            ],
+            [
+                'name' => 'Chamarajanagar', 'name_kn' => 'ಚಾಮರಾಜನಗರ', 'code' => 'KA_CMR', 'latitude' => 11.9261, 'longitude' => 76.9437,
+                'taluks' => [['name' => 'Chamarajanagar', 'name_kn' => 'ಚಾಮರಾಜನಗರ', 'latitude' => 11.9261, 'longitude' => 76.9437]],
+                'markets' => [['name' => 'Chamarajanagar APMC', 'name_kn' => 'ಚಾಮರಾಜನಗರ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_CMR', 'market_type' => 'APMC', 'latitude' => 11.9280, 'longitude' => 76.9450, 'address' => 'APMC Yard, Chamarajanagar']],
+            ],
+            [
+                'name' => 'Chikkaballapura', 'name_kn' => 'ಚಿಕ್ಕಬಳ್ಳಾಪುರ', 'code' => 'KA_CKB', 'latitude' => 13.4325, 'longitude' => 77.7275,
+                'taluks' => [['name' => 'Chikkaballapura', 'name_kn' => 'ಚಿಕ್ಕಬಳ್ಳಾಪುರ', 'latitude' => 13.4325, 'longitude' => 77.7275]],
+                'markets' => [['name' => 'Chikkaballapura APMC', 'name_kn' => 'ಚಿಕ್ಕಬಳ್ಳಾಪುರ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_CKB', 'market_type' => 'APMC', 'latitude' => 13.4350, 'longitude' => 77.7300, 'address' => 'APMC Yard, Chikkaballapura']],
+            ],
+            [
+                'name' => 'Chitradurga', 'name_kn' => 'ಚಿತ್ರದುರ್ಗ', 'code' => 'KA_CTA', 'latitude' => 14.2251, 'longitude' => 76.3980,
+                'taluks' => [['name' => 'Chitradurga', 'name_kn' => 'ಚಿತ್ರದುರ್ಗ', 'latitude' => 14.2251, 'longitude' => 76.3980]],
+                'markets' => [['name' => 'Chitradurga APMC', 'name_kn' => 'ಚಿತ್ರದುರ್ಗ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_CTA', 'market_type' => 'APMC', 'latitude' => 14.2280, 'longitude' => 76.4000, 'address' => 'APMC Yard, Chitradurga']],
+            ],
+            [
+                'name' => 'Dharwad', 'name_kn' => 'ಧಾರವಾಡ', 'code' => 'KA_DWR', 'latitude' => 15.4589, 'longitude' => 75.0078,
+                'taluks' => [['name' => 'Hubballi', 'name_kn' => 'ಹುಬ್ಬಳ್ಳಿ', 'latitude' => 15.3647, 'longitude' => 75.1240]],
+                'markets' => [['name' => 'Hubballi APMC', 'name_kn' => 'ಹುಬ್ಬಳ್ಳಿ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_HUB', 'market_type' => 'APMC', 'latitude' => 15.3650, 'longitude' => 75.1250, 'address' => 'APMC Yard, Amargol, Hubballi']],
+            ],
+            [
+                'name' => 'Gadag', 'name_kn' => 'ಗದಗ', 'code' => 'KA_GDG', 'latitude' => 15.4313, 'longitude' => 75.6355,
+                'taluks' => [['name' => 'Gadag', 'name_kn' => 'ಗದಗ', 'latitude' => 15.4313, 'longitude' => 75.6355]],
+                'markets' => [['name' => 'Gadag APMC', 'name_kn' => 'ಗದಗ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_GDG', 'market_type' => 'APMC', 'latitude' => 15.4330, 'longitude' => 75.6370, 'address' => 'APMC Yard, Gadag']],
+            ],
+            [
+                'name' => 'Hassan', 'name_kn' => 'ಹಾಸನ', 'code' => 'KA_HAS', 'latitude' => 13.0033, 'longitude' => 76.1004,
+                'taluks' => [
+                    ['name' => 'Hassan', 'name_kn' => 'ಹಾಸನ', 'latitude' => 13.0033, 'longitude' => 76.1004],
+                    ['name' => 'Sakleshpur', 'name_kn' => 'ಸಕಲೇಶಪುರ', 'latitude' => 12.9442, 'longitude' => 75.7867],
+                ],
+                'markets' => [
+                    ['name' => 'Hassan APMC', 'name_kn' => 'ಹಾಸನ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_HAS', 'market_type' => 'APMC', 'latitude' => 13.0050, 'longitude' => 76.1020, 'address' => 'APMC Yard, Hassan'],
+                    ['name' => 'Sakleshpur APMC', 'name_kn' => 'ಸಕಲೇಶಪುರ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_SAK', 'market_type' => 'APMC', 'latitude' => 12.9460, 'longitude' => 75.7880, 'address' => 'APMC Yard, Sakleshpur'],
+                ],
+            ],
+            [
+                'name' => 'Haveri', 'name_kn' => 'ಹಾವೇರಿ', 'code' => 'KA_HVR', 'latitude' => 14.7954, 'longitude' => 75.3991,
+                'taluks' => [
+                    ['name' => 'Haveri', 'name_kn' => 'ಹಾವೇರಿ', 'latitude' => 14.7954, 'longitude' => 75.3991],
+                    ['name' => 'Byadgi', 'name_kn' => 'ಬ್ಯಾಡಗಿ', 'latitude' => 14.6783, 'longitude' => 75.4883],
+                ],
+                'markets' => [
+                    ['name' => 'Byadgi APMC (Chilli Market)', 'name_kn' => 'ಬ್ಯಾಡಗಿ ಎಪಿಎಂಸಿ (ಮೆಣಸಿನಕಾಯಿ ಮಾರುಕಟ್ಟೆ)', 'code' => 'KA_APMC_BYD', 'market_type' => 'Specialized Market', 'latitude' => 14.6800, 'longitude' => 75.4900, 'address' => 'APMC Yard, Byadgi'],
+                ],
+            ],
+            [
+                'name' => 'Kalaburagi', 'name_kn' => 'ಕಲಬುರಗಿ', 'code' => 'KA_KLB', 'latitude' => 17.3297, 'longitude' => 76.8343,
+                'taluks' => [['name' => 'Kalaburagi', 'name_kn' => 'ಕಲಬುರಗಿ', 'latitude' => 17.3297, 'longitude' => 76.8343]],
+                'markets' => [['name' => 'Kalaburagi APMC (Tur Market)', 'name_kn' => 'ಕಲಬುರಗಿ ಎಪಿಎಂಸಿ (ತೊಗರಿ ಮಾರುಕಟ್ಟೆ)', 'code' => 'KA_APMC_KLB', 'market_type' => 'Specialized Market', 'latitude' => 17.3320, 'longitude' => 76.8360, 'address' => 'Nehru Gunj APMC, Kalaburagi']],
+            ],
+            [
+                'name' => 'Kodagu', 'name_kn' => 'ಕೊಡಗು', 'code' => 'KA_KDG', 'latitude' => 12.4244, 'longitude' => 75.7382,
+                'taluks' => [
+                    ['name' => 'Madikeri', 'name_kn' => 'ಮಡಿಕೇರಿ', 'latitude' => 12.4244, 'longitude' => 75.7382],
+                    ['name' => 'Somwarpet', 'name_kn' => 'ಸೋಮವಾರಪೇಟೆ', 'latitude' => 12.5972, 'longitude' => 75.8569],
+                ],
+                'markets' => [
+                    ['name' => 'Madikeri Market', 'name_kn' => 'ಮಡಿಕೇರಿ ಮಾರುಕಟ್ಟೆ', 'code' => 'KA_MKT_MDK', 'market_type' => 'Board/Private', 'latitude' => 12.4260, 'longitude' => 75.7400, 'address' => 'Coffee & Spice Market, Madikeri'],
+                ],
+            ],
+            [
+                'name' => 'Koppal', 'name_kn' => 'ಕೊಪ್ಪಳ', 'code' => 'KA_KPL', 'latitude' => 15.3468, 'longitude' => 76.1554,
+                'taluks' => [['name' => 'Koppal', 'name_kn' => 'ಕೊಪ್ಪಳ', 'latitude' => 15.3468, 'longitude' => 76.1554]],
+                'markets' => [['name' => 'Koppal APMC', 'name_kn' => 'ಕೊಪ್ಪಳ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_KPL', 'market_type' => 'APMC', 'latitude' => 15.3480, 'longitude' => 76.1570, 'address' => 'APMC Yard, Koppal']],
+            ],
+            [
+                'name' => 'Raichur', 'name_kn' => 'ರಾಯಚೂರು', 'code' => 'KA_RCH', 'latitude' => 16.2120, 'longitude' => 77.3439,
+                'taluks' => [['name' => 'Raichur', 'name_kn' => 'ರಾಯಚೂರು', 'latitude' => 16.2120, 'longitude' => 77.3439]],
+                'markets' => [['name' => 'Raichur APMC (Cotton & Paddy)', 'name_kn' => 'ರಾಯಚೂರು ಎಪಿಎಂಸಿ (ಹತ್ತಿ ಮತ್ತು ಭತ್ತ)', 'code' => 'KA_APMC_RCH', 'market_type' => 'APMC', 'latitude' => 16.2140, 'longitude' => 77.3460, 'address' => 'APMC Yard, Raichur']],
+            ],
+            [
+                'name' => 'Ramanagara', 'name_kn' => 'ರಾಮನಗರ', 'code' => 'KA_RAM', 'latitude' => 12.7209, 'longitude' => 77.2799,
+                'taluks' => [['name' => 'Ramanagara', 'name_kn' => 'ರಾಮನಗರ', 'latitude' => 12.7209, 'longitude' => 77.2799]],
+                'markets' => [['name' => 'Ramanagara Silk Cocoon Market', 'name_kn' => 'ರಾಮನಗರ ರೇಷ್ಮೆ ಗೂಡು ಮಾರುಕಟ್ಟೆ', 'code' => 'KA_MKT_RAM', 'market_type' => 'Specialized Market', 'latitude' => 12.7220, 'longitude' => 77.2810, 'address' => 'Govt Silk Cocoon Market, Ramanagara']],
+            ],
+            [
+                'name' => 'Tumakuru', 'name_kn' => 'ತುಮಕೂರು', 'code' => 'KA_TUM', 'latitude' => 13.3392, 'longitude' => 77.1017,
+                'taluks' => [
+                    ['name' => 'Tumakuru', 'name_kn' => 'ತುಮಕೂರು', 'latitude' => 13.3392, 'longitude' => 77.1017],
+                    ['name' => 'Tiptur', 'name_kn' => 'ತಿಪಟೂರು', 'latitude' => 13.2572, 'longitude' => 76.4789],
+                ],
+                'markets' => [
+                    ['name' => 'Tiptur APMC (Copra Market)', 'name_kn' => 'ತಿಪಟೂರು ಎಪಿಎಂಸಿ (ಕೊಬ್ಬರಿ ಮಾರುಕಟ್ಟೆ)', 'code' => 'KA_APMC_TIP', 'market_type' => 'Specialized Market', 'latitude' => 13.2600, 'longitude' => 76.4800, 'address' => 'APMC Yard, Tiptur'],
+                    ['name' => 'Tumakuru APMC', 'name_kn' => 'ತುಮಕೂರು ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_TUM', 'market_type' => 'APMC', 'latitude' => 13.3410, 'longitude' => 77.1040, 'address' => 'APMC Yard, Batawadi, Tumakuru'],
+                ],
+            ],
+            [
+                'name' => 'Uttara Kannada', 'name_kn' => 'ಉತ್ತರ ಕನ್ನಡ', 'code' => 'KA_UKN', 'latitude' => 14.7937, 'longitude' => 74.6869,
+                'taluks' => [
+                    ['name' => 'Sirsi', 'name_kn' => 'ಶಿರಸಿ', 'latitude' => 14.6195, 'longitude' => 74.8354],
+                    ['name' => 'Yellapur', 'name_kn' => 'ಯಲ್ಲಾಪುರ', 'latitude' => 14.9642, 'longitude' => 74.7121],
+                ],
+                'markets' => [
+                    ['name' => 'Sirsi APMC (TSS)', 'name_kn' => 'ಶಿರಸಿ ಎಪಿಎಂಸಿ (ಟಿಎಸ್ಎಸ್)', 'code' => 'KA_APMC_SRS', 'market_type' => 'Cooperative APMC', 'latitude' => 14.6210, 'longitude' => 74.8370, 'address' => 'TSS APMC Yard, Sirsi'],
+                ],
+            ],
+            [
+                'name' => 'Vijayanagara', 'name_kn' => 'ವಿಜಯನಗರ', 'code' => 'KA_VJN', 'latitude' => 15.2689, 'longitude' => 76.3909,
+                'taluks' => [['name' => 'Hosapete', 'name_kn' => 'ಹೊಸಪೇಟೆ', 'latitude' => 15.2689, 'longitude' => 76.3909]],
+                'markets' => [['name' => 'Hosapete APMC', 'name_kn' => 'ಹೊಸಪೇಟೆ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_HSP', 'market_type' => 'APMC', 'latitude' => 15.2710, 'longitude' => 76.3930, 'address' => 'APMC Yard, Hosapete']],
+            ],
+            [
+                'name' => 'Vijayapura', 'name_kn' => 'ವಿಜಯಪುರ', 'code' => 'KA_VJP', 'latitude' => 16.8302, 'longitude' => 75.7100,
+                'taluks' => [['name' => 'Vijayapura', 'name_kn' => 'ವಿಜಯಪುರ', 'latitude' => 16.8302, 'longitude' => 75.7100]],
+                'markets' => [['name' => 'Vijayapura APMC', 'name_kn' => 'ವಿಜಯಪುರ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_VJP', 'market_type' => 'APMC', 'latitude' => 16.8320, 'longitude' => 75.7120, 'address' => 'APMC Yard, Vijayapura']],
+            ],
+            [
+                'name' => 'Yadgir', 'name_kn' => 'ಯಾದಗಿರಿ', 'code' => 'KA_YDG', 'latitude' => 16.7628, 'longitude' => 77.1378,
+                'taluks' => [['name' => 'Yadgir', 'name_kn' => 'ಯಾದಗಿರಿ', 'latitude' => 16.7628, 'longitude' => 77.1378]],
+                'markets' => [['name' => 'Yadgir APMC', 'name_kn' => 'ಯಾದಗಿರಿ ಎಪಿಎಂಸಿ', 'code' => 'KA_APMC_YDG', 'market_type' => 'APMC', 'latitude' => 16.7650, 'longitude' => 77.1400, 'address' => 'APMC Yard, Yadgir']],
+            ],
         ];
 
         foreach ($districts as $dData) {

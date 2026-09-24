@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Models\District;
 use App\Models\Market;
 use App\Models\State;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class NearbyMarketTest extends TestCase
 {
+    use DatabaseTransactions;
+
     public function test_nearby_markets_web_page_renders_successfully(): void
     {
         $response = $this->get('/nearby-markets');

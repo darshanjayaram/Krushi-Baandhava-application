@@ -15,6 +15,7 @@ class MarketPrice extends Model
     protected $fillable = [
         'crop_id',
         'variety_id',
+        'variety_id_key',   // sentinel: mirrors variety_id, NULL → 0 (for UNIQUE index)
         'market_id',
         'district_id',
         'price_date',
@@ -29,12 +30,22 @@ class MarketPrice extends Model
 
     protected static function booted(): void
     {
+        // Auto-fill district_id and data_source_id when creating
         static::creating(function (MarketPrice $price) {
             if (! $price->district_id && $price->market_id) {
                 $price->district_id = Market::find($price->market_id)?->district_id;
             }
             if (! $price->data_source_id) {
                 $price->data_source_id = DataSource::first()?->id;
+            }
+            // Keep variety_id_key in sync with variety_id (NULL → 0)
+            $price->variety_id_key = $price->variety_id ?? 0;
+        });
+
+        // Also sync on update in case variety_id changes
+        static::updating(function (MarketPrice $price) {
+            if ($price->isDirty('variety_id')) {
+                $price->variety_id_key = $price->variety_id ?? 0;
             }
         });
     }
