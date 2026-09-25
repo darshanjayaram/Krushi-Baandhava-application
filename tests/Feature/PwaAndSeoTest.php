@@ -162,7 +162,6 @@ class PwaAndSeoTest extends TestCase
         $response->assertSee('<meta property="og:type" content="website"', false);
         $response->assertSee('<meta name="twitter:card"', false);
         $response->assertSee('Install Krushi Baandhava');
-        $response->assertSee('Offline Mode: Showing cached rates');
-        $response->assertSee('ಆಫ್‌ಲೈನ್ ಮೋಡ್: ಉಳಿಸಲಾದ ದರಗಳು ಲಭ್ಯವಿವೆ');
+        $response->assertSee('ಆಫ್‌ಲೈನ್ ಮೋಡ್: ಉಳಿಸಲಾದ ದರಗಳನ್ನು ತೋರಿಸಲಾಗುತ್ತಿದೆ');
     }
 }

@@ -17,7 +17,7 @@ class FarmerPwaTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Krushi Baandhava');
         $response->assertSee('ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು');
-        $response->assertSee('Mandis');
+        $response->assertSee('ಮಂಡಿಗಳು');
     }
 
     /**

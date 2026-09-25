@@ -13,8 +13,6 @@
     liveLoading: false,
     liveSourceId: '{{ $dataSources->first()?->id ?? 1 }}',
     liveVarietiesList: [],
-    selectedTargetGrade: {},
-    mappingInProgress: {},
     liveError: null,
 
     // API Inspector Modal State
@@ -42,7 +40,13 @@
         .then(data => {
             this.liveLoading = false;
             if (data.ok) {
-                this.liveVarietiesList = data.varieties || [];
+                this.liveVarietiesList = (data.varieties || [])
+                    .filter(v => v.raw_name && String(v.raw_name).trim().length > 0)
+                    .map(v => ({
+                        ...v,
+                        selected_grade_id: v.suggested_variety_id ? String(v.suggested_variety_id) : '',
+                        mapping_in_progress: false
+                    }));
             } else {
                 this.liveError = data.error || 'Failed to fetch live varieties.';
             }
@@ -53,13 +57,17 @@
         });
     },
 
-    quickMapVariety(varietyRawName, targetGradeId) {
+    quickMapVariety(item) {
+        if (!item) return;
+        const targetGradeId = item.selected_grade_id;
+        const varietyRawName = item.raw_name;
+
         if (!targetGradeId) {
             alert('Please select a target canonical grade to map.');
             return;
         }
 
-        this.mappingInProgress[varietyRawName] = true;
+        item.mapping_in_progress = true;
 
         fetch('{{ $isEdit ? route('admin.crops.variety-aliases.add', $crop) : '#' }}', {
             method: 'POST',
@@ -72,28 +80,59 @@
             body: JSON.stringify({
                 crop_variety_id: targetGradeId,
                 source_variety_name: varietyRawName,
-                data_source_id: this.liveSourceId
+                data_source_id: this.liveSourceId ? parseInt(this.liveSourceId) : null
             })
         })
         .then(res => res.json())
         .then(data => {
-            this.mappingInProgress[varietyRawName] = false;
+            item.mapping_in_progress = false;
             if (data.ok) {
                 // Update item locally
-                const item = this.liveVarietiesList.find(v => v.raw_name === varietyRawName);
-                if (item) {
-                    item.is_mapped = true;
-                    item.mapped_variety_name = data.mapping.variety_name;
-                    item.mapped_variety_id = data.mapping.variety_id;
-                    item.mapping_id = data.mapping.id;
-                }
+                item.is_mapped = true;
+                item.mapped_variety_name = data.mapping.variety_name;
+                item.mapped_variety_id = data.mapping.variety_id;
+                item.mapping_id = data.mapping.id;
             } else {
                 alert(data.message || data.error || 'Failed to map variety.');
             }
         })
         .catch(err => {
-            this.mappingInProgress[varietyRawName] = false;
+            item.mapping_in_progress = false;
             alert(err.message || 'Failed to map variety.');
+        });
+    },
+
+    quickUnmapVariety(item) {
+        if (!item || !item.mapping_id) return;
+        if (!confirm(`Remove variety mapping for '${item.raw_name}'?`)) return;
+
+        item.mapping_in_progress = true;
+        const deleteUrl = '{{ $isEdit ? url('/admin/crops/' . $crop->id . '/variety-aliases') : '#' }}/' + item.mapping_id;
+
+        fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            item.mapping_in_progress = false;
+            if (data.ok) {
+                item.is_mapped = false;
+                item.mapped_variety_name = null;
+                item.mapped_variety_id = null;
+                item.mapping_id = null;
+                item.selected_grade_id = item.suggested_variety_id ? String(item.suggested_variety_id) : '';
+            } else {
+                alert(data.message || data.error || 'Failed to remove mapping.');
+            }
+        })
+        .catch(err => {
+            item.mapping_in_progress = false;
+            alert(err.message || 'Failed to remove mapping.');
         });
     },
 
@@ -581,25 +620,42 @@
                                 <!-- Mapped Destination or 1-Click Mapper -->
                                 <div class="pt-2 border-t border-slate-800">
                                     <template x-if="item.is_mapped">
-                                        <div class="text-[11px] font-medium text-emerald-400 flex items-center justify-between">
-                                            <span>Mapped to: <strong class="font-bold text-white" x-text="item.mapped_variety_name"></strong></span>
+                                        <div class="text-[11px] font-medium text-emerald-400 flex items-center justify-between gap-1">
+                                            <span class="truncate">Mapped to: <strong class="font-bold text-white" x-text="item.mapped_variety_name"></strong></span>
+                                            <button type="button" 
+                                                    @click="quickUnmapVariety(item)"
+                                                    :disabled="item.mapping_in_progress"
+                                                    title="Remove mapping"
+                                                    class="text-xs text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-950/50 rounded transition cursor-pointer shrink-0">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
                                         </div>
                                     </template>
 
                                     <template x-if="!item.is_mapped">
-                                        <div class="flex items-center gap-1.5">
-                                            <select x-model="selectedTargetGrade[item.raw_name]" class="w-full px-2 py-1 text-[11px] bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                                                <option value="">-- Choose Grade --</option>
-                                                @foreach($crop->varieties as $v)
-                                                    <option value="{{ $v->id }}">{{ $v->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            <button type="button" 
-                                                    @click="quickMapVariety(item.raw_name, selectedTargetGrade[item.raw_name])"
-                                                    :disabled="mappingInProgress[item.raw_name]"
-                                                    class="px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shrink-0 transition shadow-sm cursor-pointer">
-                                                <span x-text="mappingInProgress[item.raw_name] ? '...' : '+ Map'"></span>
-                                            </button>
+                                        <div class="space-y-1.5">
+                                            <div class="flex items-center gap-1.5">
+                                                <select x-model="item.selected_grade_id" class="w-full px-2 py-1 text-[11px] bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                                    <option value="">-- Choose Grade --</option>
+                                                    @foreach($crop->varieties as $v)
+                                                        <option value="{{ $v->id }}">{{ $v->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <button type="button" 
+                                                        @click="quickMapVariety(item)"
+                                                        :disabled="item.mapping_in_progress"
+                                                        class="px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shrink-0 transition shadow-sm cursor-pointer disabled:opacity-50">
+                                                    <span x-text="item.mapping_in_progress ? '...' : '+ Map'"></span>
+                                                </button>
+                                            </div>
+                                            <template x-if="item.suggested_variety_name">
+                                                <div class="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                                                    <span>💡 Auto-detected:</span>
+                                                    <span class="font-bold underline" x-text="item.suggested_variety_name"></span>
+                                                </div>
+                                            </template>
                                         </div>
                                     </template>
                                 </div>

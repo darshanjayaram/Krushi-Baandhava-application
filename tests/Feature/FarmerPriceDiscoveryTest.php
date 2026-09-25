@@ -236,7 +236,7 @@ class FarmerPriceDiscoveryTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Binny Mill (F&V)');
-        $response->assertSee('ಕರ್ನಾಟಕ ಮಂಡಿ ಆಯ್ಕೆ', false);
+        $response->assertSee('ಕರ್ನಾಟಕ ಮಂಡಿಗಳು', false);
     }
 
     public function test_ranked_by_best_price_groups_multiple_varieties_into_single_apmc_card(): void

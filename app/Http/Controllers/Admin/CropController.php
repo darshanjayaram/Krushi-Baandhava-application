@@ -342,9 +342,19 @@ class CropController extends Controller
 
             $results = [];
             foreach ($extractedVarieties as $name => $info) {
+                $cleanName = trim((string) $name);
+                if ($cleanName === '') {
+                    continue;
+                }
+
                 $mapping = $mappings->get($name);
+                $suggested = null;
+                if (!$mapping) {
+                    $suggested = $this->findBestMatchingVariety($cleanName, $crop->varieties);
+                }
+
                 $results[] = [
-                    'raw_name' => $name,
+                    'raw_name' => $cleanName,
                     'price' => (float) ($info['price'] ?? 0),
                     'market' => $info['market'] ?? 'APMC Mandi',
                     'date' => $info['date'] ?? now()->format('d M'),
@@ -352,6 +362,8 @@ class CropController extends Controller
                     'mapped_variety_id' => $mapping?->crop_variety_id,
                     'mapped_variety_name' => $mapping?->variety?->name,
                     'mapping_id' => $mapping?->id,
+                    'suggested_variety_id' => $suggested?->id,
+                    'suggested_variety_name' => $suggested?->name,
                 ];
             }
 
@@ -367,6 +379,40 @@ class CropController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Smart heuristic auto-matcher between raw API string and canonical crop varieties.
+     */
+    protected function findBestMatchingVariety(string $rawName, $varieties): ?\App\Models\CropVariety
+    {
+        $cleanRaw = strtolower((string) preg_replace('/[^a-zA-Z0-9]/', '', $rawName));
+        $rawWords = array_values(array_filter(preg_split('/[^a-zA-Z0-9]+/', strtolower($rawName))));
+
+        $bestMatch = null;
+        $highestScore = 0;
+
+        foreach ($varieties as $v) {
+            $cleanV = strtolower((string) preg_replace('/[^a-zA-Z0-9]/', '', $v->name));
+            $vWords = array_values(array_filter(preg_split('/[^a-zA-Z0-9]+/', strtolower($v->name))));
+
+            // Exact clean match
+            if ($cleanRaw === $cleanV) {
+                return $v;
+            }
+
+            // Word overlap check (e.g. "Ginger(Dry)" matches "Dry Ginger")
+            $intersect = array_intersect($rawWords, $vWords);
+            if (!empty($intersect)) {
+                $score = count($intersect) / max(count($rawWords), count($vWords));
+                if ($score > $highestScore && $score >= 0.4) {
+                    $highestScore = $score;
+                    $bestMatch = $v;
+                }
+            }
+        }
+
+        return $bestMatch;
     }
 
     /**

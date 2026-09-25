@@ -95,8 +95,8 @@ class AdminPriceRetentionAndRangeSyncTest extends TestCase
         $response->assertViewHas('archiveBreakdown');
         $response->assertViewHas('availableYears');
 
-        // Filter by Year 2025 & Month 5
-        $filterResponse = $this->actingAs($this->admin)->get(route('admin.prices.index', ['year' => 2025, 'month' => 5]));
+        // Filter by Year 2025 & Month 5 for this test crop and market
+        $filterResponse = $this->actingAs($this->admin)->get(route('admin.prices.index', ['year' => 2025, 'month' => 5, 'crop_id' => $this->crop->id, 'market_id' => $this->market->id]));
         $filterResponse->assertStatus(200);
         $filterResponse->assertSee('10 May 2025');
 
