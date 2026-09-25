@@ -135,4 +135,16 @@ class Scheme extends Model
             default => 'ಸಾಮಾನ್ಯ ಯೋಜನೆ (General)',
         };
     }
+
+    public function getCategoryLabelEnAttribute(): string
+    {
+        return match ($this->category) {
+            'subsidy' => 'Subsidies & Grants',
+            'machinery' => 'Farm Machinery',
+            'irrigation' => 'Micro Irrigation',
+            'insurance' => 'Crop Insurance',
+            'organic' => 'Organic & Soil',
+            default => 'General Scheme',
+        };
+    }
 }

@@ -3,24 +3,27 @@
 @section('title', 'ಕೃಷಿ ಮಾರ್ಗದರ್ಶಿ ಮತ್ತು ಬೇಸಾಯ ಕ್ರಮಗಳು — Agronomy Guides')
 
 @section('content')
+@php
+    $activeLocale = app()->getLocale();
+@endphp
 <div class="space-y-6">
 
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1">
-                <span>📚 ತಜ್ಞರ ಬೇಸಾಯ ಕೈಪಿಡಿ</span>
+            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <span>📚 {{ $activeLocale === 'en' ? 'Agronomy Knowledge Base' : 'ತಜ್ಞರ ಬೇಸಾಯ ಕೈಪಿಡಿ' }}</span>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-                ಕೃಷಿ ಮಾರ್ಗದರ್ಶಿ & ಲೇಖನಗಳು (Agri Guides)
+            <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Agri Guides & Agronomy Articles' : 'ಕೃಷಿ ಮಾರ್ಗದರ್ಶಿ & ಲೇಖನಗಳು' }}
             </h1>
-            <p class="text-xs sm:text-sm text-stone-500">
-                ವೈಜ್ಞಾನಿಕ ಕೃಷಿ ವಿಧಾನಗಳು, ಮಣ್ಣಿನ ಪೋಷಕಾಂಶ, ರೋಗ ನಿಯಂತ್ರಣ ಹಾಗೂ ಇಳುವರಿ ಹೆಚ್ಚಿಸುವ ತಂತ್ರಗಳು.
+            <p class="text-xs sm:text-sm text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Scientific practices, nutrient management, pest prevention and yield-boosting techniques.' : 'ವೈಜ್ಞಾನಿಕ ಕೃಷಿ ವಿಧಾನಗಳು, ಮಣ್ಣಿನ ಪೋಷಕಾಂಶ, ರೋಗ ನಿಯಂತ್ರಣ ಹಾಗೂ ಇಳುವರಿ ಹೆಚ್ಚಿಸುವ ತಂತ್ರಗಳು.' }}
             </p>
         </div>
 
-        <a href="{{ route('home') }}" class="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs">
-            <span>&larr; ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ</span>
+        <a href="{{ route('home') }}" class="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+            <span>&larr; {{ $activeLocale === 'en' ? 'Back to Home' : 'ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ' }}</span>
         </a>
     </div>
 
@@ -41,19 +44,19 @@
                 <input type="text" 
                        name="search" 
                        value="{{ $search }}" 
-                       placeholder="ಲೇಖನದ ವಿಷಯ ಹುಡುಕಿ (ಉದಾ: ಹಳದಿ ಎಲೆ ರೋಗ, ಸಾವಯವ ಗೊಬ್ಬರ)..."
-                       class="w-full text-xs sm:text-sm pl-9 pr-8 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition">
+                       placeholder="{{ $activeLocale === 'en' ? 'Search article topic...' : 'ಲೇಖನದ ವಿಷಯ ಹುಡುಕಿ (ಉದಾ: ರೋಗ ನಿಯಂತ್ರಣ, ಗೊಬ್ಬರ)...' }}"
+                       class="w-full text-xs sm:text-sm pl-9 pr-8 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
             </div>
 
             <!-- Crop filter -->
             <div class="sm:col-span-3">
                 <select name="crop_id" 
                         onchange="this.form.submit()"
-                        class="w-full text-xs sm:text-sm py-2.5 px-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
-                    <option value="">ಎಲ್ಲಾ ಬೆಳೆಗಳು (All Crops)</option>
+                        class="w-full text-xs sm:text-sm py-2.5 px-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    <option value="">{{ $activeLocale === 'en' ? 'All Crops' : 'ಎಲ್ಲಾ ಬೆಳೆಗಳು' }}</option>
                     @foreach($crops as $c)
                         <option value="{{ $c->id }}" {{ (string)$cropId === (string)$c->id ? 'selected' : '' }}>
-                            {{ $c->kannada_name ?: $c->name }} ({{ $c->name }})
+                            {{ $activeLocale === 'en' ? $c->name : ($c->name_kn ?: $c->name) }}
                         </option>
                     @endforeach
                 </select>

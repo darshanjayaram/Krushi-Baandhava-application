@@ -21,11 +21,15 @@ class DataSource extends Model
         'endpoint',
         'auth_type',
         'sync_frequency',
+        'sync_time',
+        'sync_days',
+        'cron_expression',
         'is_active',
         'timeout_seconds',
         'rate_limit_per_minute',
         'last_sync_at',
         'last_sync_status',
+        'last_heartbeat_at',
     ];
 
     protected function casts(): array
@@ -35,6 +39,7 @@ class DataSource extends Model
             'timeout_seconds' => 'integer',
             'rate_limit_per_minute' => 'integer',
             'last_sync_at' => 'datetime',
+            'last_heartbeat_at' => 'datetime',
         ];
     }
 
@@ -72,4 +77,57 @@ class DataSource extends Model
     {
         return $this->hasMany(MarketSourceMapping::class);
     }
+
+    /**
+     * Determine if this data source is due for synchronization based on its schedule.
+     */
+    public function isDue(?\Carbon\Carbon $now = null): bool
+    {
+        $now = $now ?? \Carbon\Carbon::now();
+
+        // 1. Operating Days Check
+        if ($this->sync_days === 'mon_sat' && $now->isSunday()) {
+            return false;
+        }
+
+        // 2. Frequency Check
+        switch ($this->sync_frequency) {
+            case 'hourly':
+                return $this->last_sync_at === null || $this->last_sync_at->diffInMinutes($now) >= 55;
+
+            case 'every_2_hours':
+                return $this->last_sync_at === null || $this->last_sync_at->diffInMinutes($now) >= 115;
+
+            case 'every_6_hours':
+                return $this->last_sync_at === null || $this->last_sync_at->diffInHours($now) >= 5.5;
+
+            case 'every_12_hours':
+                return $this->last_sync_at === null || $this->last_sync_at->diffInHours($now) >= 11.5;
+
+            case 'weekly':
+                return $this->last_sync_at === null || $this->last_sync_at->diffInDays($now) >= 6;
+
+            case 'twice_daily':
+            case 'daily':
+            default:
+                if (!empty($this->sync_time)) {
+                    $targetTimes = array_map('trim', explode(',', $this->sync_time));
+                    $currentHm = $now->format('H:i');
+                    foreach ($targetTimes as $time) {
+                        try {
+                            $targetCarbon = \Carbon\Carbon::createFromTimeString($time);
+                            if ($targetCarbon && abs($now->diffInMinutes($targetCarbon)) <= 45) {
+                                if ($this->last_sync_at === null || $this->last_sync_at->diffInMinutes($now) >= 50) {
+                                    return true;
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                            // ignore invalid string format fallback
+                        }
+                    }
+                }
+                return $this->last_sync_at === null || $this->last_sync_at->diffInHours($now) >= 10;
+        }
+    }
 }
+

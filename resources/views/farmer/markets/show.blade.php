@@ -3,6 +3,9 @@
 @section('title', $market->name . ' APMC (' . ($market->name_kn ?? '') . ') — ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು & ಆವಕ')
 
 @section('content')
+@php
+    $activeLocale = app()->getLocale();
+@endphp
 <div class="space-y-6">
 
     <!-- Breadcrumb -->
@@ -139,13 +142,13 @@
                                             {{ $price->crop->name }}
                                         </a>
                                     </h3>
-                                    @if($price->crop->name_kn)
+                                    @if($activeLocale === 'kn' && $price->crop->name_kn)
                                         <div class="text-xs font-semibold text-emerald-800 font-kannada mt-0.5">
                                             {{ $price->crop->name_kn }}
                                         </div>
                                     @endif
                                     <div class="text-xs text-stone-500 mt-1">
-                                        {{ $price->variety ? $price->variety->name : 'All Varieties' }}
+                                        {{ $price->variety ? $price->variety->displayName($activeLocale) : ($activeLocale === 'en' ? 'All Varieties' : 'ಎಲ್ಲಾ ತಳಿಗಳು') }}
                                     </div>
                                 </div>
 

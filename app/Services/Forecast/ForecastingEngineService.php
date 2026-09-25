@@ -53,6 +53,16 @@ class ForecastingEngineService
 
         // Check Data Sufficiency
         if ($observationsCount < self::MIN_OBSERVATIONS) {
+            // If a specific market was requested, try falling back to state benchmark observations
+            if ($marketId !== null) {
+                $stateFallback = $this->getForecastsForCrop($cropId, null);
+                if (!empty($stateFallback['is_sufficient'])) {
+                    $stateFallback['scope'] = 'state_benchmark';
+                    $stateFallback['market_id'] = $marketId;
+                    return $stateFallback;
+                }
+            }
+
             return [
                 'is_sufficient' => false,
                 'observations_count' => $observationsCount,
@@ -64,7 +74,16 @@ class ForecastingEngineService
             ];
         }
 
-        $historicalPrices = $priceRecords->pluck('modal_price')->map(fn ($p) => (float) $p)->toArray();
+        if ($marketId === null) {
+            // For state benchmark: aggregate into clean chronological daily average modal prices
+            $historicalPrices = $priceRecords->groupBy(fn ($r) => Carbon::parse($r->price_date)->format('Y-m-d'))
+                ->map(fn ($group) => round((float) $group->avg('modal_price'), 2))
+                ->values()
+                ->toArray();
+        } else {
+            $historicalPrices = $priceRecords->pluck('modal_price')->map(fn ($p) => (float) $p)->toArray();
+        }
+
         $currentPrice = end($historicalPrices) ?: 0.0;
 
         // Model Selection
@@ -114,6 +133,38 @@ class ForecastingEngineService
             ];
         }
 
+        // Actionable Market Insights (Why Driver & Volatility Caveat)
+        $crop = Crop::find($cropId);
+        $h7 = collect($horizonsOutput)->firstWhere('horizon_days', 7);
+        $weekChange = $h7['percentage_change'] ?? 0.0;
+        $weekDirection = $h7['direction'] ?? 'neutral';
+
+        $annualBaseline = (float) (PriceMonthlyStatistic::where('crop_id', $cropId)->whereNull('market_id')->avg('avg_modal_price') ?: ($currentPrice > 0 ? $currentPrice : 1.0));
+        $gapPercent = $annualBaseline > 0 ? round((($currentPrice - $annualBaseline) / $annualBaseline) * 100, 1) : 0.0;
+
+        $isPerishable = in_array(strtolower($crop?->slug ?? ''), ['tomato', 'onion', 'green-chilli', 'ginger']);
+        $isHighVolatility = $isPerishable || (count($historicalPrices) > 5 && (($horizonsOutput[0]['rmse'] ?? 0) / max(1, $currentPrice)) > 0.18);
+
+        $directionWordEn = match ($weekDirection) {
+            'up' => "rise about {$weekChange}%",
+            'down' => "soften by " . abs($weekChange) . "%",
+            default => "remain steady",
+        };
+        $gapTextEn = $gapPercent < 0
+            ? "Today's price is " . abs($gapPercent) . "% below the multi-year seasonal benchmark — room for seasonal recovery if arrivals moderate."
+            : "Today's price is {$gapPercent}% above benchmark, supported by steady regional demand.";
+        $whySummaryEn = "Prices look set to {$directionWordEn} over the coming week. {$gapTextEn}";
+
+        $directionWordKn = match ($weekDirection) {
+            'up' => "ಸುಮಾರು {$weekChange}% ಏರಿಕೆಯಾಗುವ",
+            'down' => "ಸುಮಾರು " . abs($weekChange) . "% ಇಳಿಕೆಯಾಗುವ",
+            default => "ಸ್ಥಿರವಾಗಿ ಮುಂದುವರಿಯುವ",
+        };
+        $gapTextKn = $gapPercent < 0
+            ? "ಇಂದಿನ ಧಾರಣೆ ವಾರ್ಷಿಕ ಸರಾಸರಿಗಿಂತ " . abs($gapPercent) . "% ಕಡಿಮೆಯಿದ್ದು, ಮಂಡಿ ಆವಕ ನಿಯಂತ್ರಣಕ್ಕೆ ಬಂದರೆ ಚೇತರಿಕೆಯ ಸಾಧ್ಯತೆಯಿದೆ."
+            : "ಇಂದಿನ ಧಾರಣೆ ವಾರ್ಷಿಕ ಸರಾಸರಿಗಿಂತ {$gapPercent}% ಹೆಚ್ಚಾಗಿದ್ದು, ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಉತ್ತಮ ಬೇಡಿಕೆಯಿದೆ.";
+        $whySummaryKn = "ಮುಂದಿನ ವಾರದಲ್ಲಿ ಬೆಲೆ {$directionWordKn} ಸಾಧ್ಯತೆಯಿದೆ. {$gapTextKn}";
+
         return [
             'is_sufficient' => true,
             'observations_count' => $observationsCount,
@@ -122,6 +173,11 @@ class ForecastingEngineService
             'model_code' => $model->getCode(),
             'current_price' => $currentPrice,
             'horizons' => $horizonsOutput,
+            'is_high_volatility' => $isHighVolatility,
+            'why_summary_en' => $whySummaryEn,
+            'why_summary_kn' => $whySummaryKn,
+            'caveat_en' => 'The model is subject to market arrival volatility for this crop — treat these projections as an informative indicator, not an absolute guarantee.',
+            'caveat_kn' => 'ಈ ಬೆಳೆಗೆ ಮಾರುಕಟ್ಟೆ ಆವಕದ ಏರಿಳಿತ ಹೆಚ್ಚಿರುತ್ತದೆ — ಈ ಮುನ್ಸೂಚನೆಯನ್ನು ಮಾಹಿತಿ ಮಾರ್ಗದರ್ಶಿಯಾಗಿ ಪರಿಗಣಿಸಿ, ಖಚಿತ ಗ್ಯಾರಂಟಿ ಅಲ್ಲ.',
             'disclaimer_kn' => 'ಇದು ಹಿಂದಿನ ದರಗಳ ಆಧಾರಿತ ಗಣಿತೀಯ ಮುನ್ಸೂಚನೆ ಮಾತ್ರ. ಹವಾಮಾನ, ಮಾರುಕಟ್ಟೆ ಬೇಡಿಕೆ ಮತ್ತು ಸರ್ಕಾರದ ನೀತಿಗಳಿಂದ ನೈಜ ದರಗಳು ವ್ಯತ್ಯಾಸವಾಗಬಹುದು.',
             'disclaimer_en' => 'Statistical projections based on historical patterns. Subject to market fluctuations, weather, and policy shifts.',
         ];

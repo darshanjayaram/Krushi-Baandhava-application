@@ -187,6 +187,22 @@ class AdminDataSourceTest extends TestCase
         ]);
     }
 
+    public function test_test_connection_endpoint_supports_get_request(): void
+    {
+        $ds = DataSource::where('code', 'data_gov_mandi')->first();
+        $this->assertNotNull($ds);
+
+        $response = $this->actingAs($this->admin)->getJson("/admin/datasources/{$ds->id}/test-connection");
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'ok' => true,
+            'health' => [
+                'status' => 'healthy',
+            ],
+        ]);
+    }
+
     public function test_trigger_sync_creates_sync_log(): void
     {
         $ds = DataSource::where('code', 'data_gov_mandi')->first();
@@ -242,5 +258,52 @@ class AdminDataSourceTest extends TestCase
         $response = $this->actingAs($this->admin)->get('/admin/sync-logs');
         $response->assertStatus(200);
         $response->assertSee('Health Audit Trail');
+    }
+
+    public function test_only_active_genuine_datasources_exist_and_no_dummy_sources(): void
+    {
+        $allSources = DataSource::pluck('code')->toArray();
+
+        // Exactly the 5 genuine data sources must be present
+        $this->assertContains('data_gov_mandi', $allSources);
+        $this->assertContains('ceda_agmarknet', $allSources);
+        $this->assertContains('coffee_board', $allSources);
+        $this->assertContains('coconut_board', $allSources);
+        $this->assertContains('tss_sirsi', $allSources);
+
+        // Dummy/unused sources must NOT be in the database
+        $this->assertNotContains('krama', $allSources);
+        $this->assertNotContains('agmarknet', $allSources);
+
+        // DataSourceRegistry should only list the 5 genuine providers
+        $providers = \App\Services\DataSources\DataSourceRegistry::getAvailableProviders();
+        $this->assertCount(5, $providers);
+        $this->assertArrayHasKey(\App\Services\DataSources\DataGov\DataGovMarketDataProvider::class, $providers);
+        $this->assertArrayHasKey(\App\Services\DataSources\Ceda\CedaAgmarknetDataProvider::class, $providers);
+        $this->assertArrayHasKey(\App\Services\DataSources\CoffeeBoard\CoffeeBoardDataProvider::class, $providers);
+        $this->assertArrayHasKey(\App\Services\DataSources\CoconutBoard\CoconutBoardDataProvider::class, $providers);
+        $this->assertArrayHasKey(\App\Services\DataSources\TssSirsi\TssSirsiDataProvider::class, $providers);
+    }
+
+    public function test_admin_can_delete_datasource(): void
+    {
+        $rand = rand(1000, 9999);
+        $ds = DataSource::create([
+            'name' => "Temporary Source {$rand}",
+            'code' => "temp_src_{$rand}",
+            'provider_class' => DataGovMarketDataProvider::class,
+            'type' => 'market_prices',
+            'base_url' => 'https://api.temp.example.com',
+            'auth_type' => 'none',
+            'sync_frequency' => 'daily',
+            'timeout_seconds' => 15,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)->delete("/admin/datasources/{$ds->id}");
+        $response->assertRedirect('/admin/datasources');
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('data_sources', ['id' => $ds->id]);
     }
 }

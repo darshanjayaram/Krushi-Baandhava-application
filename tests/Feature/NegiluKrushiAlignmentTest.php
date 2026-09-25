@@ -60,11 +60,17 @@ class NegiluKrushiAlignmentTest extends TestCase
 
         $response->assertStatus(200);
 
-        // Reliable badge for Shivamogga's local crops
-        $response->assertSee('Reliable');
+        // Reliable badge for Shivamogga's local crops in Kannada mode
+        $response->assertSee('ವಿಶ್ವಾಸಾರ್ಹ');
 
-        // Benchmark badge for crops trading outside Shivamogga (like Copra, Coffee, Tur)
-        $response->assertSee('Benchmark');
+        // Benchmark badge for crops trading outside Shivamogga in Kannada mode
+        $response->assertSee('ಮೌಲ್ಯಾಂಕನ');
+
+        // In English mode
+        $enResponse = $this->withSession(['locale' => 'en'])->get('/?district=' . $this->shivamogga->id);
+        $enResponse->assertStatus(200);
+        $enResponse->assertSee('Reliable');
+        $enResponse->assertSee('Benchmark');
     }
 
     /**
@@ -93,7 +99,11 @@ class NegiluKrushiAlignmentTest extends TestCase
         $response->assertStatus(200);
 
         if ($pricedVariety) {
-            $response->assertSee($pricedVariety->name);
+            $content = $response->getContent();
+            $this->assertTrue(
+                stripos($content, $pricedVariety->name) !== false
+                || ($pricedVariety->name_kn && stripos($content, $pricedVariety->name_kn) !== false)
+            );
         }
 
         if ($unpricedVariety) {
@@ -114,9 +124,15 @@ class NegiluKrushiAlignmentTest extends TestCase
 
         $response->assertStatus(200);
 
-        // Should see distance indicators (e.g., km) in the market selector
-        $response->assertSee('VIEW DIFFERENT MARKET', false);
-        $response->assertSee('ಕರ್ನಾಟಕ ಮಂಡಿ ಆಯ್ಕೆ', false);
+        // In Kannada mode
+        $response->assertSee('ಮಾರುಕಟ್ಟೆ ಬದಲಿಸಿ (ಕರ್ನಾಟಕ ಮಂಡಿಗಳು)', false);
+
+        // In English mode
+        $enResponse = $this->withSession(['locale' => 'en'])
+            ->withCookie('selected_district_id', $this->shivamogga->id)
+            ->get('/crops/' . $crop->slug);
+        $enResponse->assertStatus(200);
+        $enResponse->assertSee('VIEW DIFFERENT MARKET (All Mandis)', false);
     }
 
     /**

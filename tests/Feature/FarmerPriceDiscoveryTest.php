@@ -238,4 +238,110 @@ class FarmerPriceDiscoveryTest extends TestCase
         $response->assertSee('Binny Mill (F&V)');
         $response->assertSee('ಕರ್ನಾಟಕ ಮಂಡಿ ಆಯ್ಕೆ', false);
     }
+
+    public function test_ranked_by_best_price_groups_multiple_varieties_into_single_apmc_card(): void
+    {
+        $crop = Crop::where('slug', 'pepper')->orWhere('slug', 'arecanut')->firstOrFail();
+        $market = Market::karnataka()->firstOrFail();
+        $date = MarketPrice::where('crop_id', $crop->id)->max('price_date') ?? now()->toDateString();
+        $dataSource = \App\Models\DataSource::firstOrFail();
+
+        $v1 = \App\Models\CropVariety::firstOrCreate(
+            ['crop_id' => $crop->id, 'name' => 'Grade Alpha Premium'],
+            ['slug' => 'grade-alpha-premium', 'name_kn' => 'ಗ್ರೇಡ್ ಆಲ್ಫಾ ಪ್ರೀಮಿಯಂ', 'is_active' => true]
+        );
+        $v2 = \App\Models\CropVariety::firstOrCreate(
+            ['crop_id' => $crop->id, 'name' => 'Grade Beta Regular'],
+            ['slug' => 'grade-beta-regular', 'name_kn' => 'ಗ್ರೇಡ್ ಬೀಟಾ ರೆಗ್ಯುಲರ್', 'is_active' => true]
+        );
+
+        MarketPrice::updateOrCreate(
+            [
+                'market_id' => $market->id,
+                'crop_id' => $crop->id,
+                'variety_id' => $v1->id,
+                'price_date' => $date,
+            ],
+            [
+                'district_id' => $market->district_id,
+                'data_source_id' => $dataSource->id,
+                'min_price' => 60000,
+                'max_price' => 65000,
+                'modal_price' => 63000,
+                'unit' => 'Quintal',
+                'arrival_quantity' => 100,
+                'arrival_unit' => 'Quintal',
+                'is_verified' => true,
+            ]
+        );
+
+        MarketPrice::updateOrCreate(
+            [
+                'market_id' => $market->id,
+                'crop_id' => $crop->id,
+                'variety_id' => $v2->id,
+                'price_date' => $date,
+            ],
+            [
+                'district_id' => $market->district_id,
+                'data_source_id' => $dataSource->id,
+                'min_price' => 55000,
+                'max_price' => 59000,
+                'modal_price' => 57000,
+                'unit' => 'Quintal',
+                'arrival_quantity' => 50,
+                'arrival_unit' => 'Quintal',
+                'is_verified' => true,
+            ]
+        );
+
+        $response = $this->get('/crops/' . $crop->slug);
+
+        $response->assertStatus(200);
+        $mandiGroups = $response->viewData('mandiGroups');
+        $this->assertNotNull($mandiGroups);
+
+        // Verify that this market only appears ONCE in mandiGroups
+        $marketOccurrences = $mandiGroups->filter(fn($g) => $g->market->id === $market->id);
+        $this->assertEquals(1, $marketOccurrences->count(), 'The market must only appear once in mandiGroups');
+
+        $marketGroup = $marketOccurrences->first();
+        $this->assertGreaterThanOrEqual(2, $marketGroup->variety_count);
+        $this->assertEquals(63000, $marketGroup->best_modal);
+
+        // Verify the HTML renders both varieties inside the page (Kannada by default, English when toggled)
+        $response->assertSee('ಗ್ರೇಡ್ ಆಲ್ಫಾ ಪ್ರೀಮಿಯಂ', false);
+        $response->assertSee('ಗ್ರೇಡ್ ಬೀಟಾ ರೆಗ್ಯುಲರ್', false);
+
+        $enResponse = $this->withSession(['locale' => 'en'])->get('/crops/' . $crop->slug);
+        $enResponse->assertSee('Grade Alpha Premium');
+        $enResponse->assertSee('Grade Beta Regular');
+    }
+
+    public function test_ranked_by_best_price_shows_two_nearest_apmcs_to_user_location(): void
+    {
+        $crop = Crop::where('slug', 'arecanut')->orWhere('slug', 'pepper')->firstOrFail();
+        $userDistrict = District::where('name', 'Shivamogga')->first() ?? District::firstOrFail();
+
+        $response = $this->withSession(['selected_district_id' => $userDistrict->id])
+            ->get('/crops/' . $crop->slug);
+
+        $response->assertStatus(200);
+
+        $nearestTwoGroups = $response->viewData('nearestTwoGroups');
+        $this->assertNotNull($nearestTwoGroups);
+        $this->assertLessThanOrEqual(2, $nearestTwoGroups->count());
+
+        if ($nearestTwoGroups->count() === 2) {
+            // Assert that the 2 cards are ranked by modal price between them (#1 >= #2)
+            $this->assertGreaterThanOrEqual(
+                $nearestTwoGroups[1]->best_modal,
+                $nearestTwoGroups[0]->best_modal
+            );
+
+            // Assert that the view renders the nearest APMC
+            $response->assertSee($nearestTwoGroups[0]->market->name);
+            $response->assertSee($nearestTwoGroups[1]->market->name);
+        }
+    }
 }

@@ -46,4 +46,15 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('/news', [\App\Http\Controllers\Api\V1\CmsApiController::class, 'news'])->name('api.v1.news');
     Route::get('/videos', [\App\Http\Controllers\Api\V1\CmsApiController::class, 'videos'])->name('api.v1.videos');
     Route::get('/articles', [\App\Http\Controllers\Api\V1\CmsApiController::class, 'articles'])->name('api.v1.articles');
+    Route::post('/set-locale', function (\Illuminate\Http\Request $request) {
+        $locale = $request->input('locale', 'kn');
+        if (!in_array($locale, ['kn', 'en'], true)) {
+            $locale = 'kn';
+        }
+        if ($request->hasSession()) {
+            session(['locale' => $locale]);
+        }
+        return response()->json(['success' => true, 'status' => 'success', 'locale' => $locale])
+            ->withCookie(cookie()->forever('locale', $locale));
+    })->name('api.v1.set-locale');
 });

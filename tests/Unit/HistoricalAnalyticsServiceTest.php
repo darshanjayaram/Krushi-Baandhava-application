@@ -141,12 +141,61 @@ class HistoricalAnalyticsServiceTest extends TestCase
 
     public function test_seasonal_analysis_identifies_best_months(): void
     {
-        $seasonal = $this->analyticsService->getSeasonalAnalysis($this->crop->id);
+        // 1. A crop with fewer than 3 months of data returns is_sufficient = false and empty best_months
+        $sparseCrop = Crop::create([
+            'name' => 'Sparse Seasonal Test Crop',
+            'name_kn' => 'ಸ್ಪಾರ್ಸ್ ಬೆಳೆ',
+            'slug' => 'sparse-seasonal-' . uniqid(),
+            'category_id' => $this->crop->category_id,
+            'is_active' => true,
+        ]);
 
-        $this->assertIsArray($seasonal);
-        $this->assertCount(12, $seasonal['monthly_profile']);
-        $this->assertArrayHasKey('best_months', $seasonal);
-        $this->assertArrayHasKey('annual_baseline', $seasonal);
+        MarketPrice::create([
+            'crop_id' => $sparseCrop->id,
+            'market_id' => $this->market->id,
+            'price_date' => '2026-09-01',
+            'min_price' => 2000,
+            'max_price' => 2200,
+            'modal_price' => 2100,
+            'unit' => 'Quintal',
+        ]);
+
+        $sparseSeasonal = $this->analyticsService->getSeasonalAnalysis($sparseCrop->id);
+        $this->assertFalse($sparseSeasonal['is_sufficient']);
+        $this->assertEmpty($sparseSeasonal['best_months']);
+        $this->assertCount(12, $sparseSeasonal['monthly_profile']);
+        $this->assertStringContainsString('ಕನಿಷ್ಠ 2', $sparseSeasonal['message_kn']);
+
+        // 2. A crop with 3 or more distinct months computes genuine seasonality without synthetic curves
+        MarketPrice::create([
+            'crop_id' => $sparseCrop->id,
+            'market_id' => $this->market->id,
+            'price_date' => '2026-01-15',
+            'min_price' => 1800,
+            'max_price' => 1900,
+            'modal_price' => 1850,
+            'unit' => 'Quintal',
+        ]);
+
+        MarketPrice::create([
+            'crop_id' => $sparseCrop->id,
+            'market_id' => $this->market->id,
+            'price_date' => '2026-05-15',
+            'min_price' => 3000,
+            'max_price' => 3200,
+            'modal_price' => 3100,
+            'unit' => 'Quintal',
+        ]);
+
+        $multiMonthSeasonal = $this->analyticsService->getSeasonalAnalysis($sparseCrop->id);
+        $this->assertTrue($multiMonthSeasonal['is_sufficient']);
+        $this->assertNotEmpty($multiMonthSeasonal['best_months']);
+        $this->assertCount(12, $multiMonthSeasonal['monthly_profile']);
+        $this->assertStringContainsString('ಮೇ', $multiMonthSeasonal['best_months'][0]['month_name_kn']); // May (3100) is peak!
+
+        // Clean up
+        MarketPrice::where('crop_id', $sparseCrop->id)->delete();
+        $sparseCrop->delete();
     }
 
     public function test_statistical_summary_handles_empty_and_active_data(): void

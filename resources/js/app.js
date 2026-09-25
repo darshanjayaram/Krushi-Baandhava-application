@@ -19,8 +19,10 @@ window.initPriceTrendChart = function (canvasId, options = {}) {
     }
 
     const ctx = canvas.getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)'); // emerald-500
+    const chartHeight = canvas.clientHeight || 320;
+    const gradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
+    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.28)'); // emerald-500
+    gradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.08)');
     gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
     const labels = options.labels || [];
@@ -28,35 +30,45 @@ window.initPriceTrendChart = function (canvasId, options = {}) {
     const minPrices = options.minPrices || [];
     const maxPrices = options.maxPrices || [];
     const arrivals = options.arrivals || [];
+    const isEn = options.locale === 'en';
 
     const datasets = [
         {
             type: 'line',
-            label: 'ಮಾದರಿ ಬೆಲೆ (Modal Rate ₹)',
+            label: isEn ? 'Modal Rate (₹)' : 'ಮಾದರಿ ದರ (₹)',
             data: modalPrices,
             borderColor: '#059669', // emerald-600
             backgroundColor: gradient,
-            borderWidth: 2.5,
+            borderWidth: 2.8,
             fill: true,
-            tension: 0.3,
-            pointRadius: labels.length > 30 ? 0 : 3.5,
+            tension: 0.35,
+            pointRadius: labels.length > 35 ? 0 : 3.5,
             pointHoverRadius: 6,
             pointBackgroundColor: '#047857',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointHoverBackgroundColor: '#059669',
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 3,
             yAxisID: 'y',
+            order: 1,
         }
     ];
 
     // Optional Arrivals dataset
-    if (arrivals.length > 0 && arrivals.some(val => val > 0)) {
+    const validArrivals = arrivals.map(Number).filter(v => !isNaN(v) && v > 0);
+    const maxArrival = validArrivals.length > 0 ? Math.max(...validArrivals) : 0;
+    if (validArrivals.length > 0) {
         datasets.push({
             type: 'bar',
-            label: 'ಆವಕ (Arrivals Qtl)',
+            label: isEn ? 'Daily Arrivals (Qtl)' : 'ದೈನಂದಿನ ಆವಕ (ಕ್ವಿಂಟಾಲ್)',
             data: arrivals,
-            backgroundColor: 'rgba(209, 213, 219, 0.55)', // slate-300
-            hoverBackgroundColor: 'rgba(156, 163, 175, 0.8)',
-            borderRadius: 4,
+            backgroundColor: 'rgba(203, 213, 225, 0.55)', // slate-300
+            hoverBackgroundColor: 'rgba(148, 163, 184, 0.85)',
+            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
             yAxisID: 'y1',
             order: 2,
+            barPercentage: 0.55,
         });
     }
 
@@ -74,23 +86,44 @@ window.initPriceTrendChart = function (canvasId, options = {}) {
             },
             plugins: {
                 legend: {
-                    position: 'top',
-                    labels: {
-                        boxWidth: 12,
-                        font: { size: 12, weight: '600' },
-                        color: '#374151',
-                    },
+                    display: false, // Handled cleanly by custom HTML legend toolbar
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(17, 24, 39, 0.92)',
-                    padding: 12,
-                    cornerRadius: 8,
+                    backgroundColor: 'rgba(15, 23, 42, 0.94)',
+                    titleColor: '#F8FAFC',
+                    titleFont: { size: 12, weight: '700' },
+                    bodyColor: '#E2E8F0',
+                    bodyFont: { size: 12 },
+                    borderColor: 'rgba(255, 255, 255, 0.12)',
+                    borderWidth: 1,
+                    padding: { top: 10, bottom: 10, left: 14, right: 14 },
+                    cornerRadius: 10,
+                    boxPadding: 6,
+                    usePointStyle: true,
                     callbacks: {
+                        title: function (items) {
+                            return `📅 ${items[0].label}`;
+                        },
                         label: function (context) {
                             if (context.dataset.yAxisID === 'y') {
-                                return ` ಬೆಲೆ: ₹${Number(context.raw).toLocaleString('en-IN')}/ಕ್ವಿಂಟಾಲ್`;
+                                return isEn 
+                                    ? ` Modal Rate: ₹${Number(context.raw).toLocaleString('en-IN')}/Quintal`
+                                    : ` ಮಾದರಿ ಬೆಲೆ: ₹${Number(context.raw).toLocaleString('en-IN')}/ಕ್ವಿಂಟಾಲ್`;
                             }
-                            return ` ಆವಕ: ${Number(context.raw).toLocaleString('en-IN')} ಕ್ವಿಂಟಾಲ್`;
+                            return isEn
+                                ? ` Arrivals: ${Number(context.raw).toLocaleString('en-IN')} Quintals`
+                                : ` ಆವಕ ಪ್ರಮಾಣ: ${Number(context.raw).toLocaleString('en-IN')} ಕ್ವಿಂಟಾಲ್`;
+                        },
+                        afterBody: function (items) {
+                            const idx = items[0].dataIndex;
+                            const min = minPrices[idx];
+                            const max = maxPrices[idx];
+                            if (min && max && Number(min) !== Number(max)) {
+                                return isEn
+                                    ? `\nRange: ₹${Number(min).toLocaleString('en-IN')} – ₹${Number(max).toLocaleString('en-IN')}`
+                                    : `\nದರ ಶ್ರೇಣಿ: ₹${Number(min).toLocaleString('en-IN')} – ₹${Number(max).toLocaleString('en-IN')}`;
+                            }
+                            return '';
                         }
                     }
                 }
@@ -99,18 +132,22 @@ window.initPriceTrendChart = function (canvasId, options = {}) {
                 x: {
                     grid: { display: false },
                     ticks: {
-                        color: '#6b7280',
-                        font: { size: 11 },
+                        color: '#64748b',
+                        font: { size: 11, weight: '500' },
                         maxRotation: 45,
                     },
                 },
                 y: {
                     type: 'linear',
                     position: 'left',
-                    grid: { color: 'rgba(243, 244, 246, 0.9)' },
+                    grace: '8%',
+                    grid: {
+                        color: 'rgba(241, 245, 249, 0.9)',
+                        borderDash: [4, 4],
+                    },
                     ticks: {
                         color: '#059669',
-                        font: { size: 11, weight: '600' },
+                        font: { size: 11, weight: '700' },
                         callback: function (val) {
                             return '₹' + Number(val).toLocaleString('en-IN');
                         }
@@ -120,9 +157,13 @@ window.initPriceTrendChart = function (canvasId, options = {}) {
                     type: 'linear',
                     position: 'right',
                     grid: { display: false },
+                    suggestedMax: maxArrival > 0 ? maxArrival * 3.2 : undefined,
                     ticks: {
-                        color: '#6b7280',
-                        font: { size: 11 },
+                        color: '#94a3b8',
+                        font: { size: 10, weight: '600' },
+                        callback: function (val) {
+                            return Number(val).toLocaleString('en-IN') + ' Q';
+                        }
                     }
                 }
             }

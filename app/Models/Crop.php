@@ -17,6 +17,10 @@ class Crop extends Model
         'name_kn',
         'slug',
         'price_source_type',
+        'market_radius_km',
+        'default_market_sort',
+        'allow_user_sort_toggle',
+        'enable_smart_badges',
         'scientific_name',
         'standard_unit',
         'icon',
@@ -28,6 +32,9 @@ class Crop extends Model
     protected $casts = [
         'is_major' => 'boolean',
         'is_active' => 'boolean',
+        'market_radius_km' => 'integer',
+        'allow_user_sort_toggle' => 'boolean',
+        'enable_smart_badges' => 'boolean',
     ];
 
     public function isCoffeeBoard(): bool
@@ -58,6 +65,11 @@ class Crop extends Model
     public function prices(): HasMany
     {
         return $this->hasMany(MarketPrice::class)->orderBy('price_date', 'desc');
+    }
+
+    public function sourceMappings(): HasMany
+    {
+        return $this->hasMany(CropSourceMapping::class);
     }
 
     /**
@@ -94,5 +106,17 @@ class Crop extends Model
         }
 
         return asset('images/crops/arecanut.jpg');
+    }
+
+    /**
+     * Get localized crop display name based on current locale.
+     */
+    public function displayName(?string $locale = null): string
+    {
+        $locale = $locale ?? app()->getLocale();
+        if ($locale === 'en') {
+            return $this->name;
+        }
+        return $this->name_kn ?: $this->name;
     }
 }

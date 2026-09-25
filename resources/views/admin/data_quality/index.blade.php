@@ -200,8 +200,11 @@
 
     <!-- Payload Inspector Modal -->
     <div x-show="inspectModal" style="display: none;" 
-         class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div @click.away="inspectModal = false" class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative">
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+         @keydown.escape.window="inspectModal = false">
+        <!-- Backdrop -->
+        <div x-show="inspectModal" x-transition.opacity class="fixed inset-0 bg-black/80" @click="inspectModal = false"></div>
+        <div @click.away="inspectModal = false" class="relative z-10 bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl my-8">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 class="text-base font-bold text-white">Raw Upstream Record Payload</h3>
                 <button @click="inspectModal = false" class="text-slate-400 hover:text-white text-lg">&times;</button>

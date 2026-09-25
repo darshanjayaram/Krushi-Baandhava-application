@@ -3,6 +3,9 @@
 @section('title', 'ಕೃಷಿ ಬಾಂಧವ — ಕರ್ನಾಟಕ ರೈತರ ಮಾರುಕಟ್ಟೆ ದರಗಳು')
 
 @section('content')
+@php
+    $activeLocale = app()->getLocale();
+@endphp
 <div class="space-y-6" x-data="farmerHome()">
 
     <!-- 1. Hero Photographic Banner (Exact Negilu Krishi Style) -->
@@ -13,17 +16,17 @@
         <div class="p-6 sm:p-8 z-10 max-w-2xl space-y-3">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold text-white border border-white/20">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>ನೇರ ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ • {{ $activeDistrict->name }}</span>
+                <span>{{ $activeLocale === 'en' ? 'Live Market Data' : 'ನೇರ ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ' }} • {{ $activeLocale === 'en' ? $activeDistrict->name : ($activeDistrict->name_kn ?? $activeDistrict->name) }}</span>
             </div>
 
-            <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight leading-snug font-kannada">
-                ಬೆಳೆ ಬೆಳೆದಷ್ಟೇ ಸಾಕಾಗದು, ಸರಿಯಾದ ಸಮಯಕ್ಕೆ ಮಾರಾಟವೂ ಮುಖ್ಯ
+            <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight leading-snug {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Growing crops is not enough, selling at the right time matters' : 'ಬೆಳೆ ಬೆಳೆದಷ್ಟೇ ಸಾಕಾಗದು, ಸರಿಯಾದ ಸಮಯಕ್ಕೆ ಮಾರಾಟವೂ ಮುಖ್ಯ' }}
             </h1>
 
             <!-- Subtitle and context -->
-            <div class="text-xs sm:text-sm text-stone-200 font-medium font-kannada space-y-1">
-                <p>ಇಂದಿನ ದರ, ಮಾರುಕಟ್ಟೆ ಮತ್ತು ಅಂದಾಜು — ಒಂದೇ ಕಡೆ.</p>
-                <p class="text-[11px] text-stone-300">ದೈನಂದಿನ ಅಧಿಕೃತ ಎಪಿಎಂಸಿ ದರಗಳು • Karnataka APMC Mandis</p>
+            <div class="text-xs sm:text-sm text-stone-200 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} space-y-1">
+                <p>{{ $activeLocale === 'en' ? "Today's rates, markets and forecast — all in one place." : 'ಇಂದಿನ ದರ, ಮಾರುಕಟ್ಟೆ ಮತ್ತು ಅಂದಾಜು — ಒಂದೇ ಕಡೆ.' }}</p>
+                <p class="text-[11px] text-stone-300">{{ $activeLocale === 'en' ? 'Daily official APMC rates • Karnataka APMC Mandis' : 'ದೈನಂದಿನ ಅಧಿಕೃತ ಎಪಿಎಂಸಿ ದರಗಳು • ಕರ್ನಾಟಕ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳು' }}</p>
             </div>
         </div>
 
@@ -38,17 +41,16 @@
                         📍
                     </div>
                     <div>
-                        <div class="font-extrabold text-stone-900 text-sm font-sans flex items-center gap-1">
-                            <span>{{ $activeDistrict->name }}</span>
-                            @if($activeDistrict->name_kn)
-                                <span class="text-xs font-normal text-stone-500 font-kannada">({{ $activeDistrict->name_kn }})</span>
-                            @endif
+                        <div class="font-extrabold text-stone-900 text-sm {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            <span>{{ $activeLocale === 'en' ? $activeDistrict->name : ($activeDistrict->name_kn ?? $activeDistrict->name) }}</span>
                         </div>
-                        <div class="text-[11px] text-stone-500 font-kannada mt-0.5">ಹತ್ತಿರದ ಮಂಡಿ ದರಗಳನ್ನು ನೋಡಿ</div>
+                        <div class="text-[11px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} mt-0.5">
+                            {{ $activeLocale === 'en' ? 'Check nearby mandi rates' : 'ಹತ್ತಿರದ ಮಂಡಿ ದರಗಳನ್ನು ನೋಡಿ' }}
+                        </div>
                     </div>
                 </div>
-                <span class="text-[11px] text-emerald-800 font-bold shrink-0 font-kannada group-hover:translate-x-0.5 transition">
-                    ಬದಲಾಯಿಸಲು ಸ್ಪರ್ಶಿಸಿ &rsaquo;
+                <span class="text-[11px] text-emerald-800 font-bold shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} group-hover:translate-x-0.5 transition">
+                    {{ $activeLocale === 'en' ? 'Tap to change ›' : 'ಬದಲಾಯಿಸಲು ಸ್ಪರ್ಶಿಸಿ ›' }}
                 </span>
             </button>
 
@@ -62,12 +64,16 @@
                         💬
                     </div>
                     <div>
-                        <div class="font-extrabold text-stone-900 text-sm font-kannada">ವಾಟ್ಸ್‌ಆ್ಯಪ್‌ನಲ್ಲಿ ಸೇರಿ</div>
-                        <div class="text-[11px] text-stone-500 font-kannada mt-0.5">ದೈನಂದಿನ ದರಗಳು ಮತ್ತು ಬೆಲೆ ಎಚ್ಚರಿಕೆಗಳು</div>
+                        <div class="font-extrabold text-stone-900 text-sm {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Join on WhatsApp' : 'ವಾಟ್ಸ್‌ಆ್ಯಪ್‌ನಲ್ಲಿ ಸೇರಿ' }}
+                        </div>
+                        <div class="text-[11px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} mt-0.5">
+                            {{ $activeLocale === 'en' ? 'Daily rates and price alerts' : 'ದೈನಂದಿನ ದರಗಳು ಮತ್ತು ಬೆಲೆ ಎಚ್ಚರಿಕೆಗಳು' }}
+                        </div>
                     </div>
                 </div>
-                <span class="text-[11px] text-emerald-800 font-bold shrink-0 font-kannada group-hover:translate-x-0.5 transition">
-                    ಸೇರಿ &rsaquo;
+                <span class="text-[11px] text-emerald-800 font-bold shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} group-hover:translate-x-0.5 transition">
+                    {{ $activeLocale === 'en' ? 'Join ›' : 'ಸೇರಿ ›' }}
                 </span>
             </a>
 
@@ -79,12 +85,16 @@
                         💡
                     </div>
                     <div>
-                        <div class="font-extrabold text-stone-900 text-sm font-kannada">ಹೇಗೆ ಬಳಸುವುದು</div>
-                        <div class="text-[11px] text-stone-500 font-kannada mt-0.5">ಮಾರ್ಗದರ್ಶನ - ಹಂತ ಹಂತವಾಗಿ ತೋರಿಸುತ್ತದೆ</div>
+                        <div class="font-extrabold text-stone-900 text-sm {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'How to Use' : 'ಹೇಗೆ ಬಳಸುವುದು' }}
+                        </div>
+                        <div class="text-[11px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} mt-0.5">
+                            {{ $activeLocale === 'en' ? 'Step-by-step guidance' : 'ಮಾರ್ಗದರ್ಶನ - ಹಂತ ಹಂತವಾಗಿ ತೋರಿಸುತ್ತದೆ' }}
+                        </div>
                     </div>
                 </div>
-                <span class="text-[11px] text-emerald-800 font-bold shrink-0 font-kannada group-hover:translate-x-0.5 transition">
-                    ನೋಡಿ &rsaquo;
+                <span class="text-[11px] text-emerald-800 font-bold shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} group-hover:translate-x-0.5 transition">
+                    {{ $activeLocale === 'en' ? 'View ›' : 'ನೋಡಿ ›' }}
                 </span>
             </a>
         </div>
@@ -101,12 +111,12 @@
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <h2 class="text-sm sm:text-base font-extrabold text-stone-900 tracking-tight font-kannada">
-                                ಇಂದಿನ ಪ್ರಮುಖ ದರಗಳು ({{ $activeDistrict->name }})
+                            <h2 class="text-sm sm:text-base font-extrabold text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                {{ $activeLocale === 'en' ? "Today's Top Rates" : 'ಇಂದಿನ ಪ್ರಮುಖ ದರಗಳು' }} ({{ $activeLocale === 'en' ? $activeDistrict->name : ($activeDistrict->name_kn ?? $activeDistrict->name) }})
                             </h2>
                         </div>
-                        <a href="{{ route('farmer.crops.index') }}" class="text-xs font-bold text-stone-600 hover:text-stone-900 font-kannada">
-                            ಎಲ್ಲಾ ನೋಡಿ &rsaquo;
+                        <a href="{{ route('farmer.crops.index') }}" class="text-xs font-bold text-stone-600 hover:text-stone-900 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'View All ›' : 'ಎಲ್ಲಾ ನೋಡಿ ›' }}
                         </a>
                     </div>
 
@@ -115,16 +125,16 @@
                             <a href="{{ route('farmer.crop.detail', $mover->crop_id) }}?market={{ urlencode($mover->market->name) }}" 
                                class="bg-white rounded-2xl border border-stone-200/80 overflow-hidden shadow-2xs hover:shadow-md hover:border-emerald-600 transition flex flex-col justify-between group">
                                 
-                                <!-- Photo with Kannada Crop Name & Direction Arrow Overlay -->
+                                <!-- Photo with Kannada/English Crop Name & Direction Arrow Overlay -->
                                 <div class="h-24 sm:h-28 w-full overflow-hidden relative bg-stone-100">
                                     <img src="{{ $mover->crop->photo_url }}" 
                                          alt="{{ $mover->crop->name }}" 
                                          class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                                     <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent"></div>
                                     
-                                    <!-- Kannada Name on bottom-left -->
-                                    <span class="absolute bottom-2 left-2 text-white font-kannada font-black text-sm drop-shadow-xs">
-                                        {{ $mover->crop->name_kn ?? $mover->crop->name }}
+                                    <!-- Name on bottom-left -->
+                                    <span class="absolute bottom-2 left-2 text-white {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-black text-sm drop-shadow-xs">
+                                        {{ $activeLocale === 'en' ? $mover->crop->name : ($mover->crop->name_kn ?? $mover->crop->name) }}
                                     </span>
 
                                     <!-- Trend Arrow Pill on bottom-right -->
@@ -146,11 +156,11 @@
                                         <span class="text-[10px] font-normal text-stone-400 font-sans">/ {{ strtolower($mover->unit ?? 'quintal') }}</span>
                                     </div>
                                     <div class="text-[11px] text-stone-500 truncate font-sans">
-                                        {{ $mover->variety ? $mover->variety->name : 'FAQ Grade' }}
+                                        {{ $mover->variety ? $mover->variety->displayName($activeLocale) : ($activeLocale === 'en' ? 'Standard Grade' : 'ಸಾಮಾನ್ಯ ಗ್ರೇಡ್') }}
                                     </div>
                                     <div class="text-[10px] text-stone-400 truncate flex items-center gap-1 font-sans">
                                         <span class="text-rose-400">📍</span>
-                                        <span>{{ $mover->market->name }}</span>
+                                        <span>{{ $activeLocale === 'en' ? $mover->market->name : ($mover->market->name_kn ?? $mover->market->name) }}</span>
                                     </div>
                                 </div>
                             </a>
@@ -159,16 +169,16 @@
                 </div>
             @endif
 
-            <!-- B. Section Divider with Green Bar: "ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು" -->
+            <!-- B. Section Divider with Green Bar -->
             <div class="pt-2 flex items-center justify-between border-t border-stone-200/60">
                 <div class="flex items-center gap-2">
                     <span class="w-1.5 h-6 rounded-full bg-[#1C5A2C]"></span>
-                    <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight font-kannada">
-                        ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು
+                    <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? "Today's Market Rates" : 'ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು' }}
                     </h2>
                 </div>
-                <div class="text-xs text-stone-500 font-medium font-kannada">
-                    ದಿನಾಂಕದ ಪ್ರಕಾರ {{ $stats['latest_date_formatted'] }}
+                <div class="text-xs text-stone-500 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    {{ $activeLocale === 'en' ? 'As of' : 'ದಿನಾಂಕದ ಪ್ರಕಾರ' }} {{ $stats['latest_date_formatted'] }}
                 </div>
             </div>
 
@@ -176,7 +186,7 @@
             <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
                 <a href="{{ route('home', ['district' => $activeDistrict->id, 'category' => 'all', 'search' => $search, 'scope' => $viewScope]) }}"
                    class="px-4 py-2 rounded-full font-bold whitespace-nowrap transition shadow-2xs flex items-center gap-1.5 {{ $selectedCategory === 'all' || !$selectedCategory ? 'bg-[#1C5A2C] text-white' : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80' }}">
-                    <span>🌾 ಎಲ್ಲಾ</span>
+                    <span>🌾 {{ $activeLocale === 'en' ? 'All' : 'ಎಲ್ಲಾ' }}</span>
                 </a>
                 @foreach($categories as $cat)
                     @php
@@ -193,7 +203,7 @@
                     <a href="{{ route('home', ['district' => $activeDistrict->id, 'category' => $cat->slug, 'search' => $search, 'scope' => $viewScope]) }}"
                        class="px-3.5 py-2 rounded-full font-bold whitespace-nowrap transition shadow-2xs flex items-center gap-1.5 {{ $selectedCategory === $cat->slug ? 'bg-[#1C5A2C] text-white' : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80' }}">
                         <span>{{ $icon }}</span>
-                        <span>{{ $cat->name_kn ?? $cat->name }}</span>
+                        <span>{{ $activeLocale === 'en' ? $cat->name : ($cat->name_kn ?? $cat->name) }}</span>
                     </a>
                 @endforeach
             </div>
@@ -210,7 +220,7 @@
                                name="search" 
                                x-model="searchQuery"
                                value="{{ $search }}" 
-                               placeholder="ಬೆಳೆ ಹುಡುಕಿ..."
+                               placeholder="{{ $activeLocale === 'en' ? 'Search crops...' : 'ಬೆಳೆ ಹುಡುಕಿ...' }}"
                                class="w-full text-xs sm:text-sm pl-4 pr-10 py-2.5 bg-stone-50 hover:bg-stone-100/70 focus:bg-white border-0 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-700 transition">
                         
                         @if($search)
@@ -226,13 +236,14 @@
                             @click="startVoiceSearch()"
                             :class="isListening ? 'text-rose-500 animate-pulse' : 'text-stone-400 hover:text-stone-600'"
                             class="p-2 rounded-xl transition cursor-pointer" 
-                            title="ಧ್ವನಿ ಹುಡುಕಾಟ (Kannada Voice Search)">
+                            title="{{ $activeLocale === 'en' ? 'Voice Search' : 'ಧ್ವನಿ ಹುಡುಕಾಟ' }}">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                         </svg>
                     </button>
                 </form>
             </div>
+
 
             <!-- E. Curated Commodities Grid (Distinct Crops without Repetitive Rows) -->
             @php
@@ -242,17 +253,19 @@
             @if($displayCrops->isEmpty())
                 <div class="bg-white rounded-3xl p-8 text-center border border-stone-200/80 shadow-2xs space-y-3">
                     <div class="text-4xl">🌾</div>
-                    <div class="font-extrabold text-stone-800 text-base font-kannada">ಈ ಆಯ್ಕೆಗೆ ದರಗಳು ಲಭ್ಯವಿಲ್ಲ</div>
-                    <p class="text-xs text-stone-500 max-w-md mx-auto font-kannada">
-                        ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ಈ ವರ್ಗದಲ್ಲಿ ದರಗಳು ದಾಖಲಾಗಿಲ್ಲ. ದಯವಿಟ್ಟು ಎಲ್ಲಾ ರಾಜ್ಯದ ದರಗಳನ್ನು ವೀಕ್ಷಿಸಿ ಅಥವಾ ಬೇರೆ ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ.
+                    <div class="font-extrabold text-stone-800 text-base {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? 'No rates available for this selection' : 'ಈ ಆಯ್ಕೆಗೆ ದರಗಳು ಲಭ್ಯವಿಲ್ಲ' }}
+                    </div>
+                    <p class="text-xs text-stone-500 max-w-md mx-auto {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? 'No price records found for this category on the current date. Please check all state rates or select a different category.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ಈ ವರ್ಗದಲ್ಲಿ ದರಗಳು ದಾಖಲಾಗಿಲ್ಲ. ದಯವಿಟ್ಟು ಎಲ್ಲಾ ರಾಜ್ಯದ ದರಗಳನ್ನು ವೀಕ್ಷಿಸಿ ಅಥವಾ ಬೇರೆ ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ.' }}
                     </p>
                     <div class="pt-2 flex justify-center gap-2">
                         <a href="{{ route('home', ['district' => $activeDistrict->id, 'scope' => 'all']) }}" 
-                           class="px-4 py-2 text-xs font-bold text-white bg-[#1C5A2C] rounded-xl hover:bg-[#154622] transition shadow-xs font-kannada">
-                            ಎಲ್ಲಾ ರಾಜ್ಯದ ದರಗಳು ನೋಡಿ
+                           class="px-4 py-2 text-xs font-bold text-white bg-[#1C5A2C] rounded-xl hover:bg-[#154622] transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'View All State Rates' : 'ಎಲ್ಲಾ ರಾಜ್ಯದ ದರಗಳು ನೋಡಿ' }}
                         </a>
-                        <a href="{{ route('home') }}" class="px-4 py-2 text-xs font-bold text-stone-600 bg-stone-100 rounded-xl hover:bg-stone-200 transition font-kannada">
-                            ಫಿಲ್ಟರ್ ತೆರವುಗೊಳಿಸಿ
+                        <a href="{{ route('home') }}" class="px-4 py-2 text-xs font-bold text-stone-600 bg-stone-100 rounded-xl hover:bg-stone-200 transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Clear Filter' : 'ಫಿಲ್ಟರ್ ತೆರವುಗೊಳಿಸಿ' }}
                         </a>
                     </div>
                 </div>
@@ -271,13 +284,13 @@
                                     
                                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
-                                    <!-- Bottom-left: Kannada + English Crop Name -->
+                                    <!-- Bottom-left: Crop Name -->
                                     <div class="absolute bottom-2.5 left-3">
-                                        <div class="text-white text-base sm:text-lg font-black tracking-tight leading-tight font-kannada">
-                                            {{ $price->crop->name_kn ?? $price->crop->name }}
+                                        <div class="text-white text-base sm:text-lg font-black tracking-tight leading-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                            {{ $activeLocale === 'en' ? $price->crop->name : ($price->crop->name_kn ?? $price->crop->name) }}
                                         </div>
                                         <div class="text-[11px] text-white/80 font-medium font-sans">
-                                            {{ $price->crop->name }} • {{ $price->variety ? $price->variety->name : 'Standard' }}
+                                            {{ $price->variety ? $price->variety->displayName($activeLocale) : ($activeLocale === 'en' ? 'Standard Grade' : 'ಸಾಮಾನ್ಯ ಗ್ರೇಡ್') }}
                                         </div>
                                     </div>
 
@@ -298,14 +311,14 @@
                                         </div>
 
                                         @if(isset($price->is_local) && $price->is_local)
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                <span>Reliable</span>
+                                                <span>{{ $activeLocale === 'en' ? 'Reliable' : 'ವಿಶ್ವಾಸಾರ್ಹ' }}</span>
                                             </span>
                                         @else
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200" title="ರಾಜ್ಯ ಸರಾಸರಿ / ಸಮೀಪದ ಮಂಡಿ ದರ">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" title="{{ $activeLocale === 'en' ? 'State benchmark rate' : 'ರಾಜ್ಯ ಸರಾಸರಿ / ಸಮೀಪದ ಮಂಡಿ ದರ' }}">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                <span>Benchmark</span>
+                                                <span>{{ $activeLocale === 'en' ? 'Benchmark' : 'ಮೌಲ್ಯಾಂಕನ' }}</span>
                                             </span>
                                         @endif
                                     </div>
@@ -321,7 +334,7 @@
                                             @endif
                                         </span>
                                         <span class="text-stone-300">•</span>
-                                        <span class="text-stone-500 truncate font-sans">{{ $price->market->district ? $price->market->district->name : 'Karnataka' }}</span>
+                                        <span class="text-stone-500 truncate font-sans">{{ $price->market->district ? ($activeLocale === 'en' ? $price->market->district->name : ($price->market->district->name_kn ?? $price->market->district->name)) : 'Karnataka' }}</span>
                                     </div>
                                 </div>
                             </a>
@@ -329,25 +342,33 @@
                             <!-- Card Footer: WhatsApp 1-Tap Share Button -->
                             <div class="px-3.5 py-2.5 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-2">
                                 <span class="text-[11px] text-stone-400 font-sans">
-                                    ದಿನಾಂಕ: {{ $price->price_date->format('d M') }}
+                                    {{ $activeLocale === 'en' ? 'Date:' : 'ದಿನಾಂಕ:' }} {{ $price->price_date->format('d M') }}
                                 </span>
 
                                 @php
-                                    $shareText = "🌾 *ಕೃಷಿ ಬಾಂಧವ (Krushi Baandhava)*\n"
-                                        . "ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರ: *" . $price->crop->name . ($price->crop->name_kn ? ' (' . $price->crop->name_kn . ')' : '') . "*\n"
-                                        . "📍 ಮಾರುಕಟ್ಟೆ: " . $price->market->name . " APMC\n"
-                                        . "💰 ಮಾದರಿ ದರ: ₹" . number_format($price->modal_price, 0) . " / " . $price->unit . "\n"
-                                        . "📅 ದಿನಾಂಕ: " . $price->price_date->format('d M Y') . "\n"
-                                        . "👉 ವಿವರಗಳಿಗೆ ಭೇಟಿ ನೀಡಿ: " . url('/crop/' . $price->crop_id);
+                                    $cropTitle = $activeLocale === 'en' ? $price->crop->name : ($price->crop->name_kn ?? $price->crop->name);
+                                    $shareText = ($activeLocale === 'en'
+                                        ? "🌾 *Krushi Baandhava*\n"
+                                            . "Market Rate: *" . $cropTitle . "*\n"
+                                            . "📍 Mandi: " . $price->market->name . " APMC\n"
+                                            . "💰 Modal Price: ₹" . number_format($price->modal_price, 0) . " / " . $price->unit . "\n"
+                                            . "📅 Date: " . $price->price_date->format('d M Y') . "\n"
+                                            . "👉 View details: " . url('/crop/' . $price->crop_id)
+                                        : "🌾 *ಕೃಷಿ ಬಾಂಧವ*\n"
+                                            . "ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರ: *" . $cropTitle . "*\n"
+                                            . "📍 ಮಾರುಕಟ್ಟೆ: " . $price->market->name . " APMC\n"
+                                            . "💰 ಮಾದರಿ ದರ: ₹" . number_format($price->modal_price, 0) . " / " . $price->unit . "\n"
+                                            . "📅 ದಿನಾಂಕ: " . $price->price_date->format('d M Y') . "\n"
+                                            . "👉 ವಿವರಗಳಿಗೆ ಭೇಟಿ ನೀಡಿ: " . url('/crop/' . $price->crop_id));
                                     $whatsappUrl = "https://wa.me/?text=" . rawurlencode($shareText);
                                 @endphp
 
                                 <a href="{{ $whatsappUrl }}" 
                                    target="_blank" 
                                    rel="noopener noreferrer"
-                                   class="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 hover:text-emerald-950 transition active:scale-95 cursor-pointer">
+                                   class="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 hover:text-emerald-950 transition active:scale-95 cursor-pointer {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                                     <span>💬</span>
-                                    <span>ಶೇರ್ ಮಾಡಿ</span>
+                                    <span>{{ $activeLocale === 'en' ? 'Share' : 'ಶೇರ್ ಮಾಡಿ' }}</span>
                                 </a>
                             </div>
                         </div>
@@ -372,37 +393,37 @@
                 
                 <div class="flex items-center justify-between pb-3 border-b border-white/10">
                     <div class="flex items-center gap-2">
-                        <span class="text-xl">⛅</span>
-                        <span class="font-extrabold text-sm tracking-tight font-kannada">
-                            {{ $activeDistrict->name_kn ?? $activeDistrict->name }}
+                        <span class="text-xl">{{ $todayWeather->weather_icon ?? '⛅' }}</span>
+                        <span class="font-extrabold text-sm tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? $activeDistrict->name : ($activeDistrict->name_kn ?? $activeDistrict->name) }}
                         </span>
                     </div>
                     <a href="{{ route('farmer.weather.index', ['district' => $activeDistrict->id]) }}" 
-                       class="text-[11px] font-bold text-emerald-200 hover:text-white font-kannada">
-                        7 ದಿನಗಳು &rsaquo;
+                       class="text-[11px] font-bold text-emerald-200 hover:text-white {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? '7 Days ›' : '7 ದಿನಗಳು ›' }}
                     </a>
                 </div>
 
                 <div class="py-4 flex items-baseline justify-between">
                     <div>
                         <div class="text-4xl sm:text-5xl font-black tracking-tight">
-                            {{ round($todayWeather->current_temperature ?? 22) }}°<span class="text-2xl font-light">C</span>
+                            {{ $todayWeather ? $todayWeather->displayTemperature() : 24 }}°<span class="text-2xl font-light">C</span>
                         </div>
-                        <div class="text-xs text-emerald-200/90 font-medium font-kannada mt-1">
-                            {{ $todayWeather->weather_condition_kn ?? 'ಭಾಗಶಃ ಮೋಡ' }}
+                        <div class="text-xs text-emerald-200/90 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} mt-1">
+                            {{ $todayWeather ? $todayWeather->conditionLabel($activeLocale) : ($activeLocale === 'en' ? 'Partly Cloudy' : 'ಭಾಗಶಃ ಮೋಡ') }}
                         </div>
                     </div>
 
                     <div class="text-right space-y-1">
                         <div class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-xs text-white">
                             <span>🌧️</span>
-                            <span>{{ round($todayWeather->precipitation_probability ?? 12) }}% ಮಳೆ</span>
+                            <span>{{ round($todayWeather->precipitation_probability ?? 10) }}% {{ $activeLocale === 'en' ? 'Rain' : 'ಮಳೆ' }}</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-3 border-t border-white/10 text-xs text-emerald-100 font-medium font-kannada leading-relaxed">
-                    🌾 {{ $todayWeather->farming_advisory_kn ?? 'ಒಣಗಿಸಲು ಒಳ್ಳೆಯ ದಿನ — ಸಾಗಾಣಿಕೆಗೆ ಸೂಕ್ತ' }}
+                <div class="pt-3 border-t border-white/10 text-xs text-emerald-100 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} leading-relaxed">
+                    🌾 {{ $todayWeather ? $todayWeather->advisoryLabel($activeLocale) : ($activeLocale === 'en' ? 'Good day for drying and logistics' : 'ಒಣಗಿಸಲು ಒಳ್ಳೆಯ ದಿನ — ಸಾಗಾಣಿಕೆಗೆ ಸೂಕ್ತ') }}
                 </div>
             </div>
 
@@ -411,15 +432,17 @@
                 <div class="flex items-center justify-between pb-3 border-b border-stone-100">
                     <div class="flex items-center gap-2">
                         <span class="text-base">🗺️</span>
-                        <h3 class="font-black text-stone-900 text-sm font-kannada">ಕರ್ನಾಟಕ ಹವಾಮಾನ ಎಚ್ಚರಿಕೆ</h3>
+                        <h3 class="font-black text-stone-900 text-sm {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Karnataka Weather Advisory' : 'ಕರ್ನಾಟಕ ಹವಾಮಾನ ಎಚ್ಚರಿಕೆ' }}
+                        </h3>
                     </div>
                     <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-sans">
                         IMD
                     </span>
                 </div>
 
-                <div class="text-[11px] text-stone-400 font-kannada">
-                    ದಿನಾಂಕ: {{ $stats['latest_date_formatted'] }}
+                <div class="text-[11px] text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    {{ $activeLocale === 'en' ? 'Date:' : 'ದಿನಾಂಕ:' }} {{ $stats['latest_date_formatted'] }}
                 </div>
 
                 <!-- Karnataka Regional Weather Alert Indicators -->
@@ -428,39 +451,57 @@
                         <div class="flex items-center gap-2">
                             <span class="w-3 h-3 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
                             <div>
-                                <div class="font-bold text-stone-900 text-xs font-kannada">ಕರಾವಳಿ ಮತ್ತು ಮಲೆನಾಡು</div>
-                                <div class="text-[10px] text-stone-500 font-kannada">ಸಾಧಾರಣದಿಂದ ಭಾರಿ ಮಳೆ ಸಾಧ್ಯತೆ</div>
+                                <div class="font-bold text-stone-900 text-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                    {{ $activeLocale === 'en' ? 'Coastal & Malnad' : 'ಕರಾವಳಿ ಮತ್ತು ಮಲೆನಾಡು' }}
+                                </div>
+                                <div class="text-[10px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                    {{ $activeLocale === 'en' ? 'Moderate to heavy rain likely' : 'ಸಾಧಾರಣದಿಂದ ಭಾರಿ ಮಳೆ ಸಾಧ್ಯತೆ' }}
+                                </div>
                             </div>
                         </div>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-kannada">ಹಳದಿ ಎಚ್ಚರಿಕೆ</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Yellow Alert' : 'ಹಳದಿ ಎಚ್ಚರಿಕೆ' }}
+                        </span>
                     </div>
 
                     <div class="p-3 rounded-2xl bg-emerald-50/80 border border-emerald-200/70 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0"></span>
                             <div>
-                                <div class="font-bold text-stone-900 text-xs font-kannada">ದಕ್ಷಿಣ ಒಳನಾಡು</div>
-                                <div class="text-[10px] text-stone-500 font-kannada">ಭಾಗಶಃ ಮೋಡ, ಒಣ ಹವೆ</div>
+                                <div class="font-bold text-stone-900 text-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                    {{ $activeLocale === 'en' ? 'South Interior' : 'ದಕ್ಷಿಣ ಒಳನಾಡು' }}
+                                </div>
+                                <div class="text-[10px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                    {{ $activeLocale === 'en' ? 'Partly cloudy, dry weather' : 'ಭಾಗಶಃ ಮೋಡ, ಒಣ ಹವೆ' }}
+                                </div>
                             </div>
                         </div>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-kannada">ಸಾಮಾನ್ಯ</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Normal' : 'ಸಾಮಾನ್ಯ' }}
+                        </span>
                     </div>
 
                     <div class="p-3 rounded-2xl bg-stone-50 border border-stone-200/70 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <span class="w-3 h-3 rounded-full bg-stone-400 shrink-0"></span>
                             <div>
-                                <div class="font-bold text-stone-900 text-xs font-kannada">ಉತ್ತರ ಒಳನಾಡು</div>
-                                <div class="text-[10px] text-stone-500 font-kannada">ಬಿಸಿಲು ಮತ್ತು ಶುಷ್ಕ ಹವಾಮಾನ</div>
+                                <div class="font-bold text-stone-900 text-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                    {{ $activeLocale === 'en' ? 'North Interior' : 'ಉತ್ತರ ಒಳನಾಡು' }}
+                                </div>
+                                <div class="text-[10px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                    {{ $activeLocale === 'en' ? 'Sunny and dry weather' : 'ಬಿಸಿಲು ಮತ್ತು ಶುಷ್ಕ ಹವಾಮಾನ' }}
+                                </div>
                             </div>
                         </div>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-200 text-stone-800 font-kannada">ಸಾಮಾನ್ಯ</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-200 text-stone-800 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Normal' : 'ಸಾಮಾನ್ಯ' }}
+                        </span>
                     </div>
                 </div>
 
                 <a href="{{ route('farmer.weather.index') }}" 
-                   class="block w-full py-2.5 text-center text-xs font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200/80 rounded-xl transition font-kannada">
-                    ಸಂಪೂರ್ಣ ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ ನೋಡಿ &rarr;
+                   class="block w-full py-2.5 text-center text-xs font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200/80 rounded-xl transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    {{ $activeLocale === 'en' ? 'View Full Weather Forecast ›' : 'ಸಂಪೂರ್ಣ ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ ನೋಡಿ ›' }}
                 </a>
             </div>
 
@@ -477,7 +518,7 @@ function farmerHome() {
         isListening: false,
         startVoiceSearch() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('ಧ್ವನಿ ಹುಡುಕಾಟವು ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಬೆಂಬಲಿತವಾಗಿಲ್ಲ (Voice search is not supported in this browser).');
+                alert('{{ $activeLocale === 'en' ? 'Voice search is not supported in your browser.' : 'ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಧ್ವನಿ ಹುಡುಕಾಟ ಬೆಂಬಲಿತವಾಗಿಲ್ಲ.' }}');
                 return;
             }
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

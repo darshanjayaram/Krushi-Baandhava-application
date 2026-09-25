@@ -21,7 +21,7 @@ class WeatherController extends Controller
      */
     public function index(Request $request): View
     {
-        $districtId = $request->query('district');
+        $districtId = $request->query('district') ?? $request->cookie('selected_district_id') ?? session('selected_district_id');
 
         // All active Karnataka districts with coordinates
         $allDistricts = District::whereHas('state', fn ($s) => $s->where('code', 'KA')->orWhere('name', 'Karnataka'))
@@ -38,6 +38,11 @@ class WeatherController extends Controller
 
         if (!$activeDistrict) {
             $activeDistrict = $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
+        }
+
+        if ($activeDistrict) {
+            cookie()->queue('selected_district_id', $activeDistrict->id, 525600);
+            session(['selected_district_id' => $activeDistrict->id]);
         }
 
         $forecasts = collect();

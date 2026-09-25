@@ -139,8 +139,11 @@
 
     <!-- Diffs Modal -->
     <div x-show="diffModal" style="display: none;" 
-         class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div @click.away="diffModal = false" class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative">
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+         @keydown.escape.window="diffModal = false">
+        <!-- Backdrop -->
+        <div x-show="diffModal" x-transition.opacity class="fixed inset-0 bg-black/80" @click="diffModal = false"></div>
+        <div @click.away="diffModal = false" class="relative z-10 bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl my-8">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
                     <h3 class="text-base font-bold text-white flex items-center gap-2">

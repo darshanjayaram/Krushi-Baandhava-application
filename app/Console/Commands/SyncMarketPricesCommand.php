@@ -58,6 +58,8 @@ class SyncMarketPricesCommand extends Command
             $query->where('is_active', true);
         }
 
+        \Illuminate\Support\Facades\Cache::forever('scheduler_last_heartbeat', now());
+
         $sources = $query->get();
 
         if ($sources->isEmpty()) {
@@ -74,6 +76,14 @@ class SyncMarketPricesCommand extends Command
         $overallRejected = 0;
 
         foreach ($sources as $source) {
+            $source->updateQuietly(['last_heartbeat_at' => now()]);
+
+            // If auto-running without specific source or force, check if due
+            if (!$sourceCode && !$isForced && !$source->isDue()) {
+                $this->line("↷ Skipping <fg=cyan>{$source->name}</> [{$source->code}]: Not due yet based on schedule ({$source->sync_frequency} @ {$source->sync_time}, {$source->sync_days}).");
+                continue;
+            }
+
             $this->info("▶ Ingesting from: <fg=cyan>{$source->name}</> [{$source->code}]");
 
             $result = $this->ingestionService->ingest($source, [

@@ -9,11 +9,9 @@ use App\Models\DataSourceCredential;
 use App\Models\DataSourceMapping;
 use App\Models\Market;
 use App\Models\MarketSourceMapping;
-use App\Services\DataSources\Agmarknet\AgmarknetMarketDataProvider;
 use App\Services\DataSources\CoconutBoard\CoconutBoardDataProvider;
 use App\Services\DataSources\CoffeeBoard\CoffeeBoardDataProvider;
 use App\Services\DataSources\DataGov\DataGovMarketDataProvider;
-use App\Services\DataSources\Krama\KramaMarketDataProvider;
 use Illuminate\Database\Seeder;
 
 class DataSourceSeeder extends Seeder
@@ -64,23 +62,7 @@ class DataSourceSeeder extends Seeder
             );
         }
 
-        // 2. Agmarknet
-        DataSource::firstOrCreate(
-            ['code' => 'agmarknet'],
-            [
-                'name' => 'Agmarknet APMC Feed',
-                'provider_class' => AgmarknetMarketDataProvider::class,
-                'type' => 'market_prices',
-                'base_url' => 'https://agmarknet.gov.in',
-                'endpoint' => 'api/daily-prices',
-                'auth_type' => 'none',
-                'sync_frequency' => 'daily',
-                'is_active' => true,
-                'timeout_seconds' => 30,
-            ]
-        );
-
-        // 3. Coffee Board (Direct Website Web Scraper)
+        // 2. Coffee Board (Direct Website Web Scraper)
         DataSource::updateOrCreate(
             ['code' => 'coffee_board'],
             [
@@ -96,7 +78,7 @@ class DataSourceSeeder extends Seeder
             ]
         );
 
-        // 4. Coconut Development Board (Direct Website Web Scraper)
+        // 3. Coconut Development Board (Direct Website Web Scraper)
         DataSource::updateOrCreate(
             ['code' => 'coconut_board'],
             [
@@ -109,22 +91,6 @@ class DataSourceSeeder extends Seeder
                 'sync_frequency' => 'daily',
                 'is_active' => true,
                 'timeout_seconds' => 20,
-            ]
-        );
-
-        // 5. KRAMA State APMC (Placeholder)
-        DataSource::firstOrCreate(
-            ['code' => 'krama'],
-            [
-                'name' => 'KRAMA Karnataka State APMC',
-                'provider_class' => KramaMarketDataProvider::class,
-                'type' => 'market_prices',
-                'base_url' => 'https://krama.karnataka.gov.in',
-                'endpoint' => 'portal/mandi-rates',
-                'auth_type' => 'none',
-                'sync_frequency' => 'daily',
-                'is_active' => false,
-                'timeout_seconds' => 30,
             ]
         );
 
@@ -142,6 +108,9 @@ class DataSourceSeeder extends Seeder
             'Maize' => 'Maize',
             'Onion' => 'Onion',
             'Tomato' => 'Tomato',
+            'Ginger' => 'Ginger',
+            'Green Ginger' => 'Ginger',
+            'Tender Coconut' => 'Tender Coconut',
         ];
 
         foreach ($cropAliases as $sourceName => $canonicalName) {
@@ -197,6 +166,51 @@ class DataSourceSeeder extends Seeder
                         'is_verified' => true,
                     ]
                 );
+            }
+        }
+
+        // 8. Market Mappings for Coffee Board
+        $coffeeDs = DataSource::where('code', 'coffee_board')->first();
+        if ($coffeeDs) {
+            $coffeeMarketMap = [
+                'Chikkamagaluru' => 'CB_CKM',
+                'Chikmagalur'    => 'CB_CKM',
+                'Hassan'         => 'CB_HSN',
+                'Madikeri'       => 'CB_MDK',
+                'Kodagu'         => 'CB_MDK',
+                'Coorg'          => 'CB_MDK',
+                'Sakleshpur'     => 'CB_SKP',
+            ];
+            foreach ($coffeeMarketMap as $sourceName => $targetCode) {
+                $mkt = Market::where('code', $targetCode)->first();
+                if ($mkt) {
+                    MarketSourceMapping::updateOrCreate(
+                        ['data_source_id' => $coffeeDs->id, 'source_market_name' => $sourceName],
+                        ['market_id' => $mkt->id, 'confidence_score' => 1.0, 'is_verified' => true]
+                    );
+                }
+            }
+        }
+
+        // 9. Market Mappings for Coconut Development Board
+        $coconutDs = DataSource::where('code', 'coconut_board')->first();
+        if ($coconutDs) {
+            $cdbMarketMap = [
+                'Arsikere'  => 'CDB_ASK',
+                'Tiptur'    => 'CDB_TPT',
+                'Mangaluru' => 'CDB_MLR',
+                'Mangalore' => 'CDB_MLR',
+                'Tumakuru'  => 'CDB_TMK',
+                'Tumkur'    => 'CDB_TMK',
+            ];
+            foreach ($cdbMarketMap as $sourceName => $targetCode) {
+                $mkt = Market::where('code', $targetCode)->first();
+                if ($mkt) {
+                    MarketSourceMapping::updateOrCreate(
+                        ['data_source_id' => $coconutDs->id, 'source_market_name' => $sourceName],
+                        ['market_id' => $mkt->id, 'confidence_score' => 1.0, 'is_verified' => true]
+                    );
+                }
             }
         }
     }

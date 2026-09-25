@@ -3,20 +3,23 @@
 @section('title', ($article->title_kn ?: $article->title) . ' — ಕೃಷಿ ಮಾರ್ಗದರ್ಶಿ')
 
 @section('content')
+@php
+    $activeLocale = app()->getLocale();
+@endphp
 <div class="space-y-6 max-w-4xl mx-auto">
 
     <!-- Back Button -->
     <div class="flex items-center justify-between">
-        <a href="{{ route('farmer.articles.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs">
-            <span>&larr; ಎಲ್ಲಾ ಲೇಖನಗಳಿಗೆ ಹಿಂತಿರುಗಿ</span>
+        <a href="{{ route('farmer.articles.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+            <span>&larr; {{ $activeLocale === 'en' ? 'Back to All Articles' : 'ಎಲ್ಲಾ ಲೇಖನಗಳಿಗೆ ಹಿಂತಿರುಗಿ' }}</span>
         </a>
         <div class="flex items-center gap-2">
-            <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800">
-                {{ $article->category_label_kn }}
+            <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? ($article->category_label_en ?? $article->category_label_kn) : $article->category_label_kn }}
             </span>
             @if($article->crop)
-                <a href="{{ route('farmer.crops.show', $article->crop->slug) }}" class="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-900 hover:bg-amber-200 transition">
-                    🌾 {{ $article->crop->kannada_name ?: $article->crop->name }}
+                <a href="{{ route('farmer.crops.show', $article->crop->slug) }}" class="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-900 hover:bg-amber-200 transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    🌾 {{ $activeLocale === 'en' ? $article->crop->name : ($article->crop->name_kn ?: $article->crop->name) }}
                 </a>
             @endif
         </div>
@@ -74,18 +77,20 @@
     <!-- Related Articles -->
     @if($relatedArticles->isNotEmpty())
         <div class="pt-4 space-y-3">
-            <h3 class="text-base font-extrabold text-stone-900">ಸಂಬಂಧಿತ ಲೇಖನಗಳು & ಕೈಪಿಡಿ (Related Guides)</h3>
+            <h3 class="text-base font-extrabold text-stone-900 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Related Guides & Manuals' : 'ಸಂಬಂಧಿತ ಲೇಖನಗಳು & ಕೈಪಿಡಿ' }}
+            </h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 @foreach($relatedArticles as $rel)
                     <a href="{{ route('farmer.articles.show', $rel->slug) }}" class="p-4 bg-white rounded-xl border border-stone-200 hover:border-emerald-500 hover:shadow-xs transition block">
-                        <div class="text-xs font-bold text-stone-900 line-clamp-2">
-                            {{ $rel->title_kn ?: $rel->title }}
+                        <div class="text-xs font-bold text-stone-900 line-clamp-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? $rel->title : ($rel->title_kn ?: $rel->title) }}
                         </div>
-                        <div class="text-[11px] text-stone-500 mt-1 line-clamp-2">
-                            {{ $rel->summary_kn ?: $rel->summary }}
+                        <div class="text-[11px] text-stone-500 mt-1 line-clamp-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? $rel->summary : ($rel->summary_kn ?: $rel->summary) }}
                         </div>
-                        <div class="text-[11px] font-bold text-emerald-700 mt-2">
-                            ಓದಿ &rarr;
+                        <div class="text-[11px] font-bold text-emerald-700 mt-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Read ›' : 'ಓದಿ ›' }}
                         </div>
                     </a>
                 @endforeach

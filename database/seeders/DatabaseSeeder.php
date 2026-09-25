@@ -18,7 +18,10 @@ class DatabaseSeeder extends Seeder
             FeatureFlagSeeder::class,
             SystemSettingSeeder::class,
             DataSourceSeeder::class,
+            CedaDataSourceSeeder::class,
+            TssSirsiDataSourceSeeder::class,
             AgriculturalCmsSeeder::class,
+            ComprehensiveKarnatakaMarketPricesSeeder::class,
         ]);
     }
 }

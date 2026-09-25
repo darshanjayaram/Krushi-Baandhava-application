@@ -186,16 +186,76 @@ class CropController extends Controller
             })
             ->filter()
             ->unique('id')
-            ->sort(function ($a, $b) {
-                if ($a->is_same_district !== $b->is_same_district) {
-                    return $b->is_same_district <=> $a->is_same_district;
-                }
-                if ($a->distance_km !== $b->distance_km) {
-                    return $a->distance_km <=> $b->distance_km;
-                }
-                return strcmp($a->name, $b->name);
-            })
             ->values();
+
+        // Market Discovery & Distance Configuration from Crop Settings
+        $marketRadiusKm = (int) ($crop->market_radius_km ?? 300);
+        $defaultMarketSort = $crop->default_market_sort ?? 'nearest_first';
+        $allowUserSortToggle = (bool) ($crop->allow_user_sort_toggle ?? true);
+        $enableSmartBadges = (bool) ($crop->enable_smart_badges ?? true);
+
+        // Identify true nearest market and top paying market across available mandis
+        $actualNearestMarket = $availableMarkets->filter(fn($m) => isset($m->distance_km) && $m->distance_km < 9000)
+            ->sortBy('distance_km')
+            ->first();
+
+        $topRateMarket = $availableMarkets->filter(fn($m) => isset($m->today_modal_price) && $m->today_modal_price > 0)
+            ->sortByDesc('today_modal_price')
+            ->first();
+
+        // Calculate distance rank (for Proximity sorting)
+        $distSorted = $availableMarkets->sort(function ($a, $b) {
+            if ($a->is_same_district !== $b->is_same_district) {
+                return $b->is_same_district <=> $a->is_same_district;
+            }
+            if ($a->distance_km !== $b->distance_km) {
+                return $a->distance_km <=> $b->distance_km;
+            }
+            return strcmp($a->name, $b->name);
+        })->values();
+
+        $distanceRankMap = [];
+        foreach ($distSorted as $idx => $m) {
+            $distanceRankMap[$m->id] = $idx + 1;
+        }
+
+        // Calculate price rank (for Highest Price sorting)
+        $priceSorted = $availableMarkets->sort(function ($a, $b) {
+            if ($a->today_modal_price !== $b->today_modal_price) {
+                return $b->today_modal_price <=> $a->today_modal_price;
+            }
+            return $a->distance_km <=> $b->distance_km;
+        })->values();
+
+        $priceRankMap = [];
+        foreach ($priceSorted as $idx => $m) {
+            $priceRankMap[$m->id] = $idx + 1;
+        }
+
+        // Tag each market with discovery flags & CSS flex order ranks
+        $availableMarkets = $availableMarkets->map(function ($m) use ($actualNearestMarket, $topRateMarket, $marketRadiusKm, $distanceRankMap, $priceRankMap) {
+            $m->is_nearest = ($actualNearestMarket && $m->id === $actualNearestMarket->id);
+            $m->is_top_rate = ($topRateMarket && $m->id === $topRateMarket->id);
+            $m->is_within_radius = ($marketRadiusKm <= 0 || $marketRadiusKm >= 500 || $m->distance_km <= $marketRadiusKm);
+            $m->distance_rank = $distanceRankMap[$m->id] ?? 99;
+            $m->price_rank = $priceRankMap[$m->id] ?? 99;
+            return $m;
+        });
+
+        // Ensure at least the closest market is visible even if outside the configured radius
+        if ($actualNearestMarket && $availableMarkets->where('is_within_radius', true)->isEmpty()) {
+            $first = $availableMarkets->firstWhere('id', $actualNearestMarket->id);
+            if ($first) {
+                $first->is_within_radius = true;
+            }
+        }
+
+        // Initial collection sort according to default_market_sort
+        if ($defaultMarketSort === 'highest_price_first') {
+            $availableMarkets = $availableMarkets->sortBy('price_rank')->values();
+        } else {
+            $availableMarkets = $availableMarkets->sortBy('distance_rank')->values();
+        }
 
         // 2. Base query for Karnataka mandi/board prices on this date
         $mandiPricesQuery = (clone $basePricesQuery)
@@ -206,21 +266,74 @@ class CropController extends Controller
             $mandiPricesQuery->where('variety_id', $varietyId);
         }
 
-        // Filter by specific Karnataka mandi/centre if requested
-        if ($marketParam !== '') {
-            $mandiPricesQuery->whereHas('market', function ($mq) use ($marketParam) {
-                $mq->karnataka()->where(function ($sub) use ($marketParam) {
-                    $sub->where('name', $marketParam)
-                        ->orWhere('name_kn', $marketParam)
-                        ->orWhere('code', $marketParam)
-                        ->orWhere('name', 'like', "%{$marketParam}%");
-                });
-            });
-        }
-
         $mandiPrices = $mandiPricesQuery
             ->orderBy('modal_price', 'desc')
             ->get();
+
+        $marketProximityMap = $availableMarkets->keyBy('id');
+
+        // Group prices by APMC / Market so each mandi appears exactly once in the ranking cards
+        // with all its varieties presented neatly within that single card
+        $mandiGroups = $mandiPrices
+            ->groupBy('market_id')
+            ->map(function ($prices) use ($marketProximityMap, $userDistrict) {
+                $bestRecord = $prices->sortByDesc('modal_price')->first();
+                $market = $bestRecord->market;
+                $prox = $marketProximityMap->get($market->id);
+
+                if ($prox) {
+                    $market->distance_km = $prox->distance_km;
+                    $market->is_same_district = $prox->is_same_district;
+                } else {
+                    $market->is_same_district = ($userDistrict && $market->district_id === $userDistrict->id);
+                    $market->distance_km = 9999;
+                }
+
+                return (object) [
+                    'market' => $market,
+                    'best_item' => $bestRecord,
+                    'best_modal' => (float) $bestRecord->modal_price,
+                    'total_arrivals' => (float) $prices->sum('arrival_quantity'),
+                    'arrival_unit' => $bestRecord->arrival_unit ?? 'Qtl',
+                    'unit' => $bestRecord->unit ?? 'Quintal',
+                    'price_date' => $bestRecord->price_date,
+                    'dataSource' => $bestRecord->dataSource,
+                    'varieties' => $prices->sortByDesc('modal_price')->values(),
+                    'variety_count' => $prices->count(),
+                    'distance_km' => $market->distance_km,
+                    'is_same_district' => $market->is_same_district,
+                ];
+            })
+            ->sortByDesc('best_modal')
+            ->values();
+
+        // Identify the 2 APMCs nearest to current user location
+        $nearestSorted = (clone $mandiGroups)->sort(function ($a, $b) use ($marketParam) {
+            if ($marketParam !== '') {
+                $aMatch = ($a->market->name === $marketParam || $a->market->code === $marketParam);
+                $bMatch = ($b->market->name === $marketParam || $b->market->code === $marketParam);
+                if ($aMatch !== $bMatch) {
+                    return $bMatch <=> $aMatch;
+                }
+            }
+
+            if ($a->is_same_district !== $b->is_same_district) {
+                return $b->is_same_district <=> $a->is_same_district;
+            }
+            if ($a->distance_km !== $b->distance_km) {
+                return $a->distance_km <=> $b->distance_km;
+            }
+            return $b->best_modal <=> $a->best_modal;
+        })->values();
+
+        // 2 APMCs nearest to user location, ranked by best price between them
+        $nearestTwoGroups = $nearestSorted->take(2)->sortByDesc('best_modal')->values();
+
+        // Remaining Karnataka mandis for expandable list
+        $nearestMarketIds = $nearestTwoGroups->pluck('market.id')->all();
+        $allOtherMandiGroups = $mandiGroups->reject(function ($g) use ($nearestMarketIds) {
+            return in_array($g->market->id, $nearestMarketIds);
+        })->sortByDesc('best_modal')->values();
 
         // State-level analytics summary for this commodity across all Karnataka mandis/centres
         $allKarnatakaPrices = (clone $basePricesQuery)
@@ -243,7 +356,10 @@ class CropController extends Controller
         $selectedMarket = null;
         if ($marketParam !== '') {
             $selectedMarket = $availableMarkets->first(function ($m) use ($marketParam) {
-                return $m->name === $marketParam || $m->name_kn === $marketParam || $m->code === $marketParam;
+                return strcasecmp($m->name, $marketParam) === 0
+                    || strcasecmp($m->code ?? '', $marketParam) === 0
+                    || $m->name_kn === $marketParam
+                    || stripos($m->name, $marketParam) !== false;
             });
         }
 
@@ -255,12 +371,14 @@ class CropController extends Controller
 
         // Check if selected market is outside user's home district and extract distance
         $isNearestFallback = false;
+        $isSelectedActualNearest = false;
         $nearestDistanceKm = null;
         if ($selectedMarket) {
             $isNearestFallback = (!$userDistrict || $selectedMarket->district_id !== $userDistrict->id);
             $nearestDistanceKm = (isset($selectedMarket->distance_km) && $selectedMarket->distance_km < 1000)
                 ? $selectedMarket->distance_km
                 : null;
+            $isSelectedActualNearest = ($actualNearestMarket && $selectedMarket->id === $actualNearestMarket->id);
         }
 
         // Fetch varieties specifically trading at this selected market
@@ -316,10 +434,20 @@ class CropController extends Controller
         return view('farmer.crops.show', compact(
             'crop',
             'mandiPrices',
+            'mandiGroups',
+            'nearestTwoGroups',
+            'allOtherMandiGroups',
+            'userDistrict',
             'stats',
             'varietyId',
             'latestDate',
             'availableMarkets',
+            'actualNearestMarket',
+            'isSelectedActualNearest',
+            'marketRadiusKm',
+            'defaultMarketSort',
+            'allowUserSortToggle',
+            'enableSmartBadges',
             'marketParam',
             'selectedMarket',
             'isNearestFallback',

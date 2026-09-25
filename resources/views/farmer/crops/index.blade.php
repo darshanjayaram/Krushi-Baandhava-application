@@ -3,24 +3,27 @@
 @section('title', 'ಕರ್ನಾಟಕದ ಪ್ರಮುಖ ಕೃಷಿ ಬೆಳೆಗಳು — Commodity Directory')
 
 @section('content')
+@php
+    $activeLocale = app()->getLocale();
+@endphp
 <div class="space-y-6">
 
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1">
-                <span>🌾 ಕೃಷಿ ಉತ್ಪನ್ನಗಳ ಮಾಹಿತಿ</span>
+            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <span>🌾 {{ $activeLocale === 'en' ? 'Crop Commodity Information' : 'ಕೃಷಿ ಉತ್ಪನ್ನಗಳ ಮಾಹಿತಿ' }}</span>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-                ಕರ್ನಾಟಕದ ಬೆಳೆಗಳು (Crops Directory)
+            <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Karnataka Crops Directory' : 'ಕರ್ನಾಟಕದ ಬೆಳೆಗಳು' }}
             </h1>
-            <p class="text-xs sm:text-sm text-stone-500">
-                ರಾಜ್ಯದ ಪ್ರಮುಖ ವಾಣಿಜ್ಯ, ಧಾನ್ಯ, ಮಸಾಲೆ ಮತ್ತು ತೋಟಗಾರಿಕಾ ಬೆಳೆಗಳ ವಿವರ ಹಾಗೂ ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು.
+            <p class="text-xs sm:text-sm text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Statewide commercial, cereal, spice, and plantation crops with live mandi price intelligence.' : 'ರಾಜ್ಯದ ಪ್ರಮುಖ ವಾಣಿಜ್ಯ, ಧಾನ್ಯ, ಮಸಾಲೆ ಮತ್ತು ತೋಟಗಾರಿಕಾ ಬೆಳೆಗಳ ವಿವರ ಹಾಗೂ ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು.' }}
             </p>
         </div>
 
-        <a href="{{ route('home') }}" class="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs">
-            <span>&larr; ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ</span>
+        <a href="{{ route('home') }}" class="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+            <span>&larr; {{ $activeLocale === 'en' ? 'Back to Home' : 'ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ' }}</span>
         </a>
     </div>
 
@@ -38,32 +41,29 @@
                 <input type="text" 
                        name="search" 
                        value="{{ $search }}" 
-                       placeholder="ಬೆಳೆ ಹೆಸರು ಹುಡುಕಿ (Search Crop name, e.g. Arecanut, ಕಾಫಿ, ಭತ್ತ)..."
-                       class="w-full text-xs sm:text-sm pl-9 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition">
+                       placeholder="{{ $activeLocale === 'en' ? 'Search crop name (e.g. Arecanut, Coffee, Paddy)...' : 'ಬೆಳೆ ಹೆಸರು ಹುಡುಕಿ (ಉದಾ: ಅಡಿಕೆ, ಕಾಫಿ, ಭತ್ತ)...' }}"
+                       class="w-full text-xs sm:text-sm pl-9 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                 @if($search)
                     <a href="{{ route('farmer.crops.index', ['category' => $categorySlug]) }}" class="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-600 text-sm font-bold">
                         ✕
                     </a>
                 @endif
             </div>
-            <button type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition shrink-0">
-                ಹುಡುಕಿ
+            <button type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Search' : 'ಹುಡುಕಿ' }}
             </button>
         </form>
 
         <!-- Category Pill Chips -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
             <a href="{{ route('farmer.crops.index', ['search' => $search]) }}"
-               class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition shadow-xs {{ !$categorySlug ? 'bg-emerald-800 text-white ring-2 ring-emerald-600/30' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' }}">
-                ಎಲ್ಲಾ ಬೆಳೆಗಳು
+               class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ !$categorySlug ? 'bg-emerald-800 text-white ring-2 ring-emerald-600/30' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' }}">
+                {{ $activeLocale === 'en' ? 'All Crops' : 'ಎಲ್ಲಾ ಬೆಳೆಗಳು' }}
             </a>
             @foreach($categories as $cat)
                 <a href="{{ route('farmer.crops.index', ['category' => $cat->slug, 'search' => $search]) }}"
-                   class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition shadow-xs flex items-center gap-1.5 {{ $categorySlug === $cat->slug ? 'bg-emerald-800 text-white ring-2 ring-emerald-600/30' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' }}">
-                    <span>{{ $cat->name }}</span>
-                    @if($cat->name_kn)
-                        <span class="font-kannada font-normal opacity-90">({{ $cat->name_kn }})</span>
-                    @endif
+                   class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition shadow-xs flex items-center gap-1.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ $categorySlug === $cat->slug ? 'bg-emerald-800 text-white ring-2 ring-emerald-600/30' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' }}">
+                    <span>{{ $activeLocale === 'en' ? $cat->name : ($cat->name_kn ?: $cat->name) }}</span>
                     <span class="text-[10px] px-1.5 py-0.2 rounded-full {{ $categorySlug === $cat->slug ? 'bg-white/20 text-white' : 'bg-white text-stone-500' }}">
                         {{ $cat->crops_count }}
                     </span>
@@ -87,45 +87,40 @@
                                  alt="{{ $crop->name }}" 
                                  class="w-14 h-14 rounded-2xl object-cover shrink-0 shadow-sm border border-stone-200 group-hover:scale-105 transition duration-300">
                             <div>
-                                <h2 class="font-black text-stone-900 text-base leading-snug">
+                                <h2 class="font-black text-stone-900 text-base leading-snug {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                                     <a href="{{ route('farmer.crops.show', $crop->slug) }}" class="hover:text-[#1C5A2C] transition">
-                                        {{ $crop->name }}
+                                        {{ $activeLocale === 'en' ? $crop->name : ($crop->name_kn ?: $crop->name) }}
                                     </a>
                                 </h2>
-                                @if($crop->name_kn)
-                                    <span class="text-xs font-semibold text-[#1C5A2C] font-kannada">
-                                        {{ $crop->name_kn }}
-                                    </span>
-                                @endif
                             </div>
                         </div>
 
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
-                            {{ $crop->category ? $crop->category->name : 'Crop' }}
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-sans">
+                            {{ $crop->category ? ($activeLocale === 'en' ? $crop->category->name : ($crop->category->name_kn ?: $crop->category->name)) : 'Crop' }}
                         </span>
                     </div>
 
                     <!-- Varieties List Preview -->
-                    <div class="mt-3 text-xs text-stone-500">
-                        <span class="font-bold text-stone-700">ತಳಿಗಳು (Varieties):</span>
+                    <div class="mt-3 text-xs text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="font-bold text-stone-700">{{ $activeLocale === 'en' ? 'Varieties:' : 'ತಳಿಗಳು:' }}</span>
                         @if($crop->varieties->isNotEmpty())
-                            <span>{{ $crop->varieties->pluck('name')->take(3)->implode(', ') }}</span>
+                            <span>{{ $crop->varieties->map(fn($v) => $v->displayName($activeLocale))->take(3)->implode(', ') }}</span>
                             @if($crop->varieties->count() > 3)
-                                <span class="text-[#1C5A2C] font-semibold">+{{ $crop->varieties->count() - 3 }} more</span>
+                                <span class="text-[#1C5A2C] font-semibold">+{{ $crop->varieties->count() - 3 }} {{ $activeLocale === 'en' ? 'more' : 'ಇನ್ನಷ್ಟು' }}</span>
                             @endif
                         @else
-                            <span class="text-stone-400">Standard / All</span>
+                            <span class="text-stone-400">{{ $activeLocale === 'en' ? 'Standard / All' : 'ಸಾಮಾನ್ಯ / ಎಲ್ಲಾ' }}</span>
                         @endif
                     </div>
 
                     <!-- Price Snapshot if available -->
                     @if($priceInfo)
                         <div class="mt-3.5 p-3 rounded-xl bg-stone-50 border border-stone-100">
-                            <div class="text-[10px] uppercase font-bold text-stone-400 flex items-center justify-between">
-                                <span>ಮಾದರಿ ದರ ಶ್ರೇಣಿ (State Range)</span>
-                                <span class="text-[#1C5A2C] font-bold lowercase">{{ $priceInfo->mandi_count }} mandis</span>
+                            <div class="text-[10px] uppercase font-bold text-stone-400 flex items-center justify-between {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                <span>{{ $activeLocale === 'en' ? 'State Price Range' : 'ಮಾದರಿ ದರ ಶ್ರೇಣಿ' }}</span>
+                                <span class="text-[#1C5A2C] font-bold lowercase">{{ $priceInfo->mandi_count }} {{ $activeLocale === 'en' ? 'mandis' : 'ಮಂಡಿಗಳು' }}</span>
                             </div>
-                            <div class="text-lg font-black text-[#1C5A2C] mt-0.5 tracking-tight">
+                            <div class="text-lg font-black text-[#1C5A2C] mt-0.5 tracking-tight font-sans">
                                 ₹{{ number_format($priceInfo->min_modal, 0) }} - ₹{{ number_format($priceInfo->max_modal, 0) }}
                                 <span class="text-xs font-normal text-stone-400">/ {{ $crop->standard_unit ?? 'Qtl' }}</span>
                             </div>

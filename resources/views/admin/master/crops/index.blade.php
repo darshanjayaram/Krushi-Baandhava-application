@@ -1,17 +1,22 @@
 @extends('layouts.admin')
 
+@section('title', 'Agricultural Commodities & Crops')
+
 @section('content')
 <div class="space-y-6">
 
     <!-- Header & Action Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h2 class="text-xl font-extrabold text-white tracking-tight">Agricultural Commodities & Crops</h2>
-            <p class="text-xs text-slate-400 mt-0.5">Manage canonical crops, standard trading units, and commercial varieties</p>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2">
+                <span>🌾</span> Agricultural Commodities & Crops
+                <span class="text-xs font-semibold px-2 py-0.5 bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 rounded-full font-kannada">ಬೆಳೆಗಳ ಪಟ್ಟಿ</span>
+            </h1>
+            <p class="text-sm text-slate-400 font-medium">Manage canonical Karnataka commodities, trading units, discovery radius, and cultivar mappings.</p>
         </div>
 
         <a href="{{ route('admin.crops.create', ['category_id' => $categoryId]) }}" 
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition active:scale-95 cursor-pointer">
+           class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
             </svg>
@@ -19,12 +24,42 @@
         </a>
     </div>
 
-    <!-- Filters & Search -->
+    <!-- Metrics Summary Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Commodities</span>
+            <div class="text-3xl font-extrabold text-white mt-1">{{ $crops->total() }}</div>
+            <div class="text-xs font-medium text-emerald-400 mt-1">Cataloged in database</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Major KA Crops</span>
+            <div class="text-3xl font-extrabold text-amber-400 mt-1">
+                {{ \App\Models\Crop::where('is_major', true)->count() }}
+            </div>
+            <div class="text-xs font-medium text-slate-400 mt-1">Priority state focus</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Trading</span>
+            <div class="text-3xl font-extrabold text-emerald-400 mt-1">
+                {{ \App\Models\Crop::where('is_active', true)->count() }}
+            </div>
+            <div class="text-xs font-medium text-slate-400 mt-1">Active price feeds</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Feed Aliases Mapped</span>
+            <div class="text-3xl font-extrabold text-cyan-400 mt-1">
+                {{ \App\Models\CropSourceMapping::count() }}
+            </div>
+            <div class="text-xs font-medium text-slate-400 mt-1">Auto-mapped variety strings</div>
+        </div>
+    </div>
+
+    <!-- Filters & Search Bar Card -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
         <form method="GET" action="{{ route('admin.crops.index') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <!-- Search -->
+            <!-- Search Text -->
             <div class="relative sm:col-span-2">
-                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -33,12 +68,12 @@
                        name="search" 
                        value="{{ $search }}" 
                        placeholder="Search by crop name, Kannada name, or scientific name..." 
-                       class="w-full pl-10 pr-4 py-2 bg-slate-950/70 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                       class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white placeholder-slate-500 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
             </div>
 
             <!-- Category Filter -->
             <div class="flex items-center gap-2">
-                <select name="category_id" class="w-full px-3 py-2 bg-slate-950/70 border border-slate-700/80 rounded-xl text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <select name="category_id" class="w-full px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     <option value="">All Categories</option>
                     @foreach($categories as $cat)
                         <option value="{{ $cat->id }}" {{ $categoryId == $cat->id ? 'selected' : '' }}>
@@ -47,45 +82,60 @@
                     @endforeach
                 </select>
 
-                <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition cursor-pointer">
+                <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer">
                     Filter
                 </button>
                 @if($search || $categoryId)
-                    <a href="{{ route('admin.crops.index') }}" class="px-2 text-xs text-slate-400 hover:text-white transition">
-                        Reset
+                    <a href="{{ route('admin.crops.index') }}" class="px-3 py-2.5 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700/60 rounded-xl transition" title="Reset Filters">
+                        ✕
                     </a>
                 @endif
             </div>
         </form>
     </div>
 
-    <!-- Crops Table -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+    <!-- Crops Table Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+            <h2 class="font-bold text-white flex items-center gap-2">
+                <span>🌾</span> Registered Commodities ({{ $crops->total() }})
+            </h2>
+            <div class="text-xs font-semibold text-slate-400">Total Cataloged: {{ $crops->total() }}</div>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-                <thead>
-                    <tr class="border-b border-slate-800 bg-slate-950/40 text-slate-400 uppercase tracking-wider font-semibold">
-                        <th class="py-3 px-4">Crop Name</th>
-                        <th class="py-3 px-4">Category</th>
-                        <th class="py-3 px-4">Standard Unit</th>
-                        <th class="py-3 px-4">Importance</th>
-                        <th class="py-3 px-4">Varieties</th>
-                        <th class="py-3 px-4 text-center">Status</th>
-                        <th class="py-3 px-4 text-right">Actions</th>
+                <thead class="bg-slate-950/60 border-b border-slate-800 text-slate-400 font-bold uppercase text-[11px] tracking-wider">
+                    <tr>
+                        <th class="py-3.5 px-5">Crop Name</th>
+                        <th class="py-3.5 px-4">Category</th>
+                        <th class="py-3.5 px-4">Trading Unit</th>
+                        <th class="py-3.5 px-4">API Feed Sources & Mapping Status</th>
+                        <th class="py-3.5 px-4">Varieties & Grades</th>
+                        <th class="py-3.5 px-4 text-center">Status</th>
+                        <th class="py-3.5 px-5 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800/60">
+                <tbody class="divide-y divide-slate-800/60 font-medium">
                     @forelse($crops as $crop)
-                        <tr class="hover:bg-slate-800/30 transition">
-                            <td class="py-3 px-4">
+                        <tr class="hover:bg-slate-800/35 transition">
+                            <!-- Crop Name -->
+                            <td class="py-3.5 px-5">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-xl bg-emerald-950/70 border border-emerald-800/40 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                                    <div class="w-9 h-9 rounded-xl bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
                                         {{ substr($crop->name, 0, 2) }}
                                     </div>
                                     <div>
-                                        <div class="font-bold text-white text-sm">{{ $crop->name }}</div>
+                                        <div class="font-bold text-white text-sm flex items-center gap-1.5">
+                                            <span>{{ $crop->name }}</span>
+                                            @if($crop->is_major)
+                                                <span class="px-1.5 py-0.2 rounded text-[10px] font-black uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-800/60" title="Major Karnataka Commodity">
+                                                    ★ Major
+                                                </span>
+                                            @endif
+                                        </div>
                                         @if($crop->name_kn)
-                                            <div class="text-[11px] text-emerald-400 font-kannada font-medium">{{ $crop->name_kn }}</div>
+                                            <div class="text-[11px] text-emerald-400 font-kannada font-bold mt-0.5">{{ $crop->name_kn }}</div>
                                         @endif
                                         @if($crop->scientific_name)
                                             <div class="text-[10px] text-slate-500 italic mt-0.5">{{ $crop->scientific_name }}</div>
@@ -93,51 +143,103 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 px-4">
-                                <span class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 font-medium">
+
+                            <!-- Category -->
+                            <td class="py-3.5 px-4">
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700/60 font-bold text-xs">
                                     {{ $crop->category->name }}
                                 </span>
                             </td>
-                            <td class="py-3 px-4 font-mono text-slate-200">
+
+                            <!-- Trading Unit -->
+                            <td class="py-3.5 px-4 font-mono font-bold text-slate-300 text-xs">
                                 {{ $crop->standard_unit }}
                             </td>
-                            <td class="py-3 px-4">
-                                @if($crop->is_major)
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-950 text-amber-300 border border-amber-800/40">
-                                        ★ Major Crop
-                                    </span>
-                                @else
-                                    <span class="text-slate-500 text-[11px]">Standard</span>
-                                @endif
+
+                            <!-- API Feed Sources & Mapping Status -->
+                            <td class="py-3.5 px-4">
+                                <div class="space-y-1.5">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        @if($crop->isCoffeeBoard())
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-950/70 text-amber-300 border border-amber-800/60">
+                                                ☕ Coffee Board of India
+                                            </span>
+                                        @elseif($crop->isCoconutBoard())
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-950/70 text-cyan-300 border border-cyan-800/60">
+                                                🥥 Coconut Dev Board
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700/80">
+                                                🏛️ data.gov.in / APMC
+                                            </span>
+                                        @endif
+
+                                        @if($crop->prices_count > 0)
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+                                                {{ $crop->prices_count }} Active Prices
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] text-slate-500 bg-slate-800/60">
+                                                No Prices Yet
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <div class="flex flex-wrap items-center gap-2 text-[10px]">
+                                        <span class="text-slate-400 font-semibold">{{ $crop->sourceMappings->count() }} feed aliases mapped</span>
+                                        <span class="text-slate-600">•</span>
+                                        <span class="inline-flex items-center gap-1 font-mono font-bold text-emerald-300 bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-800/50">
+                                            <span>📍 Discovery: {{ $crop->market_radius_km == 0 || $crop->market_radius_km >= 500 ? 'All KA' : $crop->market_radius_km . 'km' }}</span>
+                                            <span>• {{ $crop->default_market_sort === 'highest_price_first' ? '💰 Top Rate' : '📍 Nearest' }}</span>
+                                        </span>
+                                    </div>
+                                </div>
                             </td>
-                            <td class="py-3 px-4">
-                                <span class="px-2 py-0.5 rounded-lg bg-emerald-950 border border-emerald-800/40 text-emerald-400 font-semibold">
-                                    {{ $crop->varieties_count }} varieties
-                                </span>
+
+                            <!-- Varieties & Grades -->
+                            <td class="py-3.5 px-4">
+                                <a href="{{ route('admin.crops.edit', $crop) }}?tab=varieties" 
+                                   class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/60 hover:border-slate-600 text-slate-200 font-bold text-xs transition group">
+                                    <span class="text-emerald-400 font-black">{{ $crop->varieties_count }}</span>
+                                    <span>Grades / Cultivars &rarr;</span>
+                                </a>
                             </td>
-                            <td class="py-3 px-4 text-center">
+
+                            <!-- Status -->
+                            <td class="py-3.5 px-4 text-center">
                                 <form method="POST" action="{{ route('admin.crops.toggle', $crop) }}">
                                     @csrf
                                     @method('PATCH')
-                                    <button type="submit" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition cursor-pointer {{ $crop->is_active ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-900' : 'bg-rose-950 text-rose-300 border border-rose-700/50 hover:bg-rose-900' }}">
-                                        {{ $crop->is_active ? 'Active' : 'Inactive' }}
+                                    <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer {{ $crop->is_active ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/60 hover:bg-emerald-900' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700' }}">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ $crop->is_active ? 'bg-emerald-400' : 'bg-slate-500' }}"></span>
+                                        {{ $crop->is_active ? 'Active' : 'Paused' }}
                                     </button>
                                 </form>
                             </td>
-                            <td class="py-3 px-4 text-right">
-                                <a href="{{ route('admin.crops.edit', $crop) }}" 
-                                   class="inline-flex items-center gap-1 text-slate-300 hover:text-emerald-400 font-semibold transition">
-                                    <span>Edit & Varieties</span>
-                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </a>
+
+                            <!-- Actions -->
+                            <td class="py-3.5 px-5 text-right whitespace-nowrap">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <a href="{{ route('admin.crops.edit', $crop) }}" 
+                                       class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 transition"
+                                       title="Edit Crop & Map Varieties">
+                                        <span>✏️ Edit & Varieties</span>
+                                    </a>
+                                    <a href="{{ route('farmer.crop.detail', $crop->id) }}" 
+                                       target="_blank"
+                                       class="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" 
+                                       title="View on Website">
+                                       <span>👁️</span>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-8 text-center text-slate-400">
-                                No agricultural crops found matching your filter criteria.
+                            <td colspan="7" class="py-12 px-5 text-center text-slate-500">
+                                <div class="text-3xl mb-2">🌾</div>
+                                <div class="text-base font-bold text-white">No agricultural commodities found</div>
+                                <p class="text-xs text-slate-400 mt-1">Try adjusting your search criteria or register a new crop.</p>
                             </td>
                         </tr>
                     @endforelse
@@ -146,7 +248,7 @@
         </div>
 
         @if($crops->hasPages())
-            <div class="p-4 border-t border-slate-800 bg-slate-950/20">
+            <div class="px-6 py-4 border-t border-slate-800 bg-slate-950/40">
                 {{ $crops->links() }}
             </div>
         @endif

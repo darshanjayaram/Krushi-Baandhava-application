@@ -46,11 +46,15 @@ class FarmerHistoricalAnalyticsTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('ಬೆಲೆ ಇತಿಹಾಸ & ಪ್ರವೃತ್ತಿ', false);
-        $response->assertSee('Historical Price Trend');
-        $response->assertSee('ಮಾರಾಟ ಮಾಡಲು ಸೂಕ್ತ ತಿಂಗಳುಗಳು');
-        $response->assertSee('Best Months to Sell');
+        $response->assertSee('ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು', false);
         $response->assertSee('priceTrendCanvas');
         $response->assertSee('seasonalityCanvas');
+
+        // Verify English mode renders English titles
+        $enResponse = $this->withSession(['locale' => 'en'])->get(route('farmer.crops.show', $this->crop->slug));
+        $enResponse->assertStatus(200);
+        $enResponse->assertSee('Historical Price Trend');
+        $enResponse->assertSee('Best Months to Sell');
     }
 
     public function test_crop_show_handles_range_and_market_filters(): void
@@ -63,7 +67,7 @@ class FarmerHistoricalAnalyticsTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee($this->market->name);
-        $response->assertSee('7 ದಿನ (7D)');
+        $response->assertSee('7 ದಿನ');
     }
 
     public function test_analytics_trends_api_returns_structured_json(): void
@@ -146,5 +150,42 @@ class FarmerHistoricalAnalyticsTest extends TestCase
                     'trend_direction',
                 ],
             ]);
+    }
+
+    public function test_crop_show_page_renders_data_insufficiency_notice_when_seasonal_history_is_sparse(): void
+    {
+        $sparseCrop = Crop::create([
+            'name' => 'Sparse Show Test Crop',
+            'name_kn' => 'ಸ್ಪಾರ್ಸ್ ಬೆಳೆ',
+            'slug' => 'sparse-show-test-' . uniqid(),
+            'category_id' => $this->crop->category_id,
+            'is_active' => true,
+        ]);
+
+        MarketPrice::create([
+            'crop_id' => $sparseCrop->id,
+            'market_id' => $this->market->id,
+            'price_date' => Carbon::today()->toDateString(),
+            'min_price' => 2000,
+            'max_price' => 2200,
+            'modal_price' => 2100,
+            'unit' => 'Quintal',
+        ]);
+
+        $response = $this->get(route('farmer.crops.show', $sparseCrop->slug));
+
+        $response->assertStatus(200);
+        $response->assertSee('ಋತುಮಾನ ಮಾಹಿತಿ ಕೊರತೆ ಸೂಚನೆ');
+        $response->assertSee('ವಿಶ್ವಾಸಾರ್ಹ ಋತುಮಾನ ವಿಶ್ಲೇಷಣೆಗೆ ಕನಿಷ್ಠ 2 ಪ್ರತ್ಯೇಕ ತಿಂಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ');
+        $response->assertDontSee('Top Selling Windows');
+
+        // Test English mode
+        $enResponse = $this->withSession(['locale' => 'en'])->get(route('farmer.crops.show', $sparseCrop->slug));
+        $enResponse->assertStatus(200);
+        $enResponse->assertSee('Seasonal Data Insufficiency Notice');
+
+        // Clean up
+        MarketPrice::where('crop_id', $sparseCrop->id)->delete();
+        $sparseCrop->delete();
     }
 }

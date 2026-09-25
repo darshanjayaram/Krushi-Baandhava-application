@@ -54,7 +54,7 @@ class CommodityBoardPricesTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Arecanut');
-        $response->assertSee('ಕರ್ನಾಟಕ APMC ಮಂಡಿ ಆಯ್ಕೆ', false);
+        $response->assertSee('VIEW DIFFERENT MARKET', false);
         $response->assertSee('ಮಂಡಿವಾರು ದರ ಹೋಲಿಕೆ', false);
         $response->assertDontSee('Coffee Board of India');
         $response->assertDontSee('Coconut Development Board');

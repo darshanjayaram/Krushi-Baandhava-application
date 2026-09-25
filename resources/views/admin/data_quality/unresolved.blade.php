@@ -77,7 +77,7 @@
                                         <option value="">-- Choose Canonical Crop --</option>
                                         @foreach($canonicalCrops as $c)
                                             <option value="{{ $c->id }}">
-                                                {{ $c->name }} ({{ $c->name_kn }}) — {{ $c->category }}
+                                                {{ $c->name }} ({{ $c->name_kn }}) — {{ $c->category?->name ?? 'General' }}
                                             </option>
                                         @endforeach
                                     </select>

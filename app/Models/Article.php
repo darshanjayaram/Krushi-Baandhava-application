@@ -65,4 +65,15 @@ class Article extends Model
             default => 'ಕೃಷಿ ಮಾಹಿತಿ (Agri Guide)',
         };
     }
+
+    public function getCategoryLabelEnAttribute(): string
+    {
+        return match ($this->category) {
+            'cultivation' => 'Cultivation Practices',
+            'pest_control' => 'Pest & Disease Control',
+            'soil_fertilizer' => 'Soil & Fertilizer',
+            'harvest_storage' => 'Harvest & Storage',
+            default => 'Agri Guide',
+        };
+    }
 }

@@ -3,6 +3,9 @@
 @section('title', 'ಹತ್ತಿರದ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಗಳು (Nearby APMC Mandis) — ಕೃಷಿ ಬಾಂಧವ')
 
 @section('content')
+@php
+    $activeLocale = app()->getLocale();
+@endphp
 <div class="space-y-6">
 
     <!-- Breadcrumb -->
@@ -254,9 +257,9 @@
                                     @foreach($market->top_prices as $price)
                                         <div class="flex items-center justify-between text-xs">
                                             <span class="text-stone-700 font-medium truncate max-w-[150px]">
-                                                {{ $price->crop->name }}
+                                                {{ $price->crop->displayName($activeLocale) }}
                                                 @if($price->variety)
-                                                    <span class="text-[10px] text-stone-400">({{ $price->variety->name }})</span>
+                                                    <span class="text-[10px] text-stone-400">({{ $price->variety->displayName($activeLocale) }})</span>
                                                 @endif
                                             </span>
                                             <span class="font-extrabold text-stone-900">

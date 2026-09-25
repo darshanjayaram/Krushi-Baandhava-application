@@ -32,7 +32,22 @@ class DataSourceController extends Controller
             'failed_recent' => SyncLog::where('status', 'failed')->where('started_at', '>=', now()->subDays(7))->count(),
         ];
 
-        return view('admin.datasources.index', compact('dataSources', 'stats'));
+        $rawHeartbeat = \Illuminate\Support\Facades\Cache::get('scheduler_last_heartbeat') 
+            ?? DataSource::max('last_heartbeat_at');
+        $lastHeartbeat = $rawHeartbeat ? Carbon::parse($rawHeartbeat) : null;
+        $isCronActive = $lastHeartbeat && $lastHeartbeat->diffInMinutes(now()) <= 15;
+
+        $cronInfo = [
+            'php_binary' => PHP_BINARY,
+            'base_path' => base_path(),
+            'artisan_path' => base_path('artisan'),
+            'cpanel_command' => "* * * * * /usr/local/bin/php " . base_path('artisan') . " schedule:run >/dev/null 2>&1",
+            'standard_command' => "* * * * * cd " . base_path() . " && php artisan schedule:run >> /dev/null 2>&1",
+            'last_heartbeat' => $lastHeartbeat,
+            'is_active' => $isCronActive,
+        ];
+
+        return view('admin.datasources.index', compact('dataSources', 'stats', 'cronInfo'));
     }
 
     public function create(): View
@@ -182,7 +197,17 @@ class DataSourceController extends Controller
                 return response()->json([
                     'ok' => false,
                     'error' => $e->getMessage(),
-                ], 500);
+                    'health' => [
+                        'http_status' => 500,
+                        'response_time_ms' => 0,
+                        'auth_result' => 'failed',
+                        'records_found' => 0,
+                        'detected_fields' => [],
+                        'status' => 'unhealthy',
+                        'error_message' => $e->getMessage(),
+                        'sample_payload' => null,
+                    ],
+                ], 200);
             }
 
             return back()->with('error', "Connection test failed: " . $e->getMessage());
@@ -210,6 +235,28 @@ class DataSourceController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', "Sync failed for '{$datasource->name}': " . $e->getMessage());
         }
+    }
+
+    /**
+     * Delete a data source and its associated relations.
+     */
+    public function destroy(DataSource $datasource): RedirectResponse
+    {
+        $name = $datasource->name;
+        $id = $datasource->id;
+
+        $datasource->delete();
+
+        AuditLog::log(
+            'delete',
+            'DataSource',
+            $id,
+            ['name' => $name],
+            null
+        );
+
+        return redirect()->route('admin.datasources.index')
+            ->with('success', "Data source '{$name}' was deleted successfully.");
     }
 }
 

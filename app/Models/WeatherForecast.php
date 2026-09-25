@@ -104,4 +104,37 @@ class WeatherForecast extends Model
     {
         return $this->forecast_date->isToday();
     }
+
+    /**
+     * Get localized weather condition label.
+     */
+    public function conditionLabel(?string $locale = null): string
+    {
+        $locale = $locale ?? app()->getLocale();
+        if ($locale === 'en') {
+            return $this->weather_condition_en ?: 'Partly Cloudy';
+        }
+        return $this->weather_condition_kn ?: 'ಭಾಗಶಃ ಮೋಡ';
+    }
+
+    /**
+     * Get localized agricultural advisory label.
+     */
+    public function advisoryLabel(?string $locale = null): string
+    {
+        $locale = $locale ?? app()->getLocale();
+        if ($locale === 'en') {
+            return $this->farming_advisory_en ?: 'Good day for drying and logistics';
+        }
+        return $this->farming_advisory_kn ?: 'ಒಣಗಿಸಲು ಒಳ್ಳೆಯ ದಿನ — ಸಾಗಾಣಿಕೆಗೆ ಸೂಕ್ತ';
+    }
+
+    /**
+     * Get temperature to display (current or daytime average/max).
+     */
+    public function displayTemperature(): int
+    {
+        $temp = $this->current_temperature ?? $this->temp_max ?? (($this->temp_min + $this->temp_max) / 2);
+        return (int) round($temp ?: 24);
+    }
 }

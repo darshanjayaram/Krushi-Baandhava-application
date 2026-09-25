@@ -213,30 +213,37 @@ class HistoricalAnalyticsService
                 ->orderBy('price_date', 'asc')
                 ->get();
 
-            $labels = [];
-            $modalPrices = [];
-            $minPrices = [];
-            $maxPrices = [];
-            $arrivals = [];
+            if ($prices->isNotEmpty()) {
+                $labels = [];
+                $modalPrices = [];
+                $minPrices = [];
+                $maxPrices = [];
+                $arrivals = [];
 
-            foreach ($prices as $p) {
-                $labels[] = Carbon::parse($p->price_date)->format('d M');
-                $modalPrices[] = (float) $p->modal_price;
-                $minPrices[] = (float) ($p->min_price ?? $p->modal_price);
-                $maxPrices[] = (float) ($p->max_price ?? $p->modal_price);
-                $arrivals[] = (float) ($p->arrival_quantity ?? 0);
+                foreach ($prices as $p) {
+                    $labels[] = Carbon::parse($p->price_date)->format('d M');
+                    $modalPrices[] = (float) $p->modal_price;
+                    $minPrices[] = (float) ($p->min_price ?? $p->modal_price);
+                    $maxPrices[] = (float) ($p->max_price ?? $p->modal_price);
+                    $arrivals[] = (float) ($p->arrival_quantity ?? 0);
+                }
+
+                return [
+                    'labels' => $labels,
+                    'modal_prices' => $modalPrices,
+                    'min_prices' => $minPrices,
+                    'max_prices' => $maxPrices,
+                    'arrivals' => $arrivals,
+                    'has_data' => count($labels) > 0,
+                    'scope' => 'market',
+                    'market_id' => $marketId,
+                ];
             }
 
-            return [
-                'labels' => $labels,
-                'modal_prices' => $modalPrices,
-                'min_prices' => $minPrices,
-                'max_prices' => $maxPrices,
-                'arrivals' => $arrivals,
-                'has_data' => count($labels) > 0,
-                'scope' => 'market',
-                'market_id' => $marketId,
-            ];
+            // Fall back to state-level daily trends if market has no records in this window
+            $stateTrend = $this->getDailyTrends($cropId, null, $days);
+            $stateTrend['scope'] = 'state_fallback';
+            return $stateTrend;
         }
 
         // State-level trend: Try precomputed daily statistics first
@@ -314,24 +321,54 @@ class HistoricalAnalyticsService
     public function getSeasonalAnalysis(int $cropId, ?int $marketId = null): array
     {
         $kannadaMonths = [
-            1 => 'ಜನವರಿ (Jan)',
-            2 => 'ಫೆಬ್ರವರಿ (Feb)',
-            3 => 'ಮಾರ್ಚ್ (Mar)',
-            4 => 'ಏಪ್ರಿಲ್ (Apr)',
-            5 => 'ಮೇ (May)',
-            6 => 'ಜೂನ್ (Jun)',
-            7 => 'ಜುಲೈ (Jul)',
-            8 => 'ಆಗಸ್ಟ್ (Aug)',
-            9 => 'ಸೆಪ್ಟೆಂಬರ್ (Sep)',
-            10 => 'ಅಕ್ಟೋಬರ್ (Oct)',
-            11 => 'ನವೆಂಬರ್ (Nov)',
-            12 => 'ಡಿಸೆಂಬರ್ (Dec)',
+            1 => 'ಜನವರಿ',
+            2 => 'ಫೆಬ್ರವರಿ',
+            3 => 'ಮಾರ್ಚ್',
+            4 => 'ಏಪ್ರಿಲ್',
+            5 => 'ಮೇ',
+            6 => 'ಜೂನ್',
+            7 => 'ಜುಲೈ',
+            8 => 'ಆಗಸ್ಟ್',
+            9 => 'ಸೆಪ್ಟೆಂಬರ್',
+            10 => 'ಅಕ್ಟೋಬರ್',
+            11 => 'ನವೆಂಬರ್',
+            12 => 'ಡಿಸೆಂಬರ್',
         ];
 
         $englishMonths = [
             1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
             5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
             9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December',
+        ];
+
+        $shortKannadaMonths = [
+            1 => 'ಜನ',
+            2 => 'ಫೆಬ್ರ',
+            3 => 'ಮಾರ್ಚ್',
+            4 => 'ಏಪ್ರಿ',
+            5 => 'ಮೇ',
+            6 => 'ಜೂನ್',
+            7 => 'ಜುಲೈ',
+            8 => 'ಆಗ',
+            9 => 'ಸೆಪ್',
+            10 => 'ಅಕ್ಟೋ',
+            11 => 'ನವೆಂ',
+            12 => 'ಡಿಸೆಂ',
+        ];
+
+        $shortEnglishMonths = [
+            1 => 'Jan',
+            2 => 'Feb',
+            3 => 'Mar',
+            4 => 'Apr',
+            5 => 'May',
+            6 => 'Jun',
+            7 => 'Jul',
+            8 => 'Aug',
+            9 => 'Sep',
+            10 => 'Oct',
+            11 => 'Nov',
+            12 => 'Dec',
         ];
 
         // Fetch historical monthly averages over multi-year records
@@ -357,85 +394,244 @@ class HistoricalAnalyticsService
 
         $results = $query->get()->keyBy('month_num');
 
-        // Overall annual baseline average
-        $overallAvg = $results->avg('avg_price') ?: 0;
+        // If market-specific has fewer than 2 months of data, fall back to state-level
+        if ($marketId !== null && $results->count() < 2) {
+            return $this->getSeasonalAnalysis($cropId, null);
+        }
+
+        $distinctMonthsCount = $results->count();
+
+        // If even state-level has fewer than 2 distinct months, data is insufficient for reliable seasonal peaks
+        if ($distinctMonthsCount < 2) {
+            $monthlyProfile = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $row = $results->get($m);
+                $monthlyProfile[] = [
+                    'month' => $m,
+                    'name_kn' => $kannadaMonths[$m],
+                    'name_en' => $englishMonths[$m],
+                    'short_name_kn' => $shortKannadaMonths[$m],
+                    'short_name_en' => $shortEnglishMonths[$m],
+                    'avg_price' => $row ? round((float) $row->avg_price, 2) : 0.0,
+                    'min_price' => $row ? round((float) $row->min_price, 2) : 0.0,
+                    'max_price' => $row ? round((float) $row->max_price, 2) : 0.0,
+                    'seasonal_index' => 0.0,
+                    'index_percentage' => 0.0,
+                    'bar_height_percent' => 0,
+                    'tier' => 'insufficient',
+                    'is_peak' => false,
+                    'observations' => $row ? (int) $row->total_obs : 0,
+                    'arrivals' => $row ? round((float) $row->total_arr, 2) : 0.0,
+                    'category' => 'insufficient',
+                    'badge_kn' => 'ಮಾಹಿತಿ ಲಭ್ಯವಿಲ್ಲ (No Data)',
+                    'badge_color' => 'stone',
+                    'icon' => '⚪',
+                ];
+            }
+
+            return [
+                'annual_baseline' => round((float) ($results->avg('avg_price') ?: 0), 2),
+                'monthly_profile' => $monthlyProfile,
+                'best_months' => [],
+                'peak_months_kn' => [],
+                'peak_months_en' => [],
+                'lead_summary_kn' => "ವಿಶ್ವಾಸಾರ್ಹ ಋತುಮಾನ ವಿಶ್ಲೇಷಣೆಗೆ ಕನಿಷ್ಠ 2 ಪ್ರತ್ಯೇಕ ತಿಂಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ.",
+                'lead_summary_en' => "At least 2 distinct months of market price records are required for seasonal analysis.",
+                'is_sufficient' => false,
+                'has_seasonal_data' => false,
+                'distinct_months' => $distinctMonthsCount,
+                'message_kn' => "ವಿಶ್ವಾಸಾರ್ಹ ಋತುಮಾನ ವಿಶ್ಲೇಷಣೆಗೆ ಕನಿಷ್ಠ 2 ಪ್ರತ್ಯೇಕ ತಿಂಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ (ಪ್ರಸ್ತುತ {$distinctMonthsCount} ತಿಂಗಳ ದರ ಲಭ್ಯವಿದೆ).",
+                'message_en' => "At least 2 distinct months of market price records are required for seasonal analysis (currently {$distinctMonthsCount} month(s) available).",
+            ];
+        }
+
+        // Overall annual baseline average across recorded months
+        $overallAvg = (float) $results->avg('avg_price') ?: 0;
 
         $monthlyProfile = [];
         for ($m = 1; $m <= 12; $m++) {
             $row = $results->get($m);
-            $avgPrice = $row ? round((float) $row->avg_price, 2) : 0;
-            $minPrice = $row ? round((float) $row->min_price, 2) : 0;
-            $maxPrice = $row ? round((float) $row->max_price, 2) : 0;
-            $obsCount = $row ? (int) $row->total_obs : 0;
-            $arrivals = $row ? round((float) $row->total_arr, 2) : 0;
-
-            $seasonalIndex = ($overallAvg > 0 && $avgPrice > 0)
-                ? round($avgPrice / $overallAvg, 4)
-                : 1.0000;
-
-            // Classification
-            if ($seasonalIndex >= 1.06) {
-                $category = 'peak';
-                $badgeKn = 'ಅತ್ಯುತ್ತಮ ಧಾರಣೆ (Peak Price)';
-                $badgeColor = 'emerald';
-                $icon = '⭐';
-            } elseif ($seasonalIndex >= 1.01) {
-                $category = 'above_average';
-                $badgeKn = 'ಉತ್ತಮ ಬೆಲೆ (Above Average)';
-                $badgeColor = 'blue';
-                $icon = '📈';
-            } elseif ($seasonalIndex >= 0.95) {
-                $category = 'average';
-                $badgeKn = 'ಸಾಧಾರಣ ಧಾರಣೆ (Normal)';
-                $badgeColor = 'amber';
-                $icon = '⚖️';
+            if ($row) {
+                $avgPrice = round((float) $row->avg_price, 2);
+                $minPrice = round((float) $row->min_price, 2);
+                $maxPrice = round((float) $row->max_price, 2);
+                $obsCount = (int) $row->total_obs;
+                $arrivals = round((float) $row->total_arr, 2);
+                $seasonalIndex = ($overallAvg > 0 && $avgPrice > 0)
+                    ? round($avgPrice / $overallAvg, 4)
+                    : 1.0000;
             } else {
-                $category = 'lean';
-                $badgeKn = 'ಆವಕ ಹೆಚ್ಚಳ / ಕಡಿಮೆ ಬೆಲೆ (Lean)';
-                $badgeColor = 'rose';
-                $icon = '📉';
+                // Month has no observations in database
+                $avgPrice = 0.0;
+                $minPrice = 0.0;
+                $maxPrice = 0.0;
+                $obsCount = 0;
+                $arrivals = 0.0;
+                $seasonalIndex = 0.0;
             }
 
             $monthlyProfile[] = [
                 'month' => $m,
                 'name_kn' => $kannadaMonths[$m],
                 'name_en' => $englishMonths[$m],
+                'short_name_kn' => $shortKannadaMonths[$m],
+                'short_name_en' => $shortEnglishMonths[$m],
                 'avg_price' => $avgPrice,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
                 'seasonal_index' => $seasonalIndex,
-                'index_percentage' => round(($seasonalIndex - 1.0) * 100, 1),
+                'index_percentage' => $seasonalIndex > 0 ? round(($seasonalIndex - 1.0) * 100, 1) : 0.0,
                 'observations' => $obsCount,
                 'arrivals' => $arrivals,
-                'category' => $category,
-                'badge_kn' => $badgeKn,
-                'badge_color' => $badgeColor,
-                'icon' => $icon,
+                'category' => 'insufficient',
+                'tier' => 'insufficient',
+                'is_peak' => false,
+                'badge_kn' => 'ಮಾಹಿತಿ ಲಭ್ಯವಿಲ್ಲ (No Data)',
+                'badge_color' => 'stone',
+                'icon' => '⚪',
             ];
         }
 
-        // Identify Top 3 Best Months to Sell
-        $sortedByPrice = collect($monthlyProfile)
-            ->filter(fn ($item) => $item['avg_price'] > 0)
-            ->sortByDesc('seasonal_index')
-            ->values();
+        // Relative tier classification based on recorded price rankings
+        $recordedProfile = collect($monthlyProfile)->where('observations', '>', 0);
+        $totalRecorded = $recordedProfile->count();
+        $sortedRecorded = $recordedProfile->sortByDesc('avg_price')->values();
 
-        $bestMonths = $sortedByPrice->take(3)->map(function ($item, $rank) {
-            return [
-                'rank' => $rank + 1,
-                'month_name_kn' => $item['name_kn'],
-                'month_name_en' => $item['name_en'],
-                'avg_price' => $item['avg_price'],
-                'seasonal_index' => $item['seasonal_index'],
-                'premium_percent' => round(($item['seasonal_index'] - 1.0) * 100, 1),
-            ];
-        })->toArray();
+        $peakCount = max(1, (int) round($totalRecorded * 0.25));
+        $leanCount = max(1, (int) round($totalRecorded * 0.25));
+
+        $peakMonthNums = $sortedRecorded->take(min(3, $peakCount))->pluck('month')->all();
+        $leanMonthNums = $sortedRecorded->reverse()->take(min(3, $leanCount))->pluck('month')->all();
+        $leanMonthNums = array_values(array_diff($leanMonthNums, $peakMonthNums));
+
+        // Incorporate absolute bounds (index >= 1.05 peak, index <= 0.95 lean)
+        foreach ($monthlyProfile as &$item) {
+            if ($item['observations'] > 0 && $item['avg_price'] > 0) {
+                if ($item['seasonal_index'] >= 1.05 && !in_array($item['month'], $peakMonthNums) && count($peakMonthNums) < 3) {
+                    $peakMonthNums[] = $item['month'];
+                }
+                if ($item['seasonal_index'] <= 0.95 && !in_array($item['month'], $leanMonthNums) && !in_array($item['month'], $peakMonthNums) && count($leanMonthNums) < 3) {
+                    $leanMonthNums[] = $item['month'];
+                }
+            }
+        }
+        unset($item);
+
+        // Assign tiers and presentation attributes
+        foreach ($monthlyProfile as &$item) {
+            if ($item['observations'] === 0 || $item['avg_price'] <= 0) {
+                $item['category'] = 'insufficient';
+                $item['tier'] = 'insufficient';
+                $item['badge_kn'] = 'ಮಾಹಿತಿ ಲಭ್ಯವಿಲ್ಲ';
+                $item['badge_en'] = 'No Data';
+                $item['badge_color'] = 'stone';
+                $item['icon'] = '⚪';
+                $item['is_peak'] = false;
+            } elseif (in_array($item['month'], $peakMonthNums)) {
+                $item['category'] = 'peak';
+                $item['tier'] = 'pk';
+                $item['badge_kn'] = 'ಅತ್ಯುತ್ತಮ ಧಾರಣೆ';
+                $item['badge_en'] = 'Peak Price';
+                $item['badge_color'] = 'emerald';
+                $item['icon'] = '⭐';
+                $item['is_peak'] = true;
+            } elseif (in_array($item['month'], $leanMonthNums)) {
+                $item['category'] = 'lean';
+                $item['tier'] = 'lo';
+                $item['badge_kn'] = 'ಆವಕ ಹೆಚ್ಚಳ / ಕಡಿಮೆ ಬೆಲೆ';
+                $item['badge_en'] = 'High Arrivals / Low Price';
+                $item['badge_color'] = 'rose';
+                $item['icon'] = '📉';
+                $item['is_peak'] = false;
+            } else {
+                $item['category'] = 'average';
+                $item['tier'] = 'mid';
+                $item['badge_kn'] = 'ಸಾಧಾರಣ ಧಾರಣೆ';
+                $item['badge_en'] = 'Normal Price';
+                $item['badge_color'] = 'amber';
+                $item['icon'] = '⚖️';
+                $item['is_peak'] = false;
+            }
+        }
+        unset($item);
+
+        // Proportional Bar Heights (Normalized between 18% floor and 100% ceiling for clear visual contrast)
+        $recordedForHeights = collect($monthlyProfile)->where('observations', '>', 0)->where('avg_price', '>', 0);
+        $minRecordedAvg = (float) ($recordedForHeights->min('avg_price') ?: 0.0);
+        $maxRecordedAvg = (float) ($recordedForHeights->max('avg_price') ?: 0.0);
+        $priceSpread = $maxRecordedAvg - $minRecordedAvg;
+
+        foreach ($monthlyProfile as &$item) {
+            if ($item['observations'] > 0 && $item['avg_price'] > 0) {
+                if ($priceSpread > 0) {
+                    $ratio = ($item['avg_price'] - $minRecordedAvg) / $priceSpread;
+                    $item['bar_height_percent'] = (int) round(18 + (82 * $ratio));
+                } else {
+                    $item['bar_height_percent'] = 100;
+                }
+            } else {
+                $item['bar_height_percent'] = 0;
+            }
+        }
+        unset($item);
+
+        // Identify Top 3 Best Months to Sell (from highest average price recorded months that are peak or above-average)
+        $bestMonths = collect($monthlyProfile)
+            ->filter(fn ($item) => $item['observations'] > 0 && $item['avg_price'] > 0 && $item['tier'] !== 'lo' && $item['tier'] !== 'insufficient')
+            ->sortByDesc('avg_price')
+            ->take(3)
+            ->values()
+            ->map(function ($item, $rank) {
+                return [
+                    'rank' => $rank + 1,
+                    'month_name_kn' => $item['name_kn'],
+                    'month_name_en' => $item['name_en'],
+                    'short_name_kn' => $item['short_name_kn'],
+                    'short_name_en' => $item['short_name_en'],
+                    'avg_price' => $item['avg_price'],
+                    'seasonal_index' => $item['seasonal_index'],
+                    'premium_percent' => round(($item['seasonal_index'] - 1.0) * 100, 1),
+                ];
+            })->toArray();
+
+        // If all recorded months happened to be lean (fallback), use the highest price recorded month
+        if (empty($bestMonths) && $recordedProfile->isNotEmpty()) {
+            $topItem = $recordedProfile->sortByDesc('avg_price')->first();
+            $bestMonths = [[
+                'rank' => 1,
+                'month_name_kn' => $topItem['name_kn'],
+                'month_name_en' => $topItem['name_en'],
+                'short_name_kn' => $topItem['short_name_kn'],
+                'short_name_en' => $topItem['short_name_en'],
+                'avg_price' => $topItem['avg_price'],
+                'seasonal_index' => $topItem['seasonal_index'],
+                'premium_percent' => round(($topItem['seasonal_index'] - 1.0) * 100, 1),
+            ]];
+        }
+
+        // Extract peak month short names for natural language guidance
+        $peakMonthsKn = collect($bestMonths)->pluck('short_name_kn')->take(3)->filter()->values();
+        $peakMonthsEn = collect($bestMonths)->pluck('short_name_en')->take(3)->filter()->values();
+
+        $leadSummaryKn = $peakMonthsKn->isNotEmpty()
+            ? "ಸಾಮಾನ್ಯವಾಗಿ " . $peakMonthsKn->implode(', ') . " ತಿಂಗಳಲ್ಲಿ ಬೆಲೆ ಹೆಚ್ಚು — ಆ ಸಮಯಕ್ಕೆ ಬೆಳೆ ಮಾರಲು ಸಿದ್ಧವಾಗಿರುವಂತೆ ಯೋಜಿಸಿ."
+            : "ಕರ್ನಾಟಕ ಮಾರುಕಟ್ಟೆಗಳಲ್ಲಿನ ಐತಿಹಾಸಿಕ ಆವಕ ಮತ್ತು ಬೇಡಿಕೆಯ ಆಧಾರದ ಮೇಲೆ ಬೆಲೆ ವ್ಯತ್ಯಾಸವಾಗುತ್ತದೆ.";
+
+        $leadSummaryEn = $peakMonthsEn->isNotEmpty()
+            ? "Prices are usually highest around " . $peakMonthsEn->implode(', ') . " — plan your crop to be ready to sell then."
+            : "Prices vary seasonally based on market arrivals and demand.";
 
         return [
             'annual_baseline' => round((float) $overallAvg, 2),
             'monthly_profile' => $monthlyProfile,
             'best_months' => $bestMonths,
-            'has_seasonal_data' => $results->count() > 0,
+            'peak_months_kn' => $peakMonthsKn->toArray(),
+            'peak_months_en' => $peakMonthsEn->toArray(),
+            'lead_summary_kn' => $leadSummaryKn,
+            'lead_summary_en' => $leadSummaryEn,
+            'is_sufficient' => count($bestMonths) > 0,
+            'has_seasonal_data' => count($bestMonths) > 0,
+            'distinct_months' => $distinctMonthsCount,
         ];
     }
 
@@ -458,12 +654,18 @@ class HistoricalAnalyticsService
         $prices = $query->pluck('modal_price')->map(fn ($p) => (float) $p);
 
         if ($prices->isEmpty()) {
+            if ($marketId !== null) {
+                return $this->getStatisticalSummary($cropId, null, $days);
+            }
+
             return [
                 'min_price' => 0,
                 'max_price' => 0,
                 'avg_price' => 0,
                 'std_dev' => 0,
-                'volatility_rating' => 'ಕಡಿಮೆ (Low)',
+                'volatility_rating' => 'ಕಡಿಮೆ / ಸ್ಥಿರ',
+                'volatility_rating_kn' => 'ಕಡಿಮೆ / ಸ್ಥಿರ',
+                'volatility_rating_en' => 'Stable / Low',
                 'observations_count' => 0,
                 'price_change_percent' => 0,
                 'trend_direction' => 'stable',
@@ -484,13 +686,16 @@ class HistoricalAnalyticsService
 
         // Volatility categorization
         if ($volatilityPercent > 15) {
-            $volatilityRating = 'ಅಧಿಕ ಏರಿಳಿತ (High Volatility)';
+            $volatilityRatingKn = 'ಅಧಿಕ ಏರಿಳಿತ';
+            $volatilityRatingEn = 'High Volatility';
             $volatilityColor = 'rose';
         } elseif ($volatilityPercent > 8) {
-            $volatilityRating = 'ಮಧ್ಯಮ ಏರಿಳಿತ (Moderate Volatility)';
+            $volatilityRatingKn = 'ಮಧ್ಯಮ ಏರಿಳಿತ';
+            $volatilityRatingEn = 'Moderate Volatility';
             $volatilityColor = 'amber';
         } else {
-            $volatilityRating = 'ಕಡಿಮೆ ಏರಿಳಿತ / ಸ್ಥಿರ (Stable / Low)';
+            $volatilityRatingKn = 'ಕಡಿಮೆ ಏರಿಳಿತ / ಸ್ಥಿರ';
+            $volatilityRatingEn = 'Stable / Low Volatility';
             $volatilityColor = 'emerald';
         }
 
@@ -512,7 +717,9 @@ class HistoricalAnalyticsService
             'avg_price' => $avgPrice,
             'std_dev' => $stdDev,
             'volatility_percent' => $volatilityPercent,
-            'volatility_rating' => $volatilityRating,
+            'volatility_rating' => $volatilityRatingKn,
+            'volatility_rating_kn' => $volatilityRatingKn,
+            'volatility_rating_en' => $volatilityRatingEn,
             'volatility_color' => $volatilityColor,
             'observations_count' => $prices->count(),
             'first_price' => $firstPrice,

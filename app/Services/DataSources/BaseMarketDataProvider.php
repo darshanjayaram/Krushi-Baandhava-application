@@ -59,9 +59,11 @@ abstract class BaseMarketDataProvider implements MarketDataProviderInterface
         ], $this->additionalHeaders ?? [], $extraHeaders);
 
         $startTime = microtime(true);
+        $verifySsl = config('services.http.verify_ssl', app()->isProduction());
 
         try {
             $response = Http::timeout($this->dataSource->timeout_seconds ?? 30)
+                ->withOptions(['verify' => $verifySsl])
                 ->withHeaders($headers)
                 ->get($url, $queryParams);
 
@@ -77,6 +79,60 @@ abstract class BaseMarketDataProvider implements MarketDataProviderInterface
         } catch (\Throwable $e) {
             $responseTimeMs = (int) round((microtime(true) - $startTime) * 1000);
             Log::warning("DataSource [{$this->dataSource->code}] HTTP request failed: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'http_status' => null,
+                'response_time_ms' => $responseTimeMs,
+                'body' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Execute an HTTP POST request with measured response time and standardized headers.
+     *
+     * @param string $url
+     * @param array<string, mixed> $body
+     * @param array<string, string> $extraHeaders
+     * @return array{
+     *     success: bool,
+     *     http_status: int|null,
+     *     response_time_ms: int,
+     *     body: mixed,
+     *     error: string|null
+     * }
+     */
+    protected function makePostRequest(string $url, array $body = [], array $extraHeaders = []): array
+    {
+        $headers = array_merge([
+            'User-Agent' => 'KrushiBaandhava/1.0 (contact@krushibaandhava.org; Karnataka)',
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ], $this->additionalHeaders ?? [], $extraHeaders);
+
+        $startTime = microtime(true);
+        $verifySsl = config('services.http.verify_ssl', app()->isProduction());
+
+        try {
+            $response = Http::timeout($this->dataSource->timeout_seconds ?? 30)
+                ->withOptions(['verify' => $verifySsl])
+                ->withHeaders($headers)
+                ->post($url, $body);
+
+            $responseTimeMs = (int) round((microtime(true) - $startTime) * 1000);
+
+            return [
+                'success' => $response->successful(),
+                'http_status' => $response->status(),
+                'response_time_ms' => $responseTimeMs,
+                'body' => $response->json() ?? $response->body(),
+                'error' => $response->successful() ? null : 'HTTP ' . $response->status() . ': ' . substr($response->body(), 0, 200),
+            ];
+        } catch (\Throwable $e) {
+            $responseTimeMs = (int) round((microtime(true) - $startTime) * 1000);
+            Log::warning("DataSource [{$this->dataSource->code}] HTTP POST failed: " . $e->getMessage());
 
             return [
                 'success' => false,

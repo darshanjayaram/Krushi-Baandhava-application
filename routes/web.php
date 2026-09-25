@@ -31,6 +31,17 @@ use App\Http\Controllers\Farmer\WeatherController;
 */
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::post('/set-location', [HomeController::class, 'setLocation'])->name('set-location');
+
+// Language Switcher Route (Kannada <-> English)
+Route::get('/locale/{lang}', function (string $lang, \Illuminate\Http\Request $request) {
+    if (!in_array($lang, ['kn', 'en'], true)) {
+        $lang = 'kn';
+    }
+    session(['locale' => $lang]);
+
+    $redirectUrl = $request->header('referer') ?: url('/');
+    return redirect($redirectUrl)->withCookie(cookie()->forever('locale', $lang));
+})->name('locale.switch');
 Route::get('/crops', [FarmerCropController::class, 'index'])->name('farmer.crops.index');
 Route::get('/crops/{slug}', [FarmerCropController::class, 'show'])->name('farmer.crops.show');
 Route::get('/crop/{crop}', [FarmerCropController::class, 'show'])->name('farmer.crop.detail');
@@ -101,12 +112,16 @@ Route::prefix('admin')->group(function () {
 
         // Master Data: Crops & Varieties
         Route::patch('/crops/{crop}/toggle', [CropController::class, 'toggleStatus'])->name('admin.crops.toggle');
+        Route::get('/crops/{crop}/live-varieties', [CropController::class, 'liveVarieties'])->name('admin.crops.live-varieties');
+        Route::get('/crops/{crop}/inspect-feed', [CropController::class, 'inspectFeed'])->name('admin.crops.inspect-feed');
+        Route::post('/crops/{crop}/variety-aliases', [CropController::class, 'addVarietyAlias'])->name('admin.crops.variety-aliases.add');
+        Route::delete('/crops/{crop}/variety-aliases/{mapping}', [CropController::class, 'removeVarietyAlias'])->name('admin.crops.variety-aliases.remove');
         Route::resource('crops', CropController::class)->names('admin.crops');
         Route::resource('varieties', CropVarietyController::class)->only(['store', 'update', 'destroy'])->names('admin.varieties');
 
         // Data Sources & Providers
         Route::post('/datasources/{datasource}/toggle-status', [DataSourceController::class, 'toggleStatus'])->name('admin.datasources.toggle-status');
-        Route::post('/datasources/{datasource}/test-connection', [DataSourceController::class, 'testConnection'])->name('admin.datasources.test-connection');
+        Route::match(['GET', 'POST'], '/datasources/{datasource}/test-connection', [DataSourceController::class, 'testConnection'])->name('admin.datasources.test-connection');
         Route::post('/datasources/{datasource}/trigger-sync', [DataSourceController::class, 'triggerSync'])->name('admin.datasources.trigger-sync');
 
         Route::get('/datasources/{datasource}/mappings', [DataSourceMappingController::class, 'index'])->name('admin.datasources.mappings.index');
@@ -120,6 +135,8 @@ Route::prefix('admin')->group(function () {
         // Market Prices
         Route::get('/prices', [MarketPriceController::class, 'index'])->name('admin.prices.index');
         Route::post('/prices/sync', [MarketPriceController::class, 'sync'])->name('admin.prices.sync');
+        Route::post('/prices/sync-range', [MarketPriceController::class, 'syncRange'])->name('admin.prices.sync-range');
+        Route::post('/prices/prune', [MarketPriceController::class, 'prune'])->name('admin.prices.prune');
 
         // Sync & API Health Logs
         Route::get('/sync-logs', [SyncLogController::class, 'index'])->name('admin.sync-logs.index');

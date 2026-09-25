@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'ceda' => [
+        'base_url' => env('CEDA_API_BASE_URL', 'https://api.ceda.ashoka.edu.in/v1'),
+        'api_key' => env('CEDA_API_KEY'),
+    ],
+
 ];

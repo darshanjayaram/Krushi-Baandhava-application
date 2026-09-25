@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-[#F5EFE6] antialiased">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-[#F5EFE6] antialiased notranslate" translate="no">
 <head>
     <meta charset="utf-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -34,10 +35,10 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.svg">
     <link rel="icon" type="image/svg+xml" href="/icons/icon-192.svg">
 
-    <!-- Google Fonts: Inter / Plus Jakarta Sans & Tiro Kannada -->
+    <!-- Google Fonts: Inter / Plus Jakarta Sans & Noto Sans Kannada (Negilu Krushi Alignment) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tiro+Kannada:ital@0;1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         body {
@@ -47,7 +48,7 @@
             color: #1F2937;
         }
         .font-kannada {
-            font-family: 'Tiro Kannada', serif;
+            font-family: 'Noto Sans Kannada', system-ui, -apple-system, sans-serif;
         }
         .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -61,7 +62,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="flex flex-col min-h-full antialiased pb-20 md:pb-6 bg-[#F5EFE6]">
+<body class="flex flex-col min-h-full antialiased pb-20 md:pb-6 bg-[#F5EFE6] notranslate">
 
     <!-- Connectivity Status Indicator -->
     <div x-data="{
@@ -81,12 +82,12 @@
         <div x-show="!isOnline" style="display: none;"
              class="bg-amber-500 text-slate-950 px-4 py-1.5 text-center text-xs font-bold shadow-sm flex items-center justify-center gap-2">
             <span class="animate-pulse">⚠️</span>
-            <span>Offline Mode: Showing cached rates / ಆಫ್‌ಲೈನ್ ಮೋಡ್: ಉಳಿಸಲಾದ ದರಗಳು ಲಭ್ಯವಿವೆ</span>
+            <span>{{ app()->getLocale() === 'en' ? 'Offline Mode: Showing cached rates' : 'ಆಫ್‌ಲೈನ್ ಮೋಡ್: ಉಳಿಸಲಾದ ದರಗಳನ್ನು ತೋರಿಸಲಾಗುತ್ತಿದೆ' }}</span>
         </div>
         <div x-show="showReconnected" style="display: none;"
              class="bg-[#1C5A2C] text-white px-4 py-1.5 text-center text-xs font-bold shadow-sm flex items-center justify-center gap-2">
             <span>✓</span>
-            <span>ಆನ್‌ಲೈನ್‌ಗೆ ಮರಳಿದೆ! Live connectivity restored.</span>
+            <span>{{ app()->getLocale() === 'en' ? 'Live connectivity restored!' : 'ಆನ್‌ಲೈನ್‌ಗೆ ಮರಳಿದೆ!' }}</span>
         </div>
     </div>
 
@@ -107,23 +108,27 @@
                     </div>
                 </a>
 
+                @php
+                    $activeLocale = app()->getLocale();
+                @endphp
+
                 <!-- Decluttered Clean Desktop Navigation: Exactly 4 Main Links -->
                 <nav class="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-bold">
                     <a href="{{ route('home') }}" 
                        class="px-4 py-2 rounded-xl transition {{ request()->routeIs('home') || request()->routeIs('farmer.crops.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
-                        ದರಗಳು
+                        {{ $activeLocale === 'en' ? 'Rates' : 'ದರಗಳು' }}
                     </a>
                     <a href="{{ route('farmer.schemes.index') }}" 
                        class="px-4 py-2 rounded-xl transition {{ request()->routeIs('farmer.schemes.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
-                        ಯೋಜನೆಗಳು
+                        {{ $activeLocale === 'en' ? 'Schemes' : 'ಯೋಜನೆಗಳು' }}
                     </a>
                     <a href="{{ route('farmer.videos.index') }}" 
                        class="px-4 py-2 rounded-xl transition {{ request()->routeIs('farmer.videos.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
-                        ವಿಡಿಯೋಗಳು
+                        {{ $activeLocale === 'en' ? 'Videos' : 'ವಿಡಿಯೋಗಳು' }}
                     </a>
                     <a href="{{ route('farmer.news.index') }}" 
                        class="px-4 py-2 rounded-xl transition {{ request()->routeIs('farmer.news.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
-                        ಸುದ್ದಿಗಳು
+                        {{ $activeLocale === 'en' ? 'News' : 'ಸುದ್ದಿಗಳು' }}
                     </a>
                 </nav>
 
@@ -134,10 +139,10 @@
                             x-data
                             @click="$dispatch('open-location-modal')" 
                             class="hidden sm:flex items-center gap-1.5 bg-white border border-stone-200/90 rounded-full px-3 py-1.5 text-xs font-bold text-stone-800 transition hover:bg-stone-50 active:scale-95 cursor-pointer shadow-2xs"
-                            title="ಸ್ಥಳ ಬದಲಾಯಿಸಲು ಕ್ಲಿಕ್ ಮಾಡಿ">
+                            title="{{ $activeLocale === 'en' ? 'Click to change location' : 'ಸ್ಥಳ ಬದಲಾಯಿಸಲು ಕ್ಲಿಕ್ ಮಾಡಿ' }}">
                         <span class="text-rose-500 text-xs">📍</span>
-                        <span class="max-w-[100px] truncate font-kannada">
-                            {{ $activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ' }}
+                        <span class="max-w-[100px] truncate {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
+                            {{ $activeLocale === 'en' ? ($activeDistrict->name ?? $activeDistrict->name_kn ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
                         </span>
                     </button>
 
@@ -147,14 +152,21 @@
                        @click.prevent="$dispatch('open-install-prompt')"
                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#F0C24A] hover:bg-amber-400 text-stone-900 font-black text-xs shadow-xs transition active:scale-95 cursor-pointer">
                         <span>📲</span>
-                        <span>ಆ್ಯಪ್</span>
+                        <span>{{ $activeLocale === 'en' ? 'App' : 'ಆ್ಯಪ್' }}</span>
                     </a>
 
-                    <!-- Language Indicator -->
-                    <div class="flex items-center text-xs font-bold bg-white rounded-xl px-3 py-1.5 text-stone-700 border border-stone-200/90 shadow-2xs">
-                        <span>EN</span>
-                        <span class="mx-1 text-stone-300">/</span>
-                        <span class="text-emerald-800 font-kannada">ಕ</span>
+                    <!-- Interactive Kannada / English Toggle -->
+                    <div class="flex items-center bg-white rounded-xl p-1 text-xs font-bold border border-stone-200/90 shadow-2xs">
+                        <a href="{{ route('locale.switch', 'en') }}" 
+                           class="px-2 py-1 rounded-lg transition {{ $activeLocale === 'en' ? 'bg-[#1C5A2C] text-white shadow-xs font-black' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-100' }}"
+                           title="Switch to English">
+                            EN
+                        </a>
+                        <a href="{{ route('locale.switch', 'kn') }}" 
+                           class="px-2 py-1 rounded-lg transition font-kannada {{ $activeLocale === 'kn' ? 'bg-[#1C5A2C] text-white shadow-xs font-black' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-100' }}"
+                           title="ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಿ">
+                            ಕನ್ನಡ
+                        </a>
                     </div>
 
                     <!-- Admin Link for Authorized Staff -->
@@ -182,25 +194,25 @@
             <!-- Home -->
             <a href="{{ route('home') }}" class="flex flex-col items-center justify-center gap-0.5 {{ request()->routeIs('home') ? 'text-[#1C5A2C] font-extrabold' : 'text-stone-500 hover:text-[#1C5A2C]' }} transition">
                 <span class="text-lg">🌾</span>
-                <span class="text-[10px] font-kannada font-bold leading-none">ಮುಖಪುಟ</span>
+                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold leading-none">{{ $activeLocale === 'en' ? 'Home' : 'ಮುಖಪುಟ' }}</span>
             </a>
 
             <!-- Crops / Rates -->
             <a href="{{ route('farmer.crops.index') }}" class="flex flex-col items-center justify-center gap-0.5 {{ request()->routeIs('farmer.crops.*') ? 'text-[#1C5A2C] font-extrabold' : 'text-stone-500 hover:text-[#1C5A2C]' }} transition">
                 <span class="text-lg">📊</span>
-                <span class="text-[10px] font-kannada font-bold leading-none">ದರಗಳು</span>
+                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold leading-none">{{ $activeLocale === 'en' ? 'Rates' : 'ದರಗಳು' }}</span>
             </a>
 
             <!-- Schemes -->
             <a href="{{ route('farmer.schemes.index') }}" class="flex flex-col items-center justify-center gap-0.5 {{ request()->routeIs('farmer.schemes.*') ? 'text-[#1C5A2C] font-extrabold' : 'text-stone-500 hover:text-[#1C5A2C]' }} transition">
                 <span class="text-lg">🏛️</span>
-                <span class="text-[10px] font-kannada font-bold leading-none">ಯೋಜನೆಗಳು</span>
+                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold leading-none">{{ $activeLocale === 'en' ? 'Schemes' : 'ಯೋಜನೆಗಳು' }}</span>
             </a>
 
             <!-- Weather -->
             <a href="{{ route('farmer.weather.index') }}" class="flex flex-col items-center justify-center gap-0.5 {{ request()->routeIs('farmer.weather.*') ? 'text-[#1C5A2C] font-extrabold' : 'text-stone-500 hover:text-[#1C5A2C]' }} transition">
                 <span class="text-lg">🌤️</span>
-                <span class="text-[10px] font-kannada font-bold leading-none">ಹವಾಮಾನ</span>
+                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold leading-none">{{ $activeLocale === 'en' ? 'Weather' : 'ಹವಾಮಾನ' }}</span>
             </a>
         </div>
     </nav>
@@ -208,16 +220,21 @@
     <!-- Desktop Footer -->
     <footer class="hidden md:block mt-auto bg-transparent border-t border-[#E8DFC8] py-8 text-center text-xs text-stone-500">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-2">
-                <span class="font-bold text-stone-800">ಕೃಷಿ ಬಾಂಧವ (Krushi Baandhava)</span>
-                <span>•</span>
-                <span>ಕರ್ನಾಟಕದ ರೈತರಿಗಾಗಿ ಅಧಿಕೃತ ಎಪಿಎಂಸಿ ದರಗಳು & ಕೃಷಿ ಮಾಹಿತಿ</span>
+            <div class="flex flex-col items-start gap-1 text-left">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-stone-800">{{ $activeLocale === 'en' ? 'Krushi Baandhava' : 'ಕೃಷಿ ಬಾಂಧವ' }}</span>
+                    <span>•</span>
+                    <span>{{ $activeLocale === 'en' ? 'Official APMC market rates & agricultural advisory for Karnataka farmers' : 'ಕರ್ನಾಟಕದ ರೈತರಿಗಾಗಿ ಅಧಿಕೃತ ಎಪಿಎಂಸಿ ದರಗಳು & ಕೃಷಿ ಮಾಹಿತಿ' }}</span>
+                </div>
+                <p class="text-[11px] text-stone-400">
+                    {{ $activeLocale === 'en' ? 'Mandi rates sourced from APMC (data.gov.in / Agmarknet via CEDA) & Cooperative Societies (TSS Sirsi)' : 'ದರಗಳು ಅಧಿಕೃತ ಎಪಿಎಂಸಿ (data.gov.in / Agmarknet via CEDA) ಮತ್ತು ಸಹಕಾರಿ ಸಂಘಗಳಿಂದ (TSS Sirsi)' }}
+                </p>
             </div>
             <div class="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-stone-600">
-                <a href="{{ route('farmer.schemes.index') }}" class="hover:text-stone-900">ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು</a>
-                <a href="{{ route('farmer.news.index') }}" class="hover:text-stone-900">ಕೃಷಿ ಸುದ್ದಿ</a>
-                <a href="{{ route('farmer.videos.index') }}" class="hover:text-stone-900">ವಿಡಿಯೋಗಳು</a>
-                <a href="{{ route('farmer.articles.index') }}" class="hover:text-stone-900">ಕೈಪಿಡಿಗಳು</a>
+                <a href="{{ route('farmer.schemes.index') }}" class="hover:text-stone-900">{{ $activeLocale === 'en' ? 'Govt Schemes' : 'ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು' }}</a>
+                <a href="{{ route('farmer.news.index') }}" class="hover:text-stone-900">{{ $activeLocale === 'en' ? 'Agri News' : 'ಕೃಷಿ ಸುದ್ದಿ' }}</a>
+                <a href="{{ route('farmer.videos.index') }}" class="hover:text-stone-900">{{ $activeLocale === 'en' ? 'Videos' : 'ವಿಡಿಯೋಗಳು' }}</a>
+                <a href="{{ route('farmer.articles.index') }}" class="hover:text-stone-900">{{ $activeLocale === 'en' ? 'Guides' : 'ಕೈಪಿಡಿಗಳು' }}</a>
                 <a href="{{ route('admin.login') }}" class="text-stone-400 hover:text-stone-900">Admin Portal</a>
             </div>
         </div>
@@ -229,7 +246,7 @@
        rel="noopener noreferrer"
        class="fixed bottom-20 md:bottom-6 right-5 sm:right-7 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#1C5A2C] hover:bg-[#154622] text-white font-bold text-xs shadow-lg transition active:scale-95 cursor-pointer">
         <span class="text-sm">💬</span>
-        <span>ಪ್ರತಿಕ್ರಿಯೆ</span>
+        <span>{{ $activeLocale === 'en' ? 'Feedback' : 'ಪ್ರತಿಕ್ರಿಯೆ' }}</span>
     </a>
 
     <!-- Location Picker Modal Component -->

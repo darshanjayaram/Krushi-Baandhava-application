@@ -12,11 +12,15 @@ Artisan::command('inspire', function () {
 |--------------------------------------------------------------------------
 | Console Scheduling (Krushi Baandhava APMC / data.gov.in Ingestion)
 |--------------------------------------------------------------------------
-|
-| Morning sync: 06:00 IST (captures early morning arrivals & opening rates)
-| Evening sync: 18:00 IST (captures final closing modal prices & day aggregates)
-|
+/*
+|--------------------------------------------------------------------------
+| Scheduler Live Heartbeat (for cPanel Health Monitor in Admin Panel)
+|--------------------------------------------------------------------------
 */
+Schedule::call(function () {
+    \Illuminate\Support\Facades\Cache::forever('scheduler_last_heartbeat', now());
+})->everyMinute();
+
 Schedule::command('krushi:sync-market-prices')
     ->dailyAt('06:00')
     ->withoutOverlapping(60)
@@ -28,6 +32,12 @@ Schedule::command('krushi:sync-market-prices')
     ->withoutOverlapping(60)
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/sync_evening.log'));
+
+Schedule::command('krushi:sync-market-prices')
+    ->hourly()
+    ->withoutOverlapping(60)
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/sync_periodic.log'));
 
 /*
 |--------------------------------------------------------------------------
@@ -73,5 +83,20 @@ Schedule::command('krushi:generate-forecasts')
     ->withoutOverlapping(60)
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/forecast_nightly.log'));
+
+/*
+|--------------------------------------------------------------------------
+| Automated 1-Year Rolling Retention Pruning (Keeps Database at ~35 MB)
+|--------------------------------------------------------------------------
+|
+| Nightly cleanup: 23:00 IST (pre-aggregates monthly stats, prunes daily records > 365d)
+|
+*/
+Schedule::command('krushi:prune-prices --days=365')
+    ->dailyAt('23:00')
+    ->withoutOverlapping(60)
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/prune_nightly.log'));
+
 
 

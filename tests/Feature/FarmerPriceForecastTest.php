@@ -26,12 +26,17 @@ class FarmerPriceForecastTest extends TestCase
 
     public function test_crop_show_page_renders_forecast_card(): void
     {
-        $response = $this->get(route('farmer.crops.show', $this->crop->slug));
+        // Default / Kannada mode
+        $knResponse = $this->get(route('farmer.crops.show', ['slug' => $this->crop->slug, 'lang' => 'kn']));
+        $knResponse->assertStatus(200);
+        $knResponse->assertSee('ದರ ಮುನ್ಸೂಚನೆ & ನಿರೀಕ್ಷಿತ ಶ್ರೇಣಿ', false);
+        $knResponse->assertSee('ಗಮನಿಸಿ:');
 
-        $response->assertStatus(200);
-        $response->assertSee('ದರ ಮುನ್ಸೂಚನೆ & ನಿರೀಕ್ಷಿತ ಶ್ರೇಣಿ', false);
-        $response->assertSee('Price Forecast & Projections', false);
-        $response->assertSee('Disclaimer');
+        // English mode
+        $enResponse = $this->get(route('farmer.crops.show', ['slug' => $this->crop->slug, 'lang' => 'en']));
+        $enResponse->assertStatus(200);
+        $enResponse->assertSee('Price Forecast & Projections', false);
+        $enResponse->assertSee('Disclaimer:');
     }
 
     public function test_forecast_api_returns_structured_json(): void

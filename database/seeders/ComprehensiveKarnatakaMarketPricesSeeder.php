@@ -24,12 +24,13 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
         $matrix = [
             'arecanut' => [
                 'source' => $dataGovSource,
-                'variety' => 'Rashi (ರಾಶಿ)',
+                'variety' => 'Rashi',
+                'variety_kn' => 'ರಾಶಿ',
                 'prices' => [
-                    ['KA_APMC_TUM', 46000, 48500, 47500],
-                    ['KA_APMC_SAG', 44500, 46800, 45999],
-                    ['KA_APMC_CHN', 44000, 46500, 45585],
-                    ['KA_APMC_SRS', 45000, 47200, 46183],
+                    ['TUMAKURU', 46000, 48500, 47500],
+                    ['SAGAR', 44500, 46800, 45999],
+                    ['CHANNAGIRI', 44000, 46500, 45585],
+                    ['SIRSI', 45000, 47200, 46024],
                     ['KA_APMC_SHI', 45500, 47800, 47059],
                     ['KA_APMC_MNG', 46500, 49000, 48200],
                     ['KA_APMC_PUT', 45000, 47500, 46800],
@@ -37,7 +38,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'paddy' => [
                 'source' => $dataGovSource,
-                'variety' => 'Sona Masuri (ಸೋನಾ ಮಸೂರಿ)',
+                'variety' => 'Sona Masuri',
+                'variety_kn' => 'ಸೋನಾ ಮಸೂರಿ',
                 'prices' => [
                     ['KA_APMC_RCH', 2350, 2550, 2450],
                     ['KA_APMC_SHI', 2280, 2460, 2380],
@@ -48,7 +50,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'onion' => [
                 'source' => $dataGovSource,
-                'variety' => 'Medium (ಮಧ್ಯಮ)',
+                'variety' => 'Medium',
+                'variety_kn' => 'ಮಧ್ಯಮ',
                 'prices' => [
                     ['KA_APMC_YPR', 3000, 3400, 3200],
                     ['KA_APMC_HUB', 2700, 3050, 2850],
@@ -59,7 +62,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'tomato' => [
                 'source' => $dataGovSource,
-                'variety' => 'Hybrid (ಹೈಬ್ರಿಡ್)',
+                'variety' => 'Hybrid',
+                'variety_kn' => 'ಹೈಬ್ರಿಡ್',
                 'prices' => [
                     ['KA_APMC_KLR', 1500, 1800, 1650],
                     ['KA_APMC_BNM', 1650, 1950, 1800],
@@ -70,7 +74,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'maize' => [
                 'source' => $dataGovSource,
-                'variety' => 'Yellow (ಹಳದಿ)',
+                'variety' => 'Yellow',
+                'variety_kn' => 'ಹಳದಿ',
                 'prices' => [
                     ['KA_APMC_DVG', 2050, 2250, 2150],
                     ['KA_APMC_SHI', 2020, 2210, 2120],
@@ -81,7 +86,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'ragi' => [
                 'source' => $dataGovSource,
-                'variety' => 'Indaf (ಇಂದಾಫ್)',
+                'variety' => 'Indaf',
+                'variety_kn' => 'ಇಂದಾಫ್',
                 'prices' => [
                     ['KA_APMC_MYS', 3250, 3550, 3400],
                     ['KA_APMC_HAS', 3300, 3600, 3450],
@@ -92,7 +98,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'tur' => [
                 'source' => $dataGovSource,
-                'variety' => 'Red (ಕೆಂಪು)',
+                'variety' => 'Red',
+                'variety_kn' => 'ಕೆಂಪು',
                 'prices' => [
                     ['KA_APMC_KLB', 10000, 11000, 10500],
                     ['KA_APMC_YDG', 9800, 10700, 10250],
@@ -102,7 +109,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'green-chilli' => [
                 'source' => $dataGovSource,
-                'variety' => 'Guntur/Byadgi (ಬ್ಯಾಡಗಿ)',
+                'variety' => 'Guntur/Byadgi',
+                'variety_kn' => 'ಬ್ಯಾಡಗಿ',
                 'prices' => [
                     ['KA_APMC_BYD', 3900, 4500, 4200],
                     ['KA_APMC_BLG', 3600, 4200, 3900],
@@ -112,7 +120,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'coconut' => [
                 'source' => $coconutSource,
-                'variety' => 'Big (ದೊಡ್ಡದು)',
+                'variety' => 'Big',
+                'variety_kn' => 'ದೊಡ್ಡದು',
                 'prices' => [
                     ['KA_CDB_TUM', 3000, 3400, 3200],
                     ['KA_CDB_ARS', 2950, 3350, 3150],
@@ -122,7 +131,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'copra' => [
                 'source' => $coconutSource,
-                'variety' => 'Ball Copra (ಉಂಡೆ ಕೊಬ್ಬರಿ)',
+                'variety' => 'Ball Copra',
+                'variety_kn' => 'ಉಂಡೆ ಕೊಬ್ಬರಿ',
                 'prices' => [
                     ['KA_APMC_TIP', 10800, 12000, 11400],
                     ['KA_CDB_ARS', 10600, 11800, 11250],
@@ -131,7 +141,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'coffee' => [
                 'source' => $coffeeSource,
-                'variety' => 'Arabica Parchment (ಅರೇಬಿಕಾ)',
+                'variety' => 'Arabica Parchment',
+                'variety_kn' => 'ಅರೇಬಿಕಾ',
                 'prices' => [
                     ['KA_MKT_CKM', 9500, 10200, 9800],
                     ['KA_MKT_MDK', 9350, 10050, 9650],
@@ -141,7 +152,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'black-pepper' => [
                 'source' => $dataGovSource,
-                'variety' => 'Garbled (ಗಾರ್ಬಲ್ಡ್)',
+                'variety' => 'Garbled',
+                'variety_kn' => 'ಗಾರ್ಬಲ್ಡ್',
                 'prices' => [
                     ['KA_APMC_SRS', 62000, 67000, 64500],
                     ['KA_APMC_SHI', 61500, 66000, 63800],
@@ -151,7 +163,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'ginger' => [
                 'source' => $dataGovSource,
-                'variety' => 'Fresh Green (ಹಸಿ ಶುಂಠಿ)',
+                'variety' => 'Fresh Green',
+                'variety_kn' => 'ಹಸಿ ಶುಂಠಿ',
                 'prices' => [
                     ['KA_APMC_SHI', 5400, 6200, 5800],
                     ['KA_APMC_HAS', 5250, 6050, 5650],
@@ -160,7 +173,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'banana' => [
                 'source' => $dataGovSource,
-                'variety' => 'Yellaki (ಏಲಕ್ಕಿ)',
+                'variety' => 'Yellaki',
+                'variety_kn' => 'ಏಲಕ್ಕಿ',
                 'prices' => [
                     ['KA_APMC_MYS', 2400, 2800, 2600],
                     ['KA_APMC_CMR', 2300, 2700, 2500],
@@ -170,7 +184,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'groundnut' => [
                 'source' => $dataGovSource,
-                'variety' => 'Pods (ಕಡಲೆಕಾಯಿ)',
+                'variety' => 'Pods',
+                'variety_kn' => 'ಕಡಲೆಕಾಯಿ',
                 'prices' => [
                     ['KA_APMC_DVG', 6800, 7500, 7150],
                     ['KA_APMC_CTA', 6900, 7600, 7250],
@@ -179,7 +194,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'jowar' => [
                 'source' => $dataGovSource,
-                'variety' => 'White (ಬಿಳಿ)',
+                'variety' => 'White',
+                'variety_kn' => 'ಬಿಳಿ',
                 'prices' => [
                     ['KA_APMC_DVG', 2800, 3200, 3000],
                     ['KA_APMC_BLG', 2900, 3300, 3100],
@@ -188,7 +204,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'sunflower' => [
                 'source' => $dataGovSource,
-                'variety' => 'Standard (ಸಾಮಾನ್ಯ)',
+                'variety' => 'Standard',
+                'variety_kn' => 'ಸಾಮಾನ್ಯ',
                 'prices' => [
                     ['KA_APMC_DVG', 4600, 5100, 4850],
                     ['KA_APMC_RCH', 4700, 5200, 4950],
@@ -197,7 +214,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
             ],
             'tender-coconut' => [
                 'source' => $coconutSource,
-                'variety' => 'Green (ಎಳನೀರು)',
+                'variety' => 'Green',
+                'variety_kn' => 'ಎಳನೀರು',
                 'prices' => [
                     ['KA_CDB_TUM', 30, 40, 35],
                     ['KA_APMC_MDY', 28, 38, 33],
@@ -216,14 +234,45 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 continue;
             }
 
+            $varietyName = $data['variety'];
+            $varietyNameKn = $data['variety_kn'] ?? $data['variety'];
+
             $variety = CropVariety::firstOrCreate(
-                ['crop_id' => $crop->id, 'name' => $data['variety']],
-                ['name_kn' => $data['variety'], 'slug' => Str::slug($data['variety']) . '-' . $crop->id, 'is_active' => true]
+                ['crop_id' => $crop->id, 'name' => $varietyName],
+                ['name_kn' => $varietyNameKn, 'slug' => Str::slug($varietyName) . '-' . $crop->id, 'is_active' => true]
             );
 
             foreach ($data['prices'] as $p) {
                 [$marketCode, $min, $max, $modal] = $p;
                 $market = Market::where('code', $marketCode)->first();
+
+                if (!$market) {
+                    $codeMap = [
+                        'KA_APMC_TUM' => 'TUMAKURU',
+                        'KA_APMC_SRS' => 'SIRSI',
+                        'KA_APMC_SAG' => 'SAGAR',
+                        'KA_APMC_CHN' => 'CHANNAGIRI',
+                        'KA_MKT_CKM'  => 'CB_CKM',
+                        'KA_MKT_MDK'  => 'CB_MDK',
+                        'KA_MKT_HAS'  => 'CB_HSN',
+                        'KA_MKT_SKL'  => 'CB_SKP',
+                        'KA_CDB_TUM'  => 'CDB_TMK',
+                        'KA_CDB_ARS'  => 'CDB_ASK',
+                        'KA_CDB_MNG'  => 'CDB_MLR',
+                        'KA_CDB_TIP'  => 'CDB_TPT',
+                    ];
+                    if (isset($codeMap[$marketCode])) {
+                        $market = Market::where('code', $codeMap[$marketCode])->first();
+                    }
+                }
+
+                if (!$market) {
+                    $stripped = str_replace('KA_APMC_', '', $marketCode);
+                    $market = Market::where('code', $stripped)->first()
+                        ?? Market::where('name', 'like', "%{$stripped}%")->where('name', 'like', '%APMC%')->first()
+                        ?? Market::where('name', 'like', "%{$stripped}%")->first();
+                }
+
                 if (!$market) {
                     continue;
                 }
@@ -237,10 +286,80 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ],
                     [
                         'data_source_id' => $data['source']->id,
+                        'district_id' => $market->district_id,
                         'min_price' => $min,
                         'max_price' => $max,
                         'modal_price' => $modal,
                         'arrival_quantity' => rand(100, 500),
+                        'unit' => $crop->standard_unit ?? 'Quintal',
+                    ]
+                );
+            }
+        }
+
+        // Explicitly seed TSS Sirsi specific cooperative auction varieties (Rashi, Chali, Bette, Bilegotu, Kempugotu)
+        $sirsiMarket = Market::where('code', 'SIRSI')->first()
+            ?? Market::where('name', 'like', '%Sirsi%')->first();
+        $arecaCrop = Crop::where('slug', 'arecanut')
+            ->orWhere('id', 1)
+            ->first();
+
+        if ($sirsiMarket && $arecaCrop) {
+            $tssVarieties = [
+                ['Rashi', 'ರಾಶಿ', 45000, 47000, 46024],
+                ['Chali', 'ಚಾಲಿ', 43000, 45000, 44599],
+                ['Bette', 'ಬೆಟ್ಟೆ', 36000, 38000, 37691],
+                ['Bilegotu', 'ಬಿಳೆಗೋಟು', 26000, 28000, 27373],
+                ['Kempugotu', 'ಕೆಂಪುಗೋಟು', 24500, 26500, 25892],
+            ];
+
+            foreach ($tssVarieties as [$vName, $vKn, $min, $max, $modal]) {
+                $v = CropVariety::firstOrCreate(
+                    ['crop_id' => $arecaCrop->id, 'name' => $vName],
+                    ['name_kn' => $vKn, 'slug' => Str::slug($vName) . '-' . $arecaCrop->id, 'is_active' => true]
+                );
+
+                MarketPrice::updateOrCreate(
+                    [
+                        'market_id' => $sirsiMarket->id,
+                        'crop_id' => $arecaCrop->id,
+                        'variety_id' => $v->id,
+                        'price_date' => $today,
+                    ],
+                    [
+                        'data_source_id' => $dataGovSource->id,
+                        'district_id' => $sirsiMarket->district_id,
+                        'min_price' => $min,
+                        'max_price' => $max,
+                        'modal_price' => $modal,
+                        'arrival_quantity' => rand(150, 450),
+                        'unit' => 'Quintal',
+                    ]
+                );
+            }
+        }
+
+        // Also ensure Tumakuru APMC has Arecanut Bette variety as well
+        $tumakuruMarket = Market::where('code', 'TUMAKURU')->first()
+            ?? Market::where('name', 'like', '%Tumakuru%')->where('name', 'like', '%APMC%')->first();
+        if ($tumakuruMarket && $arecaCrop) {
+            $betteVar = CropVariety::where('crop_id', $arecaCrop->id)->where('name', 'Bette')->first();
+            if ($betteVar) {
+                MarketPrice::updateOrCreate(
+                    [
+                        'market_id' => $tumakuruMarket->id,
+                        'crop_id' => $arecaCrop->id,
+                        'variety_id' => $betteVar->id,
+                        'price_date' => $today,
+                    ],
+                    [
+                        'data_source_id' => $dataGovSource->id,
+                        'district_id' => $tumakuruMarket->district_id,
+                        'min_price' => 37000,
+                        'max_price' => 39500,
+                        'modal_price' => 38200,
+                        'arrival_quantity' => 120,
+                        'unit' => 'Quintal',
                     ]
                 );
             }

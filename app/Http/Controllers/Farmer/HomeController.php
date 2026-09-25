@@ -179,6 +179,18 @@ class HomeController extends Controller
                 ->where('forecast_date', '>=', Carbon::today()->toDateString())
                 ->orderBy('forecast_date', 'asc')
                 ->first();
+
+            if (!$todayWeather && $activeDistrict->latitude && $activeDistrict->longitude) {
+                try {
+                    app(\App\Services\Weather\WeatherSyncService::class)->syncDistrict($activeDistrict);
+                    $todayWeather = \App\Models\WeatherForecast::forDistrict($activeDistrict->id)
+                        ->where('forecast_date', '>=', Carbon::today()->toDateString())
+                        ->orderBy('forecast_date', 'asc')
+                        ->first();
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("Weather auto-sync failed for district {$activeDistrict->name}: {$e->getMessage()}");
+                }
+            }
         }
 
         return view('farmer.home', compact(

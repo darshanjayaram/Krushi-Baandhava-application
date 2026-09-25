@@ -164,7 +164,7 @@ class MarketPriceIngestionService
                 }
 
                 // 4. Resolve Canonical Variety
-                $variety = $this->resolveVariety($crop->id, $normalized['source_variety'] ?? null);
+                $variety = $this->resolveVariety($crop->id, $normalized['source_variety'] ?? null, $dataSource->id);
 
                 // 5. Resolve Canonical Market
                 $market = $this->resolveMarket($dataSource->id, $normalized['source_market'], $normalized['source_district'] ?? null);
@@ -347,7 +347,7 @@ class MarketPriceIngestionService
     /**
      * Resolve raw variety string to CropVariety model.
      */
-    protected function resolveVariety(int $cropId, ?string $varietyName): ?CropVariety
+    protected function resolveVariety(int $cropId, ?string $varietyName, ?int $dataSourceId = null): ?CropVariety
     {
         if (empty($varietyName)) {
             return CropVariety::where('crop_id', $cropId)->first();
@@ -355,6 +355,31 @@ class MarketPriceIngestionService
 
         $clean = trim($varietyName);
 
+        // 1. Check explicit variety mapping in crop_source_mappings for this specific data source
+        if ($dataSourceId) {
+            $mapping = CropSourceMapping::where('data_source_id', $dataSourceId)
+                ->where('crop_id', $cropId)
+                ->where('source_variety_name', $clean)
+                ->whereNotNull('crop_variety_id')
+                ->first();
+
+            if ($mapping && $mapping->variety) {
+                return $mapping->variety;
+            }
+        }
+
+        // 2. Check global verified variety mapping across any data source
+        $globalMapping = CropSourceMapping::where('crop_id', $cropId)
+            ->where('source_variety_name', $clean)
+            ->whereNotNull('crop_variety_id')
+            ->where('is_verified', true)
+            ->first();
+
+        if ($globalMapping && $globalMapping->variety) {
+            return $globalMapping->variety;
+        }
+
+        // 3. Exact name / slug / Kannada name direct lookup
         $variety = CropVariety::where('crop_id', $cropId)
             ->where(function ($q) use ($clean) {
                 $q->where('name', $clean)
@@ -449,7 +474,7 @@ class MarketPriceIngestionService
             return ['success' => false, 'error' => $rawModel->error_message];
         }
 
-        $variety = $this->resolveVariety($crop->id, $normalized['source_variety'] ?? null);
+        $variety = $this->resolveVariety($crop->id, $normalized['source_variety'] ?? null, $dataSource->id);
 
         $market = $this->resolveMarket($dataSource->id, $normalized['source_market'], $normalized['source_district'] ?? null);
         if (!$market) {

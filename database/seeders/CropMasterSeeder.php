@@ -32,12 +32,12 @@ class CropMasterSeeder extends Seeder
                         'is_major' => true,
                         'description' => 'Major cash crop grown in Malnad and Coastal Karnataka (Shivamogga, Chikkamagaluru, Dakshina Kannada, Uttara Kannada).',
                         'varieties' => [
-                            ['name' => 'Rashi (ರಾಶಿ)', 'name_kn' => 'ರಾಶಿ', 'slug' => 'rashi'],
-                            ['name' => 'Bette (ಬೆಟ್ಟೆ)', 'name_kn' => 'ಬೆಟ್ಟೆ', 'slug' => 'bette'],
-                            ['name' => 'Gorabalu (ಗೊರಬಲು)', 'name_kn' => 'ಗೊರಬಲು', 'slug' => 'gorabalu'],
-                            ['name' => 'Chali (ಚಾಲಿ)', 'name_kn' => 'ಚಾಲಿ', 'slug' => 'chali'],
-                            ['name' => 'Api (ಆಪಿ)', 'name_kn' => 'ಆಪಿ', 'slug' => 'api'],
-                            ['name' => 'Koka (ಕೋಕಾ)', 'name_kn' => 'ಕೋಕಾ', 'slug' => 'koka'],
+                            ['name' => 'Rashi', 'name_kn' => 'ರಾಶಿ', 'slug' => 'rashi'],
+                            ['name' => 'Bette', 'name_kn' => 'ಬೆಟ್ಟೆ', 'slug' => 'bette'],
+                            ['name' => 'Gorabalu', 'name_kn' => 'ಗೊರಬಲು', 'slug' => 'gorabalu'],
+                            ['name' => 'Chali', 'name_kn' => 'ಚಾಲಿ', 'slug' => 'chali'],
+                            ['name' => 'Api', 'name_kn' => 'ಆಪಿ', 'slug' => 'api'],
+                            ['name' => 'Koka', 'name_kn' => 'ಕೋಕಾ', 'slug' => 'koka'],
                         ],
                     ],
                     [
@@ -64,8 +64,8 @@ class CropMasterSeeder extends Seeder
                         'is_major' => true,
                         'description' => 'Widely cultivated in Tumakuru, Hassan, Mandya, and coastal districts.',
                         'varieties' => [
-                            ['name' => 'Raw Coconut (ದೊಡ್ಡ ಕಾಯಿ)', 'name_kn' => 'ಹಸಿ ತೆಂಗಿನಕಾಯಿ', 'slug' => 'raw-coconut'],
-                            ['name' => 'Tender Coconut (ಎಳನೀರು)', 'name_kn' => 'ಎಳನೀರು', 'slug' => 'tender-coconut'],
+                            ['name' => 'Raw Coconut', 'name_kn' => 'ಹಸಿ ತೆಂಗಿನಕಾಯಿ', 'slug' => 'raw-coconut'],
+                            ['name' => 'Tender Coconut', 'name_kn' => 'ಎಳನೀರು', 'slug' => 'tender-coconut'],
                         ],
                     ],
                     [
@@ -78,7 +78,19 @@ class CropMasterSeeder extends Seeder
                         'description' => 'Dried coconut kernel traded extensively in Tiptur and Arsikere APMC markets.',
                         'varieties' => [
                             ['name' => 'Milling Copra', 'name_kn' => 'ಮಿಲ್ಲಿಂಗ್ ಕೊಬ್ಬರಿ', 'slug' => 'milling-copra'],
-                            ['name' => 'Ball Copra (ಉಂಡೆ ಕೊಬ್ಬರಿ)', 'name_kn' => 'ಉಂಡೆ ಕೊಬ್ಬರಿ', 'slug' => 'ball-copra'],
+                            ['name' => 'Ball Copra', 'name_kn' => 'ಉಂಡೆ ಕೊಬ್ಬರಿ', 'slug' => 'ball-copra'],
+                        ],
+                    ],
+                    [
+                        'name' => 'Tender Coconut',
+                        'name_kn' => 'ಎಳನೀರು',
+                        'slug' => 'tender-coconut',
+                        'scientific_name' => 'Cocos nucifera (Tender)',
+                        'standard_unit' => '100 Nuts',
+                        'is_major' => true,
+                        'description' => 'Green tender coconuts traded across Mandya (Maddur), Mysuru, and Hassan markets.',
+                        'varieties' => [
+                            ['name' => 'Standard Tender Coconut', 'name_kn' => 'ಸಾಮಾನ್ಯ ಎಳನೀರು', 'slug' => 'standard-tender-coconut'],
                         ],
                     ],
                 ],
@@ -112,8 +124,8 @@ class CropMasterSeeder extends Seeder
                         'is_major' => false,
                         'description' => 'High-value rhizome crop cultivated in Shivamogga, Hassan, and Chamarajanagar.',
                         'varieties' => [
-                            ['name' => 'Green Ginger (ಹಸಿ ಶುಂಠಿ)', 'name_kn' => 'ಹಸಿ ಶುಂಠಿ', 'slug' => 'green-ginger'],
-                            ['name' => 'Dry Ginger (ಶುಂಠಿ)', 'name_kn' => 'ಒಣ ಶುಂಠಿ', 'slug' => 'dry-ginger'],
+                            ['name' => 'Green Ginger', 'name_kn' => 'ಹಸಿ ಶುಂಠಿ', 'slug' => 'green-ginger'],
+                            ['name' => 'Dry Ginger', 'name_kn' => 'ಒಣ ಶುಂಠಿ', 'slug' => 'dry-ginger'],
                         ],
                     ],
                 ],
@@ -216,9 +228,28 @@ class CropMasterSeeder extends Seeder
                 $varieties = $cropData['varieties'];
                 unset($cropData['varieties']);
 
-                $crop = Crop::firstOrCreate(
+                $defaults = [
+                    'market_radius_km' => match ($cropData['slug']) {
+                        'arecanut' => 350,
+                        'coffee' => 250,
+                        'coconut', 'copra' => 200,
+                        'pepper' => 300,
+                        'tomato' => 100,
+                        default => 250,
+                    },
+                    'default_market_sort' => 'nearest_first',
+                    'allow_user_sort_toggle' => true,
+                    'enable_smart_badges' => true,
+                    'price_source_type' => match ($cropData['slug']) {
+                        'coffee' => 'coffee_board',
+                        'coconut', 'copra', 'tender-coconut' => 'coconut_board',
+                        default => 'apmc',
+                    },
+                ];
+
+                $crop = Crop::updateOrCreate(
                     ['slug' => $cropData['slug']],
-                    array_merge($cropData, ['category_id' => $category->id])
+                    array_merge($cropData, ['category_id' => $category->id], $defaults)
                 );
 
                 foreach ($varieties as $vData) {

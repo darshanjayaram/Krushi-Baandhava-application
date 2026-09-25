@@ -73,8 +73,8 @@ class UnresolvedMappingController extends Controller
             }
         }
 
-        $canonicalCrops = Crop::orderBy('name')->get();
-        $canonicalMarkets = Market::karnataka()->orderBy('name')->get();
+        $canonicalCrops = Crop::with('category')->orderBy('name')->get();
+        $canonicalMarkets = Market::with('district')->karnataka()->orderBy('name')->get();
         $dataSources = DataSource::orderBy('name')->get();
 
         return view('admin.data_quality.unresolved', compact(
