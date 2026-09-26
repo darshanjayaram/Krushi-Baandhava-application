@@ -1,8 +1,11 @@
 @extends('layouts.farmer')
 
-@section('title', 'ಕೃಷಿ ವಿಡಿಯೋಗಳು & ತರಬೇತಿ — Curated Farming Videos')
+@section('title', app()->getLocale() === 'en' ? 'Farming Videos & Training — Krushi Baandhava' : 'ಕೃಷಿ ವಿಡಿಯೋಗಳು & ತರಬೇತಿ — Curated Farming Videos')
 
 @section('content')
+@php
+    $activeLocale = app()->getLocale();
+@endphp
 <div x-data="{
     activeModal: false,
     activeVideoId: null,
@@ -21,19 +24,19 @@
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-bold mb-1">
-                <span>🎬 ಕೃಷಿ ದೃಶ್ಯಾವಳಿ & ವಿಡಿಯೋ ತರಬೇತಿ</span>
+            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-bold mb-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <span>🎬 {{ $activeLocale === 'en' ? 'Curated Video Guides & Farmer Training' : 'ಕೃಷಿ ದೃಶ್ಯಾವಳಿ & ವಿಡಿಯೋ ತರಬೇತಿ' }}</span>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-                ಕೃಷಿ ವಿಡಿಯೋಗಳು (Farming Videos)
+            <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Farming Videos' : 'ಕೃಷಿ ವಿಡಿಯೋಗಳು (Farming Videos)' }}
             </h1>
-            <p class="text-xs sm:text-sm text-stone-500">
-                ಪರಿಣಿತರ ಬೇಸಾಯ ಸಲಹೆಗಳು, ಯಶಸ್ವಿ ರೈತರ ಅನುಭವ ಮತ್ತು ಕೀಟ ನಿಯಂತ್ರಣದ ಪ್ರಾಯೋಗಿಕ ಮಾಹಿತಿ.
+            <p class="text-xs sm:text-sm text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Expert agricultural advice, progressive farmer experiences, and practical pest management.' : 'ಪರಿಣಿತರ ಬೇಸಾಯ ಸಲಹೆಗಳು, ಯಶಸ್ವಿ ರೈತರ ಅನುಭವ ಮತ್ತು ಕೀಟ ನಿಯಂತ್ರಣದ ಪ್ರಾಯೋಗಿಕ ಮಾಹಿತಿ.' }}
             </p>
         </div>
 
-        <a href="{{ route('home') }}" class="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs">
-            <span>&larr; ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ</span>
+        <a href="{{ route('home') }}" class="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+            <span>&larr; {{ $activeLocale === 'en' ? 'Back to Home' : 'ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ' }}</span>
         </a>
     </div>
 
@@ -54,27 +57,27 @@
                 <input type="text" 
                        name="search" 
                        value="{{ $search }}" 
-                       placeholder="ವಿಡಿಯೋ ವಿಷಯ ಅಥವಾ ಯೂಟ್ಯೂಬ್ ಚಾನೆಲ್ ಹುಡುಕಿ..."
-                       class="w-full text-xs sm:text-sm pl-9 pr-8 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition">
+                       placeholder="{{ $activeLocale === 'en' ? 'Search video topic or YouTube channel...' : 'ವಿಡಿಯೋ ವಿಷಯ ಅಥವಾ ಯೂಟ್ಯೂಬ್ ಚಾನೆಲ್ ಹುಡುಕಿ...' }}"
+                       class="w-full text-xs sm:text-sm pl-9 pr-8 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
             </div>
 
             <!-- Crop filter -->
             <div class="sm:col-span-3">
                 <select name="crop_id" 
                         onchange="this.form.submit()"
-                        class="w-full text-xs sm:text-sm py-2.5 px-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
-                    <option value="">ಎಲ್ಲಾ ಬೆಳೆಗಳು (All Crops)</option>
+                        class="w-full text-xs sm:text-sm py-2.5 px-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    <option value="">{{ $activeLocale === 'en' ? 'All Crops' : 'ಎಲ್ಲಾ ಬೆಳೆಗಳು (All Crops)' }}</option>
                     @foreach($crops as $c)
                         <option value="{{ $c->id }}" {{ (string)$cropId === (string)$c->id ? 'selected' : '' }}>
-                            {{ $c->kannada_name ?: $c->name }} ({{ $c->name }})
+                            {{ $activeLocale === 'en' ? $c->name : ($c->name_kn ?: $c->name) }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
             <div class="sm:col-span-2">
-                <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition">
-                    ಫಿಲ್ಟರ್ ಮಾಡಿ
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    {{ $activeLocale === 'en' ? 'Filter' : 'ಫಿಲ್ಟರ್ ಮಾಡಿ' }}
                 </button>
             </div>
         </form>
@@ -82,14 +85,14 @@
         <!-- Category Pills -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
             <a href="{{ route('farmer.videos.index', array_filter(['crop_id' => $cropId, 'search' => $search])) }}" 
-               class="px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition {{ empty($category) ? 'bg-emerald-700 text-white shadow-xs' : 'bg-stone-100 text-stone-600 hover:bg-stone-200' }}">
-                ಎಲ್ಲಾ ವಿಡಿಯೋಗಳು
+               class="px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ empty($category) ? 'bg-emerald-700 text-white shadow-xs' : 'bg-stone-100 text-stone-600 hover:bg-stone-200' }}">
+                {{ $activeLocale === 'en' ? 'All Videos' : 'ಎಲ್ಲಾ ವಿಡಿಯೋಗಳು' }}
             </a>
             @foreach($categories as $catKey => $catData)
                 <a href="{{ route('farmer.videos.index', array_filter(['category' => $catKey, 'crop_id' => $cropId, 'search' => $search])) }}" 
-                   class="px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 {{ $category === $catKey ? 'bg-emerald-700 text-white shadow-xs' : 'bg-stone-100 text-stone-600 hover:bg-stone-200' }}">
+                   class="px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ $category === $catKey ? 'bg-emerald-700 text-white shadow-xs' : 'bg-stone-100 text-stone-600 hover:bg-stone-200' }}">
                     <span>{{ $catData['icon'] }}</span>
-                    <span>{{ $catData['name_kn'] }}</span>
+                    <span>{{ $activeLocale === 'en' ? ($catData['name_en'] ?? ucfirst($catKey)) : $catData['name_kn'] }}</span>
                 </a>
             @endforeach
         </div>
@@ -97,10 +100,10 @@
 
     <!-- Video Grid -->
     @if($videos->isEmpty())
-        <div class="text-center py-16 bg-white rounded-2xl border border-stone-200 shadow-xs">
+        <div class="text-center py-16 bg-white rounded-2xl border border-stone-200 shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
             <span class="text-4xl">🎬</span>
-            <h3 class="text-base font-bold text-stone-800 mt-2">ಯಾವುದೇ ವಿಡಿಯೋಗಳು ಕಂಡುಬಂದಿಲ್ಲ</h3>
-            <p class="text-xs text-stone-500 mt-1">ಬೇರೆ ಬೆಳೆ ಅಥವಾ ವಿಷಯವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ನೋಡಿ.</p>
+            <h3 class="text-base font-bold text-stone-800 mt-2">{{ $activeLocale === 'en' ? 'No videos found' : 'ಯಾವುದೇ ವಿಡಿಯೋಗಳು ಕಂಡುಬಂದಿಲ್ಲ' }}</h3>
+            <p class="text-xs text-stone-500 mt-1">{{ $activeLocale === 'en' ? 'Try selecting a different crop or topic.' : 'ಬೇರೆ ಬೆಳೆ ಅಥವಾ ವಿಷಯವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ನೋಡಿ.' }}</p>
         </div>
     @else
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -125,15 +128,15 @@
 
                         <!-- Duration Pill -->
                         @if($video->duration_text)
-                            <span class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-bold tracking-wider">
+                            <span class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-bold tracking-wider font-sans">
                                 {{ $video->duration_text }}
                             </span>
                         @endif
 
                         <!-- Crop Badge -->
                         @if($video->crop)
-                            <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-emerald-800/90 backdrop-blur-xs text-white text-[10px] font-bold">
-                                {{ $video->crop->kannada_name ?: $video->crop->name }}
+                            <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-emerald-800/90 backdrop-blur-xs text-white text-[10px] font-bold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                {{ $activeLocale === 'en' ? $video->crop->name : ($video->crop->name_kn ?: $video->crop->name) }}
                             </span>
                         @endif
                     </div>
@@ -141,25 +144,29 @@
                     <!-- Meta Details -->
                     <div class="p-4 flex-1 flex flex-col justify-between">
                         <div>
-                            <h3 class="text-sm font-extrabold text-stone-900 group-hover:text-emerald-700 transition line-clamp-2 leading-snug cursor-pointer"
+                            <h3 class="text-sm font-extrabold text-stone-900 group-hover:text-emerald-700 transition line-clamp-2 leading-snug cursor-pointer {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}"
                                 @click="openVideo('{{ $video->youtube_video_id }}', '{{ addslashes($video->title_kn ?: $video->title) }}')">
-                                {{ $video->title_kn ?: $video->title }}
+                                {{ $activeLocale === 'en' ? ($video->title ?: $video->title_kn) : ($video->title_kn ?: $video->title) }}
                             </h3>
-                            @if($video->title_kn && $video->title)
-                                <div class="text-[11px] text-stone-400 mt-0.5 line-clamp-1">
+                            @if($activeLocale === 'kn' && $video->title_kn && $video->title)
+                                <div class="text-[11px] text-stone-400 mt-0.5 line-clamp-1 font-sans">
                                     {{ $video->title }}
+                                </div>
+                            @elseif($activeLocale === 'en' && $video->title_kn)
+                                <div class="text-[11px] text-stone-400 mt-0.5 line-clamp-1 font-kannada">
+                                    {{ $video->title_kn }}
                                 </div>
                             @endif
                         </div>
 
-                        <div class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+                        <div class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                             <span class="font-medium truncate max-w-[150px]">
-                                {{ $video->channel_name ?: 'ಕೃಷಿ ಮಾಹಿತಿ' }}
+                                {{ $video->channel_name ?: ($activeLocale === 'en' ? 'Agri Info' : 'ಕೃಷಿ ಮಾಹಿತಿ') }}
                             </span>
                             <button type="button" 
                                     @click="openVideo('{{ $video->youtube_video_id }}', '{{ addslashes($video->title_kn ?: $video->title) }}')"
                                     class="font-bold text-emerald-700 hover:text-emerald-800 transition">
-                                ವೀಕ್ಷಿಸಿ ▶
+                                {{ $activeLocale === 'en' ? 'Watch ▶' : 'ವೀಕ್ಷಿಸಿ ▶' }}
                             </button>
                         </div>
                     </div>

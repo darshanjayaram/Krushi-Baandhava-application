@@ -29,11 +29,27 @@ class DataSourceRegistry
         ];
     }
 
+    protected static array $customResolvers = [];
+
+    public static function register(string $code, callable $resolver): void
+    {
+        static::$customResolvers[$code] = $resolver;
+    }
+
+    public static function reset(): void
+    {
+        static::$customResolvers = [];
+    }
+
     /**
      * Resolve a provider adapter instance for the given DataSource.
      */
     public static function make(DataSource $dataSource): MarketDataProviderInterface
     {
+        if (isset(static::$customResolvers[$dataSource->code])) {
+            return (static::$customResolvers[$dataSource->code])($dataSource);
+        }
+
         $class = $dataSource->provider_class;
 
         if (!class_exists($class)) {

@@ -171,6 +171,36 @@ class AdminAnalyticsAndSettingsTest extends TestCase
         SystemSetting::set('forecast_minimum_observations', 30, 'integer', 'forecasting');
     }
 
+    public function test_admin_can_upload_and_reset_application_logo(): void
+    {
+        $fakeLogo = \Illuminate\Http\UploadedFile::fake()->image('custom_app_logo.png', 200, 200);
+
+        // Upload custom logo
+        $response = $this->actingAs($this->admin)->post('/admin/settings', [
+            'tab' => 'general',
+            'app_logo' => $fakeLogo,
+        ]);
+
+        $response->assertRedirect('/admin/settings?tab=general');
+        $savedLogo = SystemSetting::get('app_logo');
+        $this->assertStringContainsString('uploads/branding/app_logo_', $savedLogo);
+        $this->assertFileExists(public_path($savedLogo));
+
+        // Reset to default logo
+        $resetResponse = $this->actingAs($this->admin)->post('/admin/settings', [
+            'tab' => 'general',
+            'remove_logo' => 1,
+        ]);
+
+        $resetResponse->assertRedirect('/admin/settings?tab=general');
+        $this->assertEquals('/icons/icon-192.svg', SystemSetting::get('app_logo'));
+
+        // Clean up test file
+        if (\Illuminate\Support\Facades\File::exists(public_path($savedLogo))) {
+            \Illuminate\Support\Facades\File::delete(public_path($savedLogo));
+        }
+    }
+
     public function test_admin_can_inspect_reprocess_and_delete_data_quality_records(): void
     {
         // Create sample rejected raw record
@@ -311,5 +341,82 @@ class AdminAnalyticsAndSettingsTest extends TestCase
         $detailResponse->assertJsonFragment([
             'action' => 'test.inspection_event',
         ]);
+    }
+
+    public function test_admin_can_toggle_boolean_settings_off_and_on(): void
+    {
+        // 1. Toggle auto_provision_master_data to false (using hidden input + checkbox = 0)
+        $responseOff = $this->actingAs($this->admin)->post('/admin/settings', [
+            'tab' => 'data_sources',
+            'settings' => [
+                'auto_provision_master_data' => '0',
+            ],
+        ]);
+        $responseOff->assertRedirect('/admin/settings?tab=data_sources');
+        $this->assertFalse(SystemSetting::get('auto_provision_master_data'));
+
+        // 2. Toggle back to true (checkbox checked = 1)
+        $responseOn = $this->actingAs($this->admin)->post('/admin/settings', [
+            'tab' => 'data_sources',
+            'settings' => [
+                'auto_provision_master_data' => '1',
+            ],
+        ]);
+        $responseOn->assertRedirect('/admin/settings?tab=data_sources');
+        $this->assertTrue(SystemSetting::get('auto_provision_master_data'));
+    }
+
+    public function test_admin_can_execute_immediate_system_operations(): void
+    {
+        // 1. Clear application caches
+        $cacheResponse = $this->actingAs($this->admin)->post('/admin/settings/clear-cache');
+        $cacheResponse->assertRedirect('/admin/settings?tab=maintenance');
+        $cacheResponse->assertSessionHas('success');
+
+        // 2. Update database schema
+        $dbResponse = $this->actingAs($this->admin)->post('/admin/settings/update-database');
+        $dbResponse->assertRedirect('/admin/settings?tab=maintenance');
+        $dbResponse->assertSessionHas('success');
+
+        // 3. Prune stale data
+        $pruneResponse = $this->actingAs($this->admin)->post('/admin/settings/prune-data');
+        $pruneResponse->assertRedirect('/admin/settings?tab=maintenance');
+        $pruneResponse->assertSessionHas('success');
+
+        // 4. Trigger price forecasts
+        $forecastResponse = $this->actingAs($this->admin)->post('/admin/settings/trigger-forecasting');
+        $forecastResponse->assertRedirect('/admin/settings?tab=forecasting');
+        $forecastResponse->assertSessionHas('success');
+    }
+
+    public function test_admin_can_update_pwa_settings_and_manifest_reflects_changes(): void
+    {
+        $customName = 'Krushi Baandhava Live Test';
+        $customShort = 'KrushiTest';
+        $customTheme = '#065F46';
+
+        $response = $this->actingAs($this->admin)->post('/admin/settings', [
+            'tab' => 'pwa',
+            'settings' => [
+                'pwa_name' => $customName,
+                'pwa_short_name' => $customShort,
+                'pwa_theme_color' => $customTheme,
+                'pwa_display_mode' => 'standalone',
+            ],
+        ]);
+
+        $response->assertRedirect('/admin/settings?tab=pwa');
+        $this->assertEquals($customName, SystemSetting::get('pwa_name'));
+        $this->assertEquals($customShort, SystemSetting::get('pwa_short_name'));
+        $this->assertEquals($customTheme, SystemSetting::get('pwa_theme_color'));
+
+        // Check dynamic manifest.json endpoint
+        $manifestResponse = $this->get('/manifest.json');
+        $manifestResponse->assertStatus(200);
+        $manifest = $manifestResponse->json();
+        $this->assertEquals($customName, $manifest['name']);
+        $this->assertEquals($customShort, $manifest['short_name']);
+        $this->assertEquals($customTheme, $manifest['theme_color']);
+        $this->assertEquals('standalone', $manifest['display']);
     }
 }

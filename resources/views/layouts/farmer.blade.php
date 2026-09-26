@@ -27,13 +27,12 @@
 
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#F5EFE6">
+    <meta name="theme-color" content="{{ \App\Models\SystemSetting::get('pwa_theme_color', '#F5EFE6') }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Krushi Baandhava">
-    <link rel="apple-touch-icon" href="/icons/icon-192.svg">
-    <link rel="icon" type="image/svg+xml" href="/icons/icon-192.svg">
+    <link rel="apple-touch-icon" href="{{ \App\Models\SystemSetting::get('pwa_icon', \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg')) }}">
+    <link rel="icon" type="image/svg+xml" href="{{ \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg') }}">
 
     <!-- Google Fonts: Inter / Plus Jakarta Sans & Noto Sans Kannada (Negilu Krushi Alignment) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,12 +97,11 @@
                 <!-- Brand Identity -->
                 <a href="{{ route('home') }}" class="flex items-center gap-2.5 group focus:outline-none">
                     <div class="w-9 h-9 rounded-xl bg-white border border-stone-200/80 flex items-center justify-center p-1.5 shadow-2xs">
-                        <img src="/icons/icon-192.svg" alt="ಕೃಷಿ ಬಾಂಧವ" class="w-6 h-6">
+                        <img src="{{ \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg') }}" alt="ಕೃಷಿ ಬಾಂಧವ" class="w-6 h-6 object-contain">
                     </div>
                     <div>
                         <div class="text-lg sm:text-xl font-black tracking-tight text-stone-900 flex items-center gap-1.5">
                             <span class="font-kannada">ಕೃಷಿ ಬಾಂಧವ</span>
-                            <span class="text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-sans hidden sm:inline">Karnataka</span>
                         </div>
                     </div>
                 </a>
@@ -168,15 +166,6 @@
                             ಕನ್ನಡ
                         </a>
                     </div>
-
-                    <!-- Admin Link for Authorized Staff -->
-                    @auth
-                        @if(auth()->user()->isAdmin())
-                            <a href="{{ route('admin.dashboard') }}" class="hidden lg:inline-flex items-center text-xs font-semibold bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-lg px-2.5 py-1 transition">
-                                Admin
-                            </a>
-                        @endif
-                    @endauth
                 </div>
             </div>
         </div>
@@ -301,7 +290,7 @@
     >
         <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center p-2 shrink-0 shadow-inner">
-                <img src="/icons/icon-192.svg" alt="App Icon" class="w-8 h-8">
+                <img src="{{ \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg') }}" alt="App Icon" class="w-8 h-8 object-contain">
             </div>
             <div>
                 <h4 class="font-bold text-sm text-white flex items-center gap-1.5">

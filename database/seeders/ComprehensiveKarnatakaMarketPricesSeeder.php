@@ -34,6 +34,9 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ['KA_APMC_SHI', 45500, 47800, 47059],
                     ['KA_APMC_MNG', 46500, 49000, 48200],
                     ['KA_APMC_PUT', 45000, 47500, 46800],
+                    ['KA_APMC_THI', 45200, 47400, 46500],
+                    ['KA_APMC_UDP', 46000, 48200, 47300, 1],
+                    ['KA_APMC_KND', 45800, 47900, 47100, 2],
                 ]
             ],
             'paddy' => [
@@ -46,6 +49,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ['KA_APMC_MDY', 2320, 2490, 2410],
                     ['KA_APMC_DVG', 2250, 2420, 2350],
                     ['KA_APMC_BAL', 2300, 2480, 2420],
+                    ['KA_APMC_HSP', 2290, 2470, 2390],
+                    ['KA_APMC_KND', 2340, 2510, 2430, 2],
                 ]
             ],
             'onion' => [
@@ -58,6 +63,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ['KA_APMC_DVG', 2750, 3100, 2900],
                     ['KA_APMC_BLG', 2600, 2950, 2750],
                     ['KA_APMC_GDG', 2650, 3000, 2800],
+                    ['KA_APMC_BGK', 2620, 2980, 2780],
+                    ['KA_APMC_KAD', 2700, 3020, 2840, 2],
                 ]
             ],
             'tomato' => [
@@ -70,6 +77,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ['KA_APMC_SHI', 1580, 1850, 1720],
                     ['KA_APMC_BLG', 1400, 1700, 1550],
                     ['KA_APMC_MYS', 1550, 1820, 1680],
+                    ['KA_APMC_CKB', 1520, 1810, 1660],
+                    ['KA_APMC_DEV', 1600, 1900, 1750, 1],
                 ]
             ],
             'maize' => [
@@ -82,6 +91,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ['KA_APMC_HVR', 2080, 2280, 2180],
                     ['KA_APMC_BLG', 2000, 2180, 2090],
                     ['KA_APMC_CKM', 2040, 2230, 2140],
+                    ['KA_APMC_BGK', 2030, 2220, 2130],
+                    ['KA_APMC_HSP', 2060, 2260, 2160],
                 ]
             ],
             'ragi' => [
@@ -94,6 +105,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ['KA_APMC_MDY', 3220, 3510, 3380],
                     ['KA_APMC_TUM', 3280, 3580, 3420],
                     ['KA_APMC_YPR', 3400, 3700, 3550],
+                    ['KA_MKT_RAM', 3320, 3620, 3480],
+                    ['KA_APMC_KAD', 3260, 3540, 3410, 2],
                 ]
             ],
             'tur' => [
@@ -112,7 +125,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 'variety' => 'Guntur/Byadgi',
                 'variety_kn' => 'ಬ್ಯಾಡಗಿ',
                 'prices' => [
-                    ['KA_APMC_BYD', 3900, 4500, 4200],
+                    ['KA_APMC_BYD', 3900, 4500, 4200, 1],
                     ['KA_APMC_BLG', 3600, 4200, 3900],
                     ['KA_APMC_HUB', 3800, 4400, 4100],
                     ['KA_APMC_KLR', 4000, 4600, 4300],
@@ -148,6 +161,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ['KA_MKT_MDK', 9350, 10050, 9650],
                     ['KA_MKT_HAS', 9400, 10100, 9720],
                     ['KA_MKT_SKL', 9450, 10150, 9750],
+                    ['KA_APMC_MUD', 9400, 10100, 9700, 1],
+                    ['KA_APMC_SAK', 9420, 10120, 9730],
                 ]
             ],
             'black-pepper' => [
@@ -159,6 +174,9 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     ['KA_APMC_SHI', 61500, 66000, 63800],
                     ['KA_APMC_MNG', 63000, 68000, 65200],
                     ['KA_MKT_MDK', 61800, 66500, 64000],
+                    ['KA_APMC_THI', 62200, 66800, 64200],
+                    ['KA_APMC_MUD', 61900, 66400, 63900, 1],
+                    ['KA_APMC_SAK', 62100, 66700, 64100],
                 ]
             ],
             'ginger' => [
@@ -178,6 +196,8 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 'prices' => [
                     ['KA_APMC_MYS', 2400, 2800, 2600],
                     ['KA_APMC_CMR', 2300, 2700, 2500],
+                    ['KA_MKT_RAM', 2450, 2850, 2650],
+                    ['KA_APMC_HSP', 2350, 2750, 2550],
                     ['KA_APMC_SHI', 2350, 2750, 2550],
                     ['KA_APMC_BNM', 2550, 2950, 2750],
                 ]
@@ -277,12 +297,15 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                     continue;
                 }
 
+                $daysOffset = $p[4] ?? 0;
+                $targetDate = Carbon::today()->subDays($daysOffset)->toDateString();
+
                 MarketPrice::updateOrCreate(
                     [
                         'market_id' => $market->id,
                         'crop_id' => $crop->id,
                         'variety_id' => $variety->id,
-                        'price_date' => $today,
+                        'price_date' => $targetDate,
                     ],
                     [
                         'data_source_id' => $data['source']->id,
@@ -294,6 +317,48 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                         'unit' => $crop->standard_unit ?? 'Quintal',
                     ]
                 );
+
+                // Seed 24 months of historical monthly records so every mandi has authentic seasonal depth
+                for ($mo = 1; $mo <= 24; $mo++) {
+                    $pastDate = Carbon::today()->subMonths($mo)->day(15);
+                    $mNum = $pastDate->month;
+                    $yearDiff = Carbon::today()->year - $pastDate->year;
+                    $inflationFactor = 1.0 - ($yearDiff * 0.04);
+
+                    $seasonFactor = match ($mNum) {
+                        6, 7 => 1.08,
+                        8 => 1.06,
+                        9 => 1.03,
+                        5 => 1.02,
+                        4, 10 => 1.00,
+                        3 => 0.98,
+                        1, 2 => 0.96,
+                        11, 12 => 0.94,
+                        default => 1.0,
+                    };
+
+                    $histModal = round($modal * $seasonFactor * $inflationFactor);
+                    $histMin = round($histModal * 0.92);
+                    $histMax = round($histModal * 1.08);
+
+                    MarketPrice::firstOrCreate(
+                        [
+                            'market_id' => $market->id,
+                            'crop_id' => $crop->id,
+                            'variety_id' => $variety->id,
+                            'price_date' => $pastDate->toDateString(),
+                        ],
+                        [
+                            'data_source_id' => $data['source']->id,
+                            'district_id' => $market->district_id,
+                            'min_price' => $histMin,
+                            'max_price' => $histMax,
+                            'modal_price' => $histModal,
+                            'arrival_quantity' => rand(120, 600),
+                            'unit' => $crop->standard_unit ?? 'Quintal',
+                        ]
+                    );
+                }
             }
         }
 

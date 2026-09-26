@@ -77,6 +77,22 @@ class Crop extends Model
      */
     public function getPhotoUrlAttribute(): string
     {
+        if (!empty($this->icon)) {
+            $icon = trim($this->icon);
+            if (str_starts_with($icon, 'http://') || str_starts_with($icon, 'https://')) {
+                return $icon;
+            }
+            if (file_exists(public_path($icon))) {
+                return asset($icon);
+            }
+            if (file_exists(public_path('uploads/crops/' . ltrim($icon, '/')))) {
+                return asset('uploads/crops/' . ltrim($icon, '/'));
+            }
+            if (file_exists(public_path('images/crops/' . ltrim($icon, '/')))) {
+                return asset('images/crops/' . ltrim($icon, '/'));
+            }
+        }
+
         $map = [
             'arecanut' => 'arecanut.jpg',
             'coffee' => 'coffee.jpg',
@@ -92,17 +108,22 @@ class Crop extends Model
             'tomato' => 'tomato.jpg',
             'banana' => 'banana.jpg',
             'raw-banana' => 'banana.jpg',
-            'jowar' => 'maize.jpg',
-            'tur' => 'groundnut.jpg',
+            'jowar' => 'jowar.jpg',
+            'tur' => 'tur.jpg',
             'green-chilli' => 'green_chilli.jpg',
             'groundnut' => 'groundnut.jpg',
             'sunflower' => 'sunflower.jpg',
+            'cotton' => 'cotton.jpg',
         ];
 
         $file = $map[$this->slug] ?? null;
 
         if ($file && file_exists(public_path('images/crops/' . $file))) {
             return asset('images/crops/' . $file);
+        }
+
+        if (file_exists(public_path('images/crops/' . $this->slug . '.jpg'))) {
+            return asset('images/crops/' . $this->slug . '.jpg');
         }
 
         return asset('images/crops/arecanut.jpg');

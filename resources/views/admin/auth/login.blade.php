@@ -23,7 +23,7 @@
         <!-- Logo & Header -->
         <div class="text-center mb-8">
             <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-xl border border-emerald-400/30">
-                <img src="/icons/icon-192.svg" alt="Krushi Baandhava" class="w-9 h-9">
+                <img src="{{ \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg') }}" alt="Krushi Baandhava" class="w-9 h-9 object-contain">
             </div>
             <h1 class="text-2xl font-extrabold tracking-tight text-white">Krushi Baandhava Admin</h1>
             <p class="text-sm text-slate-400 mt-1">Authorized Management & Data Operations Portal</p>

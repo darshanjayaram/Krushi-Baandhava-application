@@ -9,6 +9,45 @@
     radius: {{ old('market_radius_km', $crop->market_radius_km ?? 300) }},
     sort: '{{ old('default_market_sort', $crop->default_market_sort ?? 'nearest_first') }}',
     
+    // Crop Image State
+    imagePreviewUrl: '{{ $crop->photo_url }}',
+    selectedPreset: '{{ $crop->icon && str_starts_with($crop->icon, "images/crops/") ? basename($crop->icon) : "" }}',
+    isCustomUpload: {{ $crop->icon && str_starts_with($crop->icon, "uploads/crops/") ? 'true' : 'false' }},
+    removeImage: false,
+
+    handleFileChange(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.removeImage = false;
+            this.selectedPreset = '';
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.imagePreviewUrl = e.target.result;
+                this.isCustomUpload = true;
+            };
+            reader.readAsDataURL(file);
+        }
+    },
+
+    selectPreset(filename) {
+        if (!filename) return;
+        this.removeImage = false;
+        this.selectedPreset = filename;
+        this.isCustomUpload = false;
+        this.imagePreviewUrl = '{{ asset("images/crops") }}/' + filename;
+        const fileInput = document.getElementById('crop_image_input');
+        if (fileInput) fileInput.value = '';
+    },
+
+    clearImage() {
+        this.removeImage = true;
+        this.selectedPreset = '';
+        this.isCustomUpload = false;
+        this.imagePreviewUrl = '{{ asset("images/crops/arecanut.jpg") }}';
+        const fileInput = document.getElementById('crop_image_input');
+        if (fileInput) fileInput.value = '';
+    },
+
     // Live Variety Suggestions State
     liveLoading: false,
     liveSourceId: '{{ $dataSources->first()?->id ?? 1 }}',
@@ -230,7 +269,7 @@
     </div>
 
     <!-- Main Crop Form (Wraps Profile & Discovery) -->
-    <form method="POST" action="{{ $isEdit ? route('admin.crops.update', $crop) : route('admin.crops.store') }}" class="space-y-6">
+    <form method="POST" action="{{ $isEdit ? route('admin.crops.update', $crop) : route('admin.crops.store') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
         @if($isEdit)
             @method('PUT')
@@ -246,6 +285,77 @@
                 <span class="px-2.5 py-1 rounded-lg text-xs font-bold {{ $crop->is_active ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/80' : 'bg-slate-800 text-slate-400' }}">
                     {{ $crop->is_active ? '● Active in Feeds' : 'Paused' }}
                 </span>
+            </div>
+
+            <!-- Crop Image & Thumbnail Section -->
+            <div class="p-4 sm:p-5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                            <span>🖼️</span> Crop Image & Thumbnail
+                        </h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">
+                            Displays on farmer price discovery cards, APMC comparisons, and admin lists.
+                        </p>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold"
+                          :class="isCustomUpload ? 'bg-indigo-950 text-indigo-300 border border-indigo-800/80' : (selectedPreset ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/80' : 'bg-slate-800 text-slate-300')">
+                        <span x-show="isCustomUpload">Custom Uploaded Photo</span>
+                        <span x-show="!isCustomUpload && selectedPreset" x-text="'Preset: ' + selectedPreset"></span>
+                        <span x-show="!isCustomUpload && !selectedPreset">Auto-Matched Preset</span>
+                    </span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                    <!-- Image Preview -->
+                    <div class="relative group shrink-0">
+                        <img :src="imagePreviewUrl" alt="Crop Preview" class="w-20 h-20 rounded-2xl object-cover border-2 border-slate-700 bg-slate-800 shadow-md">
+                        <div class="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none">
+                            <span class="text-[10px] text-white font-bold bg-black/60 px-2 py-0.5 rounded">Preview</span>
+                        </div>
+                    </div>
+
+                    <!-- Upload and Preset Controls -->
+                    <div class="flex-1 space-y-3 w-full">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- File Upload Input -->
+                            <div>
+                                <label for="crop_image_input" class="block text-[11px] font-bold text-slate-300 mb-1">Upload New Photo</label>
+                                <input type="file" id="crop_image_input" name="image" accept="image/jpeg,image/png,image/jpg,image/webp,image/svg+xml"
+                                       @change="handleFileChange($event)"
+                                       class="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-950 file:text-emerald-300 hover:file:bg-emerald-900 border border-slate-800 rounded-xl bg-slate-900 cursor-pointer">
+                                <p class="text-[10px] text-slate-500 mt-1">Supports JPG, PNG, WEBP (Max 5MB). Square format recommended.</p>
+                                @error('image')
+                                    <p class="text-rose-400 text-xs mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Preset Image Selector -->
+                            <div>
+                                <label for="preset_selector" class="block text-[11px] font-bold text-slate-300 mb-1">Or Pick From Bundled Presets</label>
+                                <select id="preset_selector" x-model="selectedPreset" @change="selectPreset($event.target.value)"
+                                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+                                    <option value="">-- Choose Standard Crop Preset --</option>
+                                    @foreach($presetImages ?? [] as $preset)
+                                        <option value="{{ $preset }}">{{ ucwords(str_replace(['_', '.jpg', '.png', '.webp'], [' ', '', '', ''], $preset)) }} ({{ $preset }})</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-[10px] text-slate-500 mt-1">19 high-resolution commodity presets available.</p>
+                            </div>
+                        </div>
+
+                        <!-- Reset / Clear Buttons -->
+                        <div class="flex items-center gap-3 pt-0.5">
+                            <input type="hidden" name="preset_image" :value="selectedPreset">
+                            <input type="hidden" name="remove_image" :value="removeImage ? '1' : '0'">
+
+                            <button type="button" @click="clearImage()" x-show="isCustomUpload || selectedPreset"
+                                    class="text-[11px] font-bold text-rose-400 hover:text-rose-300 transition flex items-center gap-1 cursor-pointer">
+                                <span>✕</span> Reset Photo
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">

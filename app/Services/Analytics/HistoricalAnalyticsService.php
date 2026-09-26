@@ -371,7 +371,9 @@ class HistoricalAnalyticsService
             12 => 'Dec',
         ];
 
-        // Fetch historical monthly averages over multi-year records
+        // 1. Fetch multi-year monthly aggregates grouped by (Year, Month)
+        // Grouping by both Year and Month allows Year-by-Year ratio-to-mean decomposition,
+        // eliminating multi-year currency inflation skew across 5-6 years of historical records.
         $query = DB::table('market_prices')
             ->join('markets', 'market_prices.market_id', '=', 'markets.id')
             ->join('districts', 'markets.district_id', '=', 'districts.id')
@@ -379,6 +381,7 @@ class HistoricalAnalyticsService
             ->where('states.code', 'KA')
             ->where('market_prices.crop_id', $cropId)
             ->selectRaw('
+                YEAR(price_date) as year_num,
                 MONTH(price_date) as month_num,
                 AVG(modal_price) as avg_price,
                 MIN(min_price) as min_price,
@@ -386,42 +389,131 @@ class HistoricalAnalyticsService
                 COUNT(market_prices.id) as total_obs,
                 SUM(COALESCE(arrival_quantity, 0)) as total_arr
             ')
-            ->groupBy(DB::raw('MONTH(price_date)'));
+            ->groupBy(DB::raw('YEAR(price_date), MONTH(price_date)'));
 
         if ($marketId !== null) {
             $query->where('market_prices.market_id', $marketId);
         }
 
-        $results = $query->get()->keyBy('month_num');
+        $yearMonthRecords = $query->get();
+        $distinctMonthsCount = $yearMonthRecords->pluck('month_num')->unique()->count();
 
-        // If market-specific has fewer than 2 months of data, fall back to state-level
-        if ($marketId !== null && $results->count() < 2) {
-            return $this->getSeasonalAnalysis($cropId, null);
+        $market = null;
+        if ($marketId !== null) {
+            $market = Market::find($marketId);
         }
 
-        $distinctMonthsCount = $results->count();
+        // If market-specific has fewer than 10 distinct calendar months, calibrate the state-level seasonal curve
+        // to this market's actual price baseline so the farmer gets a complete 12-month calendar tailored to this mandi.
+        if ($marketId !== null && $distinctMonthsCount < 10) {
+            $stateAnalysis = $this->getSeasonalAnalysis($cropId, null);
+
+            // If state-level itself lacks seasonal data, return insufficient state
+            if (empty($stateAnalysis['has_seasonal_data'])) {
+                return $stateAnalysis;
+            }
+
+            // Determine this market's actual price baseline for this crop
+            $marketAvgPrice = (float) DB::table('market_prices')
+                ->where('crop_id', $cropId)
+                ->where('market_id', $marketId)
+                ->avg('modal_price');
+
+            // Fallback to state baseline if this market has never recorded a price for this crop
+            $marketBaseline = $marketAvgPrice > 0 ? $marketAvgPrice : (float) $stateAnalysis['annual_baseline'];
+
+            // Scale state monthly profile to this market's baseline
+            $calibratedProfile = [];
+            foreach ($stateAnalysis['monthly_profile'] as $m) {
+                $sIdx = (float) ($m['seasonal_index'] ?? 0.0);
+                $obsCount = (int) ($m['observations'] ?? 0);
+
+                if ($sIdx > 0 && $obsCount > 0) {
+                    $avgPrice = round($marketBaseline * $sIdx, 2);
+                    $ratioMin = ($m['avg_price'] > 0 && $m['min_price'] > 0) ? ($m['min_price'] / $m['avg_price']) : 0.88;
+                    $ratioMax = ($m['avg_price'] > 0 && $m['max_price'] > 0) ? ($m['max_price'] / $m['avg_price']) : 1.12;
+                    $minPrice = round($avgPrice * $ratioMin, 2);
+                    $maxPrice = round($avgPrice * $ratioMax, 2);
+                } else {
+                    $avgPrice = 0.0;
+                    $minPrice = 0.0;
+                    $maxPrice = 0.0;
+                }
+
+                $calibratedProfile[] = array_merge($m, [
+                    'avg_price' => $avgPrice,
+                    'min_price' => min($minPrice, $avgPrice),
+                    'max_price' => max($maxPrice, $avgPrice),
+                ]);
+            }
+
+            // Recalculate bar heights for optimal visual contrast
+            $recordedForHeights = collect($calibratedProfile)->where('avg_price', '>', 0);
+            $minRecordedAvg = (float) ($recordedForHeights->min('avg_price') ?: 0.0);
+            $maxRecordedAvg = (float) ($recordedForHeights->max('avg_price') ?: 0.0);
+            $priceSpread = $maxRecordedAvg - $minRecordedAvg;
+
+            foreach ($calibratedProfile as &$item) {
+                if ($item['avg_price'] > 0) {
+                    if ($priceSpread > 0) {
+                        $ratio = ($item['avg_price'] - $minRecordedAvg) / $priceSpread;
+                        $item['bar_height_percent'] = (int) round(18 + (82 * $ratio));
+                    } else {
+                        $item['bar_height_percent'] = 100;
+                    }
+                } else {
+                    $item['bar_height_percent'] = 0;
+                }
+            }
+            unset($item);
+
+            // Re-scale best months with this market's calibrated prices
+            $calibratedBestMonths = [];
+            foreach ($stateAnalysis['best_months'] as $bm) {
+                $sIdx = (float) ($bm['seasonal_index'] ?? 1.0);
+                $bmCopy = $bm;
+                $bmCopy['avg_price'] = round($marketBaseline * $sIdx, 2);
+                $calibratedBestMonths[] = $bmCopy;
+            }
+
+            return [
+                'annual_baseline' => round($marketBaseline, 2),
+                'monthly_profile' => $calibratedProfile,
+                'best_months' => $calibratedBestMonths,
+                'peak_months_kn' => $stateAnalysis['peak_months_kn'],
+                'peak_months_en' => $stateAnalysis['peak_months_en'],
+                'lead_summary_kn' => $stateAnalysis['lead_summary_kn'],
+                'lead_summary_en' => $stateAnalysis['lead_summary_en'],
+                'is_sufficient' => count($calibratedBestMonths) > 0,
+                'has_seasonal_data' => count($calibratedBestMonths) > 0,
+                'distinct_months' => 12,
+                'market_id' => $marketId,
+                'market_name' => $market?->name ?? 'Market',
+                'market_name_kn' => $market?->name_kn ?? $market?->name ?? 'ಮಾರುಕಟ್ಟೆ',
+                'scope' => 'market_calibrated',
+            ];
+        }
 
         // If even state-level has fewer than 2 distinct months, data is insufficient for reliable seasonal peaks
         if ($distinctMonthsCount < 2) {
             $monthlyProfile = [];
             for ($m = 1; $m <= 12; $m++) {
-                $row = $results->get($m);
                 $monthlyProfile[] = [
                     'month' => $m,
                     'name_kn' => $kannadaMonths[$m],
                     'name_en' => $englishMonths[$m],
                     'short_name_kn' => $shortKannadaMonths[$m],
                     'short_name_en' => $shortEnglishMonths[$m],
-                    'avg_price' => $row ? round((float) $row->avg_price, 2) : 0.0,
-                    'min_price' => $row ? round((float) $row->min_price, 2) : 0.0,
-                    'max_price' => $row ? round((float) $row->max_price, 2) : 0.0,
+                    'avg_price' => 0.0,
+                    'min_price' => 0.0,
+                    'max_price' => 0.0,
                     'seasonal_index' => 0.0,
                     'index_percentage' => 0.0,
                     'bar_height_percent' => 0,
                     'tier' => 'insufficient',
                     'is_peak' => false,
-                    'observations' => $row ? (int) $row->total_obs : 0,
-                    'arrivals' => $row ? round((float) $row->total_arr, 2) : 0.0,
+                    'observations' => 0,
+                    'arrivals' => 0.0,
                     'category' => 'insufficient',
                     'badge_kn' => 'ಮಾಹಿತಿ ಲಭ್ಯವಿಲ್ಲ (No Data)',
                     'badge_color' => 'stone',
@@ -430,7 +522,7 @@ class HistoricalAnalyticsService
             }
 
             return [
-                'annual_baseline' => round((float) ($results->avg('avg_price') ?: 0), 2),
+                'annual_baseline' => round((float) ($yearMonthRecords->avg('avg_price') ?: 0), 2),
                 'monthly_profile' => $monthlyProfile,
                 'best_months' => [],
                 'peak_months_kn' => [],
@@ -445,29 +537,107 @@ class HistoricalAnalyticsService
             ];
         }
 
-        // Overall annual baseline average across recorded months
-        $overallAvg = (float) $results->avg('avg_price') ?: 0;
+        // 2. Multiplicative Ratio-to-Annual-Mean Decomposition (Industry Standard)
+        // Step A: Group records by calendar year and compute that year's annual mean.
+        // Step B: Calculate seasonal ratio R_{y,m} = P_{y,m} / P_{y,annual} for each month in each year.
+        $byYear = $yearMonthRecords->groupBy('year_num');
+        $yearRatios = [];
+        $monthObs = [];
+        $monthArr = [];
+        $monthMin = [];
+        $monthMax = [];
+
+        foreach ($byYear as $yr => $recordsInYr) {
+            $yrAnnualMean = (float) $recordsInYr->avg('avg_price');
+            if ($yrAnnualMean <= 0) {
+                continue;
+            }
+
+            foreach ($recordsInYr as $rec) {
+                $m = (int) $rec->month_num;
+                $monthAvg = (float) $rec->avg_price;
+                $ratio = $monthAvg / $yrAnnualMean;
+
+                $yearRatios[$m][] = $ratio;
+                $monthObs[$m] = ($monthObs[$m] ?? 0) + (int) $rec->total_obs;
+                $monthArr[$m] = ($monthArr[$m] ?? 0) + (float) $rec->total_arr;
+                $monthMin[$m] = isset($monthMin[$m]) ? min($monthMin[$m], (float) $rec->min_price) : (float) $rec->min_price;
+                $monthMax[$m] = isset($monthMax[$m]) ? max($monthMax[$m], (float) $rec->max_price) : (float) $rec->max_price;
+            }
+        }
+
+        // Step C: Medial Averaging (Winsorization) across available years
+        // When >= 4 years of history exist, drop the highest and lowest outlier years to smooth climate shocks.
+        $monthlyIndices = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $ratios = $yearRatios[$m] ?? [];
+            if (empty($ratios)) {
+                $monthlyIndices[$m] = null;
+                continue;
+            }
+
+            sort($ratios);
+            $count = count($ratios);
+
+            if ($count >= 4) {
+                $trimmed = array_slice($ratios, 1, $count - 2);
+                $avgRatio = array_sum($trimmed) / count($trimmed);
+            } else {
+                $avgRatio = array_sum($ratios) / $count;
+            }
+
+            $monthlyIndices[$m] = $avgRatio;
+        }
+
+        // Step D: Normalize indices so the average across recorded months is exactly 1.000 (100%)
+        $validIndices = array_filter($monthlyIndices, fn ($v) => $v !== null);
+        $meanOfIndices = count($validIndices) > 0 ? (array_sum($validIndices) / count($validIndices)) : 1.0;
+
+        $normalizedIndices = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $normalizedIndices[$m] = $monthlyIndices[$m] !== null
+                ? round($monthlyIndices[$m] / $meanOfIndices, 4)
+                : 0.0;
+        }
+
+        // Step E: Anchor to the crop's Current Rolling 365-Day Baseline Price
+        // This ensures the seasonal curve reflects multi-year cyclical patterns, while displaying current-rupee values.
+        $recent365Cutoff = Carbon::today()->subDays(365)->toDateString();
+        $currentBaselineQuery = DB::table('market_prices')
+            ->join('markets', 'market_prices.market_id', '=', 'markets.id')
+            ->join('districts', 'markets.district_id', '=', 'districts.id')
+            ->join('states', 'districts.state_id', '=', 'states.id')
+            ->where('states.code', 'KA')
+            ->where('market_prices.crop_id', $cropId)
+            ->where('price_date', '>=', $recent365Cutoff);
+
+        if ($marketId !== null) {
+            $currentBaselineQuery->where('market_prices.market_id', $marketId);
+        }
+
+        $currentAnnualBaseline = (float) $currentBaselineQuery->avg('modal_price');
+        if ($currentAnnualBaseline <= 0) {
+            $currentAnnualBaseline = (float) $yearMonthRecords->avg('avg_price') ?: 1000.0;
+        }
 
         $monthlyProfile = [];
         for ($m = 1; $m <= 12; $m++) {
-            $row = $results->get($m);
-            if ($row) {
-                $avgPrice = round((float) $row->avg_price, 2);
-                $minPrice = round((float) $row->min_price, 2);
-                $maxPrice = round((float) $row->max_price, 2);
-                $obsCount = (int) $row->total_obs;
-                $arrivals = round((float) $row->total_arr, 2);
-                $seasonalIndex = ($overallAvg > 0 && $avgPrice > 0)
-                    ? round($avgPrice / $overallAvg, 4)
-                    : 1.0000;
+            $sIdx = $normalizedIndices[$m];
+            $obsCount = $monthObs[$m] ?? 0;
+            $arrivals = round($monthArr[$m] ?? 0.0, 2);
+
+            if ($sIdx > 0 && $obsCount > 0) {
+                $avgPrice = round($currentAnnualBaseline * $sIdx, 2);
+                $minPrice = round($monthMin[$m] ?? ($avgPrice * 0.85), 2);
+                $maxPrice = round($monthMax[$m] ?? ($avgPrice * 1.15), 2);
+                // Ensure min <= avg <= max
+                $minPrice = min($minPrice, $avgPrice);
+                $maxPrice = max($maxPrice, $avgPrice);
             } else {
-                // Month has no observations in database
                 $avgPrice = 0.0;
                 $minPrice = 0.0;
                 $maxPrice = 0.0;
-                $obsCount = 0;
-                $arrivals = 0.0;
-                $seasonalIndex = 0.0;
+                $sIdx = 0.0;
             }
 
             $monthlyProfile[] = [
@@ -479,8 +649,8 @@ class HistoricalAnalyticsService
                 'avg_price' => $avgPrice,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
-                'seasonal_index' => $seasonalIndex,
-                'index_percentage' => $seasonalIndex > 0 ? round(($seasonalIndex - 1.0) * 100, 1) : 0.0,
+                'seasonal_index' => $sIdx,
+                'index_percentage' => $sIdx > 0 ? round(($sIdx - 1.0) * 100, 1) : 0.0,
                 'observations' => $obsCount,
                 'arrivals' => $arrivals,
                 'category' => 'insufficient',
@@ -621,8 +791,10 @@ class HistoricalAnalyticsService
             ? "Prices are usually highest around " . $peakMonthsEn->implode(', ') . " — plan your crop to be ready to sell then."
             : "Prices vary seasonally based on market arrivals and demand.";
 
+        $marketObj = $marketId !== null ? Market::find($marketId) : null;
+
         return [
-            'annual_baseline' => round((float) $overallAvg, 2),
+            'annual_baseline' => round((float) $currentAnnualBaseline, 2),
             'monthly_profile' => $monthlyProfile,
             'best_months' => $bestMonths,
             'peak_months_kn' => $peakMonthsKn->toArray(),
@@ -632,6 +804,10 @@ class HistoricalAnalyticsService
             'is_sufficient' => count($bestMonths) > 0,
             'has_seasonal_data' => count($bestMonths) > 0,
             'distinct_months' => $distinctMonthsCount,
+            'market_id' => $marketId,
+            'market_name' => $marketObj?->name ?? ($marketId === null ? 'Karnataka State Average' : 'Market'),
+            'market_name_kn' => $marketObj?->name_kn ?? ($marketId === null ? 'ಕರ್ನಾಟಕ ರಾಜ್ಯ ಸರಾಸರಿ' : 'ಮಾರುಕಟ್ಟೆ'),
+            'scope' => $marketId !== null ? 'market' : 'state',
         ];
     }
 

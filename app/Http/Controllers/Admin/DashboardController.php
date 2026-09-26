@@ -37,6 +37,73 @@ class DashboardController extends Controller
             ? round(($reportingMarketsCount / $totalMarkets) * 100, 1)
             : 0;
 
+        // Rolling 7-day active trading horizon
+        $rollingWindowDays = 7;
+        $rollingWindowStartDate = Carbon::parse($latestPriceDate)->subDays($rollingWindowDays)->toDateString();
+        $weeklyReportingMarketsCount = MarketPrice::whereBetween('price_date', [$rollingWindowStartDate, $latestPriceDate])
+            ->distinct('market_id')
+            ->count('market_id');
+        $weeklyCoveragePercent = $totalMarkets > 0
+            ? round(($weeklyReportingMarketsCount / $totalMarkets) * 100, 1)
+            : 0;
+
+        // Mandi Network Breakdown for Inspection Drawer
+        $todayMarketIds = MarketPrice::where('price_date', $latestPriceDate)
+            ->distinct('market_id')
+            ->pluck('market_id')
+            ->flip()
+            ->toArray();
+
+        $weekMarketIds = MarketPrice::whereBetween('price_date', [$rollingWindowStartDate, $latestPriceDate])
+            ->distinct('market_id')
+            ->pluck('market_id')
+            ->flip()
+            ->toArray();
+
+        $marketPriceAggs = MarketPrice::selectRaw('market_id, MAX(price_date) as last_date, COUNT(DISTINCT crop_id) as crops_count, COUNT(*) as quotes_count')
+            ->groupBy('market_id')
+            ->get()
+            ->keyBy('market_id');
+
+        $karnatakaMarkets = Market::karnataka()
+            ->with(['district'])
+            ->orderBy('name')
+            ->get()
+            ->map(function ($market) use ($todayMarketIds, $weekMarketIds, $marketPriceAggs) {
+                $stat = $marketPriceAggs->get($market->id);
+                $isToday = isset($todayMarketIds[$market->id]);
+                $isWeek = isset($weekMarketIds[$market->id]);
+
+                $status = $isToday ? 'active_today' : ($isWeek ? 'active_week' : 'dormant');
+                $lastTraded = $stat?->last_date;
+                $daysAgo = $lastTraded ? Carbon::parse($lastTraded)->diffInDays(Carbon::today()) : null;
+
+                return [
+                    'id' => $market->id,
+                    'code' => $market->code,
+                    'name' => $market->name,
+                    'name_kn' => $market->name_kn,
+                    'district' => $market->district?->name ?? 'Karnataka',
+                    'market_type' => $market->market_type ?? 'APMC Market Yard',
+                    'status' => $status,
+                    'last_traded' => $lastTraded,
+                    'days_ago' => $daysAgo,
+                    'crops_count' => (int) ($stat?->crops_count ?? 0),
+                    'quotes_count' => (int) ($stat?->quotes_count ?? 0),
+                ];
+            });
+
+        $mandiNetworkStats = [
+            'total' => $totalMarkets,
+            'today_count' => $reportingMarketsCount,
+            'today_percent' => $marketCoveragePercent,
+            'week_count' => $weeklyReportingMarketsCount,
+            'week_percent' => $weeklyCoveragePercent,
+            'dormant_count' => max(0, $totalMarkets - $weeklyReportingMarketsCount),
+            'dormant_percent' => $totalMarkets > 0 ? round((max(0, $totalMarkets - $weeklyReportingMarketsCount) / $totalMarkets) * 100, 1) : 0,
+            'markets' => $karnatakaMarkets,
+        ];
+
         // Daily / Ingestion volume
         $rawTodayCount = MarketPriceRaw::whereDate('received_at', $today)->count();
         $rawTotalCount = MarketPriceRaw::count();
@@ -67,6 +134,9 @@ class DashboardController extends Controller
             'markets_count' => $totalMarkets,
             'reporting_markets_count' => $reportingMarketsCount,
             'market_coverage_percent' => $marketCoveragePercent,
+            'weekly_reporting_markets_count' => $weeklyReportingMarketsCount,
+            'weekly_coverage_percent' => $weeklyCoveragePercent,
+            'rolling_window_days' => $rollingWindowDays,
             'latest_price_date' => $latestPriceDate,
             'crops_count' => Crop::count(),
             'active_crops_count' => Crop::where('is_active', true)->count(),
@@ -102,7 +172,8 @@ class DashboardController extends Controller
             'forecastStats',
             'recentAuditLogs',
             'recentRejected',
-            'featureFlags'
+            'featureFlags',
+            'mandiNetworkStats'
         ));
     }
 }

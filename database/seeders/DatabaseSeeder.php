@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             TssSirsiDataSourceSeeder::class,
             AgriculturalCmsSeeder::class,
             ComprehensiveKarnatakaMarketPricesSeeder::class,
+            AddMissedKarnatakaCropsSeeder::class,
+            KarnatakaMandiAliasSeeder::class,
         ]);
     }
 }

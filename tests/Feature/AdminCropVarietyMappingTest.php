@@ -189,6 +189,14 @@ class AdminCropVarietyMappingTest extends TestCase
      */
     public function test_unresolved_mappings_dropdown_renders_clean_category_name(): void
     {
+        \App\Models\MarketPriceRaw::create([
+            'data_source_id' => $this->dataSource->id,
+            'processing_status' => 'rejected',
+            'error_message' => "Unmapped commodity alias: 'TestUnmappedCropX'. Add mapping in admin.",
+            'payload' => ['commodity' => 'TestUnmappedCropX'],
+            'checksum' => hash('sha256', 'test_unmapped_' . microtime()),
+        ]);
+
         $response = $this->actingAs($this->admin)->get('/admin/unresolved-mappings');
 
         $response->assertStatus(200);

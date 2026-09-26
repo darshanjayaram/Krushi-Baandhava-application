@@ -122,8 +122,11 @@
                             <!-- Crop Name -->
                             <td class="py-3.5 px-5">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
-                                        {{ substr($crop->name, 0, 2) }}
+                                    <div class="relative w-10 h-10 shrink-0">
+                                        <img src="{{ $crop->photo_url }}" alt="{{ $crop->name }}" class="w-10 h-10 rounded-xl object-cover border border-slate-700 bg-slate-800 shadow-sm" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden')">
+                                        <div class="hidden w-10 h-10 rounded-xl bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-black text-xs flex items-center justify-center shadow-sm">
+                                            {{ substr($crop->name, 0, 2) }}
+                                        </div>
                                     </div>
                                     <div>
                                         <div class="font-bold text-white text-sm flex items-center gap-1.5">

@@ -40,7 +40,7 @@
         <div class="h-16 px-6 flex items-center justify-between border-b border-slate-800">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg border border-emerald-400/30">
-                    <img src="/icons/icon-192.svg" alt="Krushi Baandhava" class="w-6 h-6">
+                    <img src="{{ \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg') }}" alt="Krushi Baandhava" class="w-6 h-6 object-contain">
                 </div>
                 <div>
                     <span class="font-extrabold text-white text-base tracking-tight leading-none block">Krushi Admin</span>
@@ -77,6 +77,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>Daily Market Prices</span>
+                    </a>
+                    <a href="{{ route('admin.deployment-hub.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium {{ request()->routeIs('admin.deployment-hub.*') ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">
+                        <svg class="w-5 h-5 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Deployment & APMC Hub</span>
                     </a>
                     <a href="{{ route('admin.datasources.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium {{ request()->routeIs('admin.datasources.*') ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">
                         <svg class="w-5 h-5 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

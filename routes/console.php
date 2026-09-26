@@ -21,23 +21,50 @@ Schedule::call(function () {
     \Illuminate\Support\Facades\Cache::forever('scheduler_last_heartbeat', now());
 })->everyMinute();
 
-Schedule::command('krushi:sync-market-prices')
-    ->dailyAt('06:00')
-    ->withoutOverlapping(60)
-    ->runInBackground()
-    ->appendOutputTo(storage_path('logs/sync_morning.log'));
+// Admin-configured dynamic cron schedule (Admin > Data Sources > Configure Cron Timings)
+$morningTime = \App\Models\SystemSetting::get('cron_market_morning_time', '06:00');
+$eveningTime = \App\Models\SystemSetting::get('cron_market_evening_time', '18:00');
+$afternoonTime = \App\Models\SystemSetting::get('cron_market_afternoon_time', null);
+$enableHourly = \App\Models\SystemSetting::get('cron_market_enable_hourly', true);
 
-Schedule::command('krushi:sync-market-prices')
-    ->dailyAt('18:00')
-    ->withoutOverlapping(60)
-    ->runInBackground()
-    ->appendOutputTo(storage_path('logs/sync_evening.log'));
+if (!empty($morningTime)) {
+    Schedule::command('krushi:sync-market-prices')
+        ->dailyAt($morningTime)
+        ->withoutOverlapping(60)
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/sync_morning.log'));
+}
 
+if (!empty($eveningTime)) {
+    Schedule::command('krushi:sync-market-prices')
+        ->dailyAt($eveningTime)
+        ->withoutOverlapping(60)
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/sync_evening.log'));
+}
+
+if (!empty($afternoonTime)) {
+    Schedule::command('krushi:sync-market-prices')
+        ->dailyAt($afternoonTime)
+        ->withoutOverlapping(60)
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/sync_afternoon.log'));
+}
+
+if ($enableHourly) {
+    Schedule::command('krushi:sync-market-prices')
+        ->hourly()
+        ->withoutOverlapping(60)
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/sync_periodic.log'));
+}
+
+// Every 15 minutes, check any custom data source schedules using isDue()
 Schedule::command('krushi:sync-market-prices')
-    ->hourly()
-    ->withoutOverlapping(60)
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(15)
     ->runInBackground()
-    ->appendOutputTo(storage_path('logs/sync_periodic.log'));
+    ->appendOutputTo(storage_path('logs/sync_check.log'));
 
 /*
 |--------------------------------------------------------------------------

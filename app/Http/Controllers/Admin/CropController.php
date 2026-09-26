@@ -12,6 +12,7 @@ use App\Models\DataSource;
 use App\Services\Ingestion\MarketPriceIngestionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -52,6 +53,11 @@ class CropController extends Controller
     public function create(Request $request): View
     {
         $categories = CropCategory::where('is_active', true)->orderBy('display_order')->get();
+        $presetImages = collect(File::files(public_path('images/crops')))
+            ->map(fn ($file) => $file->getFilename())
+            ->filter(fn ($name) => preg_match('/\.(jpg|jpeg|png|webp)$/i', $name))
+            ->sort()
+            ->values();
 
         return view('admin.master.crops.form', [
             'crop' => new Crop([
@@ -61,6 +67,7 @@ class CropController extends Controller
                 'is_active' => true,
             ]),
             'categories' => $categories,
+            'presetImages' => $presetImages,
             'isEdit' => false,
         ]);
     }
@@ -81,6 +88,20 @@ class CropController extends Controller
         $data['market_radius_km'] = $request->filled('market_radius_km') ? (int) $request->input('market_radius_km') : 300;
         $data['default_market_sort'] = $request->input('default_market_sort', 'nearest_first') ?: 'nearest_first';
 
+        // Process crop image (file upload or preset)
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $uploadDir = public_path('uploads/crops');
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+            $filename = 'crop_' . Str::slug($data['slug']) . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $file->move($uploadDir, $filename);
+            $data['icon'] = 'uploads/crops/' . $filename;
+        } elseif ($request->filled('preset_image')) {
+            $data['icon'] = 'images/crops/' . $request->input('preset_image');
+        }
+
         $crop = Crop::create($data);
 
         AuditLog::log('crop.create', 'Crop', $crop->id, null, $crop->toArray());
@@ -100,11 +121,17 @@ class CropController extends Controller
         ]);
         $categories = CropCategory::where('is_active', true)->orderBy('display_order')->get();
         $dataSources = DataSource::where('is_active', true)->orderBy('name')->get();
+        $presetImages = collect(File::files(public_path('images/crops')))
+            ->map(fn ($file) => $file->getFilename())
+            ->filter(fn ($name) => preg_match('/\.(jpg|jpeg|png|webp)$/i', $name))
+            ->sort()
+            ->values();
 
         return view('admin.master.crops.form', [
             'crop' => $crop,
             'categories' => $categories,
             'dataSources' => $dataSources,
+            'presetImages' => $presetImages,
             'isEdit' => true,
         ]);
     }
@@ -125,6 +152,22 @@ class CropController extends Controller
         $data['enable_smart_badges'] = $request->boolean('enable_smart_badges');
         $data['market_radius_km'] = $request->filled('market_radius_km') ? (int) $request->input('market_radius_km') : 300;
         $data['default_market_sort'] = $request->input('default_market_sort', 'nearest_first') ?: 'nearest_first';
+
+        // Process crop image (file upload, preset, or remove)
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $uploadDir = public_path('uploads/crops');
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+            $filename = 'crop_' . Str::slug($data['slug'] ?? $crop->slug) . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $file->move($uploadDir, $filename);
+            $data['icon'] = 'uploads/crops/' . $filename;
+        } elseif ($request->filled('preset_image')) {
+            $data['icon'] = 'images/crops/' . $request->input('preset_image');
+        } elseif ($request->boolean('remove_image')) {
+            $data['icon'] = null;
+        }
 
         $crop->update($data);
 

@@ -36,6 +36,8 @@ class CropRequest extends FormRequest
             'allow_user_sort_toggle' => ['sometimes', 'boolean'],
             'enable_smart_badges' => ['sometimes', 'boolean'],
             'icon' => ['nullable', 'string', 'max:255'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:5120'],
+            'preset_image' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_major' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],

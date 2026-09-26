@@ -1,26 +1,29 @@
 @extends('layouts.farmer')
 
-@section('title', 'ಕರ್ನಾಟಕ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಗಳು — APMC Mandis Directory')
+@section('title', app()->getLocale() === 'en' ? 'Karnataka APMC Mandis Directory — Krushi Baandhava' : 'ಕರ್ನಾಟಕ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಗಳು — APMC Mandis Directory')
 
 @section('content')
+@php
+    $activeLocale = app()->getLocale();
+@endphp
 <div class="space-y-6">
 
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1">
-                <span>🏛️ ಕೃಷಿ ಉತ್ಪನ್ನ ಮಾರುಕಟ್ಟೆ ಸಮಿತಿಗಳು</span>
+            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <span>🏛️ {{ $activeLocale === 'en' ? 'Agricultural Produce Market Committees' : 'ಕೃಷಿ ಉತ್ಪನ್ನ ಮಾರುಕಟ್ಟೆ ಸಮಿತಿಗಳು' }}</span>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-                ಕರ್ನಾಟಕ APMC ಮಂಡಿಗಳು (Mandis Directory)
+            <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Karnataka APMC Mandis Directory' : 'ಕರ್ನಾಟಕ APMC ಮಂಡಿಗಳು (Mandis Directory)' }}
             </h1>
-            <p class="text-xs sm:text-sm text-stone-500">
-                ರಾಜ್ಯದ ನೋಂದಾಯಿತ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆ ಕೇಂದ್ರಗಳು ಹಾಗೂ ಇಂದಿನ ಆವಕ ಮತ್ತು ವಹಿವಾಟು ದರಗಳು.
+            <p class="text-xs sm:text-sm text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Registered APMC market centers across Karnataka with daily arrivals and live transaction rates.' : 'ರಾಜ್ಯದ ನೋಂದಾಯಿತ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆ ಕೇಂದ್ರಗಳು ಹಾಗೂ ಇಂದಿನ ಆವಕ ಮತ್ತು ವಹಿವಾಟು ದರಗಳು.' }}
             </p>
         </div>
 
-        <a href="{{ route('home') }}" class="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs">
-            <span>&larr; ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ</span>
+        <a href="{{ route('home') }}" class="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+            <span>&larr; {{ $activeLocale === 'en' ? 'Back to Home' : 'ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ' }}</span>
         </a>
     </div>
 
@@ -38,30 +41,30 @@
                 <input type="text" 
                        name="search" 
                        value="{{ $search }}" 
-                       placeholder="ಮಾರುಕಟ್ಟೆ ಹೆಸರು ಅಥವಾ ಕೋಡ್ ಹುಡುಕಿ (Search Mandi name, e.g. Shimoga, ಸಾಗರ, MKT-SHI)..."
-                       class="w-full text-xs sm:text-sm pl-9 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition">
+                       placeholder="{{ $activeLocale === 'en' ? 'Search Mandi name or code (e.g. Shimoga, ಸಾಗರ, MKT-SHI)...' : 'ಮಾರುಕಟ್ಟೆ ಹೆಸರು ಅಥವಾ ಕೋಡ್ ಹುಡುಕಿ (Search Mandi name, e.g. Shimoga, ಸಾಗರ, MKT-SHI)...' }}"
+                       class="w-full text-xs sm:text-sm pl-9 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                 @if($search)
                     <a href="{{ route('farmer.markets.index', ['district' => $districtId]) }}" class="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-600 text-sm font-bold">
                         ✕
                     </a>
                 @endif
             </div>
-            <button type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition shrink-0">
-                ಹುಡುಕಿ
+            <button type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                {{ $activeLocale === 'en' ? 'Search' : 'ಹುಡುಕಿ' }}
             </button>
         </form>
 
         <!-- District Filter Chips -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
             <a href="{{ route('farmer.markets.index', ['search' => $search]) }}"
-               class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition shadow-xs {{ !$districtId ? 'bg-emerald-800 text-white ring-2 ring-emerald-600/30' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' }}">
-                ಎಲ್ಲಾ ಜಿಲ್ಲೆಗಳು (All)
+               class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ !$districtId ? 'bg-emerald-800 text-white ring-2 ring-emerald-600/30' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' }}">
+                {{ $activeLocale === 'en' ? 'All Districts' : 'ಎಲ್ಲಾ ಜಿಲ್ಲೆಗಳು (All)' }}
             </a>
             @foreach($districts as $d)
                 <a href="{{ route('farmer.markets.index', ['district' => $d->id, 'search' => $search]) }}"
-                   class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition shadow-xs flex items-center gap-1.5 {{ $districtId == $d->id ? 'bg-emerald-800 text-white ring-2 ring-emerald-600/30' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' }}">
-                    <span>{{ $d->name }}</span>
-                    @if($d->name_kn)
+                   class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition shadow-xs flex items-center gap-1.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ $districtId == $d->id ? 'bg-emerald-800 text-white ring-2 ring-emerald-600/30' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' }}">
+                    <span>{{ $activeLocale === 'en' ? $d->name : ($d->name_kn ?: $d->name) }}</span>
+                    @if($activeLocale === 'kn' && $d->name_kn)
                         <span class="font-kannada font-normal opacity-90">({{ $d->name_kn }})</span>
                     @endif
                     <span class="text-[10px] px-1.5 py-0.2 rounded-full {{ $districtId == $d->id ? 'bg-white/20 text-white' : 'bg-white text-stone-500' }}">
@@ -87,14 +90,18 @@
                                 🏛️
                             </div>
                             <div>
-                                <h2 class="font-black text-stone-900 text-base leading-snug">
+                                <h2 class="font-black text-stone-900 text-base leading-snug {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                                     <a href="{{ route('farmer.markets.show', $market->code) }}" class="hover:text-emerald-700 transition">
-                                        {{ $market->name }} APMC
+                                        {{ $activeLocale === 'en' ? $market->name : ($market->name_kn ?: $market->name) }} APMC
                                     </a>
                                 </h2>
-                                @if($market->name_kn)
+                                @if($activeLocale === 'kn' && $market->name_kn)
                                     <span class="text-xs font-semibold text-stone-600 font-kannada">
                                         {{ $market->name_kn }} ಎಪಿಎಂಸಿ
+                                    </span>
+                                @elseif($activeLocale === 'en' && $market->name_kn)
+                                    <span class="text-xs font-medium text-stone-400">
+                                        {{ $market->name_kn }}
                                     </span>
                                 @endif
                             </div>
@@ -106,13 +113,13 @@
                     </div>
 
                     <!-- Location info -->
-                    <div class="mt-3.5 space-y-1 text-xs text-stone-500">
+                    <div class="mt-3.5 space-y-1 text-xs text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                         <div class="flex items-center gap-1.5">
-                            <span class="font-bold text-stone-700">ಜಿಲ್ಲೆ:</span>
-                            <span>{{ $market->district ? $market->district->name : 'Karnataka' }}</span>
+                            <span class="font-bold text-stone-700">{{ $activeLocale === 'en' ? 'District:' : 'ಜಿಲ್ಲೆ:' }}</span>
+                            <span>{{ $market->district ? ($activeLocale === 'en' ? $market->district->name : ($market->district->name_kn ?: $market->district->name)) : 'Karnataka' }}</span>
                             @if($market->taluk)
                                 <span class="text-stone-300">•</span>
-                                <span>ತಾಲೂಕು: {{ $market->taluk->name }}</span>
+                                <span>{{ $activeLocale === 'en' ? 'Taluk:' : 'ತಾಲೂಕು:' }} {{ $activeLocale === 'en' ? $market->taluk->name : ($market->taluk->name_kn ?: $market->taluk->name) }}</span>
                             @endif
                         </div>
                         @if($market->address)
@@ -123,14 +130,14 @@
                     </div>
 
                     <!-- Traded Commodities Today Badge -->
-                    <div class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
-                        <span class="text-stone-400">ಇಂದಿನ ವಹಿವಾಟು:</span>
+                    <div class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="text-stone-400">{{ $activeLocale === 'en' ? 'Today\'s Trade:' : 'ಇಂದಿನ ವಹಿವಾಟು:' }}</span>
                         @if($traded && $traded->crop_count > 0)
                             <span class="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                {{ $traded->crop_count }} ಬೆಳೆಗಳ ದರ ಲಭ್ಯ
+                                {{ $activeLocale === 'en' ? $traded->crop_count . ' crop rates available' : $traded->crop_count . ' ಬೆಳೆಗಳ ದರ ಲಭ್ಯ' }}
                             </span>
                         @else
-                            <span class="text-stone-400">ದರ ಮಾಹಿತಿ ನಿರೀಕ್ಷೆಯಲ್ಲಿದೆ</span>
+                            <span class="text-stone-400">{{ $activeLocale === 'en' ? 'Rate update awaited' : 'ದರ ಮಾಹಿತಿ ನಿರೀಕ್ಷೆಯಲ್ಲಿದೆ' }}</span>
                         @endif
                     </div>
                 </div>
@@ -139,20 +146,24 @@
                 <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
                     <span class="text-[11px] text-stone-400 font-medium capitalize">{{ str_replace('_', ' ', $market->market_type ?? 'Principal') }}</span>
                     <a href="{{ route('farmer.markets.show', $market->code) }}" 
-                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs">
-                        <span>ಇಂದಿನ ದರಗಳು ನೋಡಿ</span>
+                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span>{{ $activeLocale === 'en' ? 'View Today\'s Rates' : 'ಇಂದಿನ ದರಗಳು ನೋಡಿ' }}</span>
                         <span>&rarr;</span>
                     </a>
                 </div>
             </div>
         @empty
-            <div class="col-span-full bg-white rounded-3xl p-8 text-center border border-stone-200/80 shadow-xs space-y-2">
+            <div class="col-span-full bg-white rounded-3xl p-8 text-center border border-stone-200/80 shadow-xs space-y-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                 <div class="text-3xl">🏛️</div>
-                <div class="font-extrabold text-stone-800 text-base">ಯಾವುದೇ ಮಾರುಕಟ್ಟೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ</div>
-                <p class="text-xs text-stone-500">ದಯವಿಟ್ಟು ಹುಡುಕಾಟ ಪದವನ್ನು ಬದಲಾಯಿಸಿ ಅಥವಾ ಬೇರೆ ಜಿಲ್ಲೆ ಆಯ್ಕೆಮಾಡಿ.</p>
+                <div class="font-extrabold text-stone-800 text-base">
+                    {{ $activeLocale === 'en' ? 'No mandis found' : 'ಯಾವುದೇ ಮಾರುಕಟ್ಟೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ' }}
+                </div>
+                <p class="text-xs text-stone-500">
+                    {{ $activeLocale === 'en' ? 'Please adjust your search keyword or select a different district.' : 'ದಯವಿಟ್ಟು ಹುಡುಕಾಟ ಪದವನ್ನು ಬದಲಾಯಿಸಿ ಅಥವಾ ಬೇರೆ ಜಿಲ್ಲೆ ಆಯ್ಕೆಮಾಡಿ.' }}
+                </p>
                 <div class="pt-2">
                     <a href="{{ route('farmer.markets.index') }}" class="px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition">
-                        ಎಲ್ಲಾ ಮಂಡಿಗಳನ್ನು ತೋರಿಸಿ
+                        {{ $activeLocale === 'en' ? 'Show all mandis' : 'ಎಲ್ಲಾ ಮಂಡಿಗಳನ್ನು ತೋರಿಸಿ' }}
                     </a>
                 </div>
             </div>

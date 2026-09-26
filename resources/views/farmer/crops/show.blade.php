@@ -1143,9 +1143,16 @@
         {{-- Header --}}
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
             <div>
-                <div class="khc-eyebrow {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <span style="display:inline-block;width:6px;height:6px;background:#86EFAC;border-radius:50%;flex-shrink:0;"></span>
-                    {{ $activeLocale === 'en' ? 'HISTORICAL SEASONAL ANALYSIS' : 'ಐತಿಹಾಸಿಕ ಋತುಮಾನ ವಿಶ್ಲೇಷಣೆ' }}
+                <div class="khc-eyebrow {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;">
+                        <span style="display:inline-block;width:6px;height:6px;background:#86EFAC;border-radius:50%;flex-shrink:0;"></span>
+                        {{ $activeLocale === 'en' ? 'HISTORICAL SEASONAL ANALYSIS' : 'ಐತಿಹಾಸಿಕ ಋತುಮಾನ ವಿಶ್ಲೇಷಣೆ' }}
+                    </span>
+                    @if(!empty($seasonalAnalysis['market_name']))
+                        <span style="background:rgba(255,255,255,0.12);padding:2px 8px;border-radius:12px;font-size:10.5px;color:#FDE68A;border:1px solid rgba(253,230,138,0.25);">
+                            📍 {{ $activeLocale === 'kn' && !empty($seasonalAnalysis['market_name_kn']) ? $seasonalAnalysis['market_name_kn'] : $seasonalAnalysis['market_name'] }}
+                        </span>
+                    @endif
                 </div>
                 <div class="khc-title {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     {{ $activeLocale === 'en' ? 'Best Months to Sell' : 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು' }}
@@ -1164,13 +1171,13 @@
         <div class="khc-lead {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
             @if($activeLocale === 'en')
                 @if(!empty($seasonalAnalysis['peak_months_en']))
-                    Prices are usually highest around <strong>{{ implode(', ', $seasonalAnalysis['peak_months_en']) }}</strong> — plan your harvest and sale for those months.
+                    Prices in <strong>{{ $seasonalAnalysis['market_name'] ?? 'Karnataka' }}</strong> are usually highest around <strong>{{ implode(', ', $seasonalAnalysis['peak_months_en']) }}</strong> — plan your harvest and sale for those months.
                 @else
                     {{ $seasonalAnalysis['lead_summary_en'] ?? 'Seasonal price variations based on historical mandi arrivals.' }}
                 @endif
             @else
                 @if(!empty($seasonalAnalysis['peak_months_kn']))
-                    ಸಾಮಾನ್ಯವಾಗಿ <strong>{{ implode(', ', $seasonalAnalysis['peak_months_kn']) }}</strong> ತಿಂಗಳಲ್ಲಿ ಬೆಲೆ ಹೆಚ್ಚು — ಆ ಸಮಯಕ್ಕೆ ಬೆಳೆ ಮಾರಲು ಸಿದ್ಧರಾಗಿ.
+                    <strong>{{ !empty($seasonalAnalysis['market_name_kn']) ? $seasonalAnalysis['market_name_kn'] : ($seasonalAnalysis['market_name'] ?? 'ಕರ್ನಾಟಕ') }}</strong> ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಸಾಮಾನ್ಯವಾಗಿ <strong>{{ implode(', ', $seasonalAnalysis['peak_months_kn']) }}</strong> ತಿಂಗಳಲ್ಲಿ ಬೆಲೆ ಹೆಚ್ಚು — ಆ ಸಮಯಕ್ಕೆ ಬೆಳೆ ಮಾರಲು ಸಿದ್ಧರಾಗಿ.
                 @else
                     {{ $seasonalAnalysis['lead_summary_kn'] ?? 'ಮಾರುಕಟ್ಟೆ ಇತಿಹಾಸ ಆಧಾರದ ಮೇಲೆ ಬೆಲೆ ವ್ಯತ್ಯಾಸ ತೋರಿಸಲಾಗಿದೆ.' }}
                 @endif
@@ -1275,7 +1282,7 @@
         <div class="khc-foot">
             @if(!empty($seasonalAnalysis['annual_baseline']) && $seasonalAnalysis['annual_baseline'] > 0)
                 <div class="khc-avg {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    {{ $activeLocale === 'en' ? 'Annual Average: ' : 'ವಾರ್ಷಿಕ ಸರಾಸರಿ: ' }}<strong>₹{{ number_format($seasonalAnalysis['annual_baseline'],0) }}/{{ $activeLocale === 'en' ? 'Qtl' : 'ಕ್ವಿಂ' }}</strong>
+                    {{ $activeLocale === 'en' ? 'Annual Baseline' : 'ವಾರ್ಷಿಕ ಸರಾಸರಿ' }}{{ !empty($seasonalAnalysis['market_name']) ? ' ('.($activeLocale === 'kn' && !empty($seasonalAnalysis['market_name_kn']) ? $seasonalAnalysis['market_name_kn'] : $seasonalAnalysis['market_name']).')' : '' }}: <strong>₹{{ number_format($seasonalAnalysis['annual_baseline'],0) }}/{{ $activeLocale === 'en' ? 'Qtl' : 'ಕ್ವಿಂ' }}</strong>
                 </div>
             @endif
             <div class="khc-legend">

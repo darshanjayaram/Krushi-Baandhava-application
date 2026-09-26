@@ -2,6 +2,7 @@
 
 namespace App\Services\Weather;
 
+use App\Models\SystemSetting;
 use App\Services\Weather\Contracts\WeatherProviderInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -18,13 +19,16 @@ class OpenMeteoWeatherProvider implements WeatherProviderInterface
     public function fetchForecast(float $latitude, float $longitude): array
     {
         try {
+            $endpoint = SystemSetting::get('weather_api_endpoint', self::ENDPOINT);
+            $timezone = SystemSetting::get('weather_timezone', 'Asia/Kolkata');
+
             $response = Http::timeout(self::TIMEOUT_SECONDS)
-                ->get(self::ENDPOINT, [
+                ->get($endpoint, [
                     'latitude' => $latitude,
                     'longitude' => $longitude,
                     'current' => 'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m',
                     'daily' => 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
-                    'timezone' => 'Asia/Kolkata',
+                    'timezone' => $timezone,
                     'forecast_days' => 7,
                 ]);
 
@@ -123,8 +127,12 @@ class OpenMeteoWeatherProvider implements WeatherProviderInterface
      */
     public function generateAgriculturalAdvisories(float $rainProbability, float $tempMax, int $weatherCode): array
     {
+        $advisoryMode = SystemSetting::get('weather_advisory_mode', 'standard_agronomic');
+        $heavyRainThreshold = ($advisoryMode === 'strict_monsoon_alert') ? 50.0 : 70.0;
+        $moderateRainThreshold = ($advisoryMode === 'strict_monsoon_alert') ? 30.0 : 40.0;
+
         // Thunderstorm or severe rain
-        if (in_array($weatherCode, [82, 95, 96, 99]) || $rainProbability >= 70) {
+        if (in_array($weatherCode, [82, 95, 96, 99]) || $rainProbability >= $heavyRainThreshold) {
             return [
                 'kn' => 'ಭಾರೀ ಮಳೆ ಮತ್ತು ಗುಡುಗಿನ ಮುನ್ಸೂಚನೆ ಇದೆ. ಕೀಟನಾಶಕ ಸಿಂಪಡಣೆ, ಗೊಬ್ಬರ ವಿತರಣೆ ಮತ್ತು ಬೆಳೆ ಕೊಯ್ಲು ಮುಂದೂಡಿ. ತೋಟದಲ್ಲಿ ನೀರು ನಿಲ್ಲದಂತೆ ಕಾಲುವೆ ತೆರವುಗೊಳಿಸಿ.',
                 'en' => 'Heavy rainfall / thunderstorm forecasted. Postpone spraying, fertilization, and harvesting. Ensure clear field drainage.',
@@ -132,7 +140,7 @@ class OpenMeteoWeatherProvider implements WeatherProviderInterface
         }
 
         // Moderate rain expected
-        if ($rainProbability >= 40) {
+        if ($rainProbability >= $moderateRainThreshold) {
             return [
                 'kn' => 'ಸಾಧಾರಣ ಮಳೆಯ ಸಾಧ್ಯತೆ. ನೀರಾವರಿ ನೀಡುವುದನ್ನು ತಾತ್ಕಾಲಿಕವಾಗಿ ನಿಲ್ಲಿಸಿ. ಕೊಯ್ಲು ಮಾಡಿದ ಕೃಷಿ ಉತ್ಪನ್ನಗಳನ್ನು ಸುರಕ್ಷಿತ ಗೋದಾಮಿನಲ್ಲಿ ಸಂಗ್ರಹಿಸಿ.',
                 'en' => 'Moderate rainfall likely. Suspend irrigation operations and protect harvested commodities from moisture.',

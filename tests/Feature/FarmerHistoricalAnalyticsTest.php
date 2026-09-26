@@ -188,4 +188,49 @@ class FarmerHistoricalAnalyticsTest extends TestCase
         MarketPrice::where('crop_id', $sparseCrop->id)->delete();
         $sparseCrop->delete();
     }
+
+    public function test_best_months_to_sell_recalculates_and_refreshes_based_on_selected_market(): void
+    {
+        $ragi = Crop::where('slug', 'ragi')->first();
+        if (! $ragi) {
+            $this->markTestSkipped('Ragi crop not seeded.');
+        }
+
+        $mandyaMarket = Market::where('name', 'like', '%Mandya%')->firstOrFail();
+        $yeshwanthpurMarket = Market::where('name', 'like', '%Yeshwanthpur%')->firstOrFail();
+
+        // 1. Test Mandya Market
+        $mandyaResponse = $this->withSession(['locale' => 'en'])->get(route('farmer.crops.show', [
+            'slug' => $ragi->slug,
+            'market' => $mandyaMarket->name,
+        ]));
+
+        $mandyaResponse->assertStatus(200);
+        $mandyaResponse->assertSee('Best Months to Sell');
+        $mandyaResponse->assertSee($mandyaMarket->name);
+
+        // 2. Test Yeshwanthpur Market
+        $yprResponse = $this->withSession(['locale' => 'en'])->get(route('farmer.crops.show', [
+            'slug' => $ragi->slug,
+            'market' => $yeshwanthpurMarket->name,
+        ]));
+
+        $yprResponse->assertStatus(200);
+        $yprResponse->assertSee('Best Months to Sell');
+        $yprResponse->assertSee($yeshwanthpurMarket->name);
+
+        // 3. Test API returns market-specific baselines
+        $mandyaApi = $this->getJson("/api/v1/analytics/seasonality?crop_id={$ragi->id}&market_id={$mandyaMarket->id}");
+        $mandyaApi->assertStatus(200);
+        $mandyaBaseline = $mandyaApi->json('data.annual_baseline');
+        $this->assertEquals($mandyaMarket->id, $mandyaApi->json('data.market_id'));
+
+        $yprApi = $this->getJson("/api/v1/analytics/seasonality?crop_id={$ragi->id}&market_id={$yeshwanthpurMarket->id}");
+        $yprApi->assertStatus(200);
+        $yprBaseline = $yprApi->json('data.annual_baseline');
+        $this->assertEquals($yeshwanthpurMarket->id, $yprApi->json('data.market_id'));
+
+        // Assert that the two markets produce distinct baselines reflecting their individual price levels
+        $this->assertNotEquals($mandyaBaseline, $yprBaseline);
+    }
 }

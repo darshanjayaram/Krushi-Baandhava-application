@@ -67,7 +67,43 @@ Route::get('/sitemap.xml', [\App\Http\Controllers\Farmer\SitemapController::clas
 Route::get('/login', fn () => redirect()->route('admin.login'))->name('login');
 
 Route::get('/manifest.json', function () {
-    return response(file_get_contents(public_path('manifest.json')), 200, [
+    $manifestPath = public_path('manifest.json');
+    $manifest = file_exists($manifestPath) ? json_decode(file_get_contents($manifestPath), true) : [];
+
+    $name = \App\Models\SystemSetting::get('pwa_name');
+    if ($name) $manifest['name'] = $name;
+
+    $shortName = \App\Models\SystemSetting::get('pwa_short_name');
+    if ($shortName) $manifest['short_name'] = $shortName;
+
+    $desc = \App\Models\SystemSetting::get('pwa_description');
+    if ($desc) $manifest['description'] = $desc;
+
+    $theme = \App\Models\SystemSetting::get('pwa_theme_color');
+    if ($theme) $manifest['theme_color'] = $theme;
+
+    $bg = \App\Models\SystemSetting::get('pwa_background_color');
+    if ($bg) $manifest['background_color'] = $bg;
+
+    $startUrl = \App\Models\SystemSetting::get('pwa_start_url');
+    if ($startUrl) $manifest['start_url'] = $startUrl;
+
+    $display = \App\Models\SystemSetting::get('pwa_display_mode');
+    if ($display) $manifest['display'] = $display;
+
+    $customIcon = \App\Models\SystemSetting::get('pwa_icon');
+    if ($customIcon) {
+        $manifest['icons'] = [
+            [
+                'src' => $customIcon,
+                'sizes' => '192x192 512x512',
+                'type' => 'image/png',
+                'purpose' => 'any maskable',
+            ]
+        ];
+    }
+
+    return response()->json($manifest, 200, [
         'Content-Type' => 'application/manifest+json',
     ]);
 })->name('pwa.manifest');
@@ -77,6 +113,12 @@ Route::get('/sw.js', function () {
         'Content-Type' => 'application/javascript',
     ]);
 })->name('pwa.sw');
+
+// Web Setup / 1-Click Installation Wizard for cPanel Fresh Deployments
+Route::get('/setup', [\App\Http\Controllers\SetupController::class, 'index'])->name('setup.index');
+Route::post('/setup', [\App\Http\Controllers\SetupController::class, 'run'])->name('setup.run');
+Route::post('/setup/test-db', [\App\Http\Controllers\SetupController::class, 'testDb'])->name('setup.test-db');
+Route::post('/setup/test-api', [\App\Http\Controllers\SetupController::class, 'testApiKey'])->name('setup.test-api');
 
 /*
 |--------------------------------------------------------------------------
@@ -120,9 +162,13 @@ Route::prefix('admin')->group(function () {
         Route::resource('varieties', CropVarietyController::class)->only(['store', 'update', 'destroy'])->names('admin.varieties');
 
         // Data Sources & Providers
+        Route::post('/datasources/sync-all', [DataSourceController::class, 'syncAll'])->name('admin.datasources.sync-all');
+        Route::post('/datasources/update-schedule-timings', [DataSourceController::class, 'updateScheduleTimings'])->name('admin.datasources.update-schedule-timings');
         Route::post('/datasources/{datasource}/toggle-status', [DataSourceController::class, 'toggleStatus'])->name('admin.datasources.toggle-status');
         Route::match(['GET', 'POST'], '/datasources/{datasource}/test-connection', [DataSourceController::class, 'testConnection'])->name('admin.datasources.test-connection');
         Route::post('/datasources/{datasource}/trigger-sync', [DataSourceController::class, 'triggerSync'])->name('admin.datasources.trigger-sync');
+        Route::post('/datasources/{datasource}/retry-crop', [DataSourceController::class, 'retryCrop'])->name('admin.datasources.retry-crop');
+        Route::post('/datasources/{datasource}/retry-all', [DataSourceController::class, 'retryAll'])->name('admin.datasources.retry-all');
 
         Route::get('/datasources/{datasource}/mappings', [DataSourceMappingController::class, 'index'])->name('admin.datasources.mappings.index');
         Route::post('/datasources/{datasource}/mappings/fields', [DataSourceMappingController::class, 'storeFieldMapping'])->name('admin.datasources.mappings.fields.store');
@@ -131,6 +177,13 @@ Route::prefix('admin')->group(function () {
         Route::post('/datasources/{datasource}/mappings/markets', [DataSourceMappingController::class, 'storeMarketAlias'])->name('admin.datasources.mappings.markets.store');
 
         Route::resource('datasources', DataSourceController::class)->names('admin.datasources');
+
+        // Master Data Deployment & APMC Discovery Hub
+        Route::get('/deployment-hub', [\App\Http\Controllers\Admin\DeploymentHubController::class, 'index'])->name('admin.deployment-hub.index');
+        Route::post('/deployment-hub/discover-mandis', [\App\Http\Controllers\Admin\DeploymentHubController::class, 'discoverMandis'])->name('admin.deployment-hub.discover-mandis');
+        Route::post('/deployment-hub/discover-crops', [\App\Http\Controllers\Admin\DeploymentHubController::class, 'discoverCrops'])->name('admin.deployment-hub.discover-crops');
+        Route::post('/deployment-hub/import-standard-master', [\App\Http\Controllers\Admin\DeploymentHubController::class, 'importStandardMaster'])->name('admin.deployment-hub.import-standard-master');
+        Route::post('/deployment-hub/sync-prices', [\App\Http\Controllers\Admin\DeploymentHubController::class, 'syncLivePrices'])->name('admin.deployment-hub.sync-prices');
 
         // Market Prices
         Route::get('/prices', [MarketPriceController::class, 'index'])->name('admin.prices.index');
@@ -159,9 +212,13 @@ Route::prefix('admin')->group(function () {
         Route::post('/feature-flags/{featureFlag}/toggle', [FeatureFlagController::class, 'toggle'])->name('admin.feature-flags.toggle');
         Route::put('/feature-flags/{featureFlag}', [FeatureFlagController::class, 'update'])->name('admin.feature-flags.update');
 
-        // System Settings
+        // System Settings & Immediate System Operations
         Route::get('/settings', [SystemSettingController::class, 'index'])->name('admin.settings.index');
         Route::post('/settings', [SystemSettingController::class, 'update'])->name('admin.settings.update');
+        Route::post('/settings/clear-cache', [SystemSettingController::class, 'clearCache'])->name('admin.settings.clear-cache');
+        Route::post('/settings/update-database', [SystemSettingController::class, 'updateDatabase'])->name('admin.settings.update-database');
+        Route::post('/settings/prune-data', [SystemSettingController::class, 'pruneData'])->name('admin.settings.prune-data');
+        Route::post('/settings/trigger-forecasting', [SystemSettingController::class, 'triggerForecasting'])->name('admin.settings.trigger-forecasting');
 
         // Data Quality & Rejected Records
         Route::get('/data-quality', [DataQualityController::class, 'index'])->name('admin.data-quality.index');
