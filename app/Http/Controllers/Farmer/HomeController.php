@@ -206,7 +206,8 @@ class HomeController extends Controller
             'stats',
             'latestPriceDate',
             'todayWeather',
-            'distinctCropPrices'
+            'distinctCropPrices',
+            'sortedPrices'
         ));
     }
 

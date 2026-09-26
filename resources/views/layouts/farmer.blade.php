@@ -38,6 +38,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
         body {
@@ -90,8 +91,8 @@
         </div>
     </div>
 
-    <!-- Pleasant Negilu-style Parchment Header (#F5EFE6) -->
-    <header class="sticky top-0 z-40 bg-[#F5EFE6]/95 backdrop-blur-md border-b border-[#E8DFC8]">
+    <!-- Elevated Classic Floating Header with Matching Background & Classic Shadow -->
+    <header class="sticky top-0 z-40 bg-[#F5EFE6]/98 backdrop-blur-md border-b-2 border-[#D9CEB8] shadow-[0_4px_20px_-2px_rgba(0,0,0,0.08),0_2px_8px_-1px_rgba(0,0,0,0.05)] transition-all">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 sm:h-18">
                 <!-- Brand Identity (Option 12 Icon & Site Name) -->
@@ -101,13 +102,16 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-1.5 sm:gap-2">
-                            <span class="font-extrabold text-[#1C5A2C] text-base sm:text-lg tracking-tight">Krushi Baandhava</span>
-                            <span class="hidden sm:inline-block bg-[#EAF4EC] text-[#1C5A2C] border border-[#B8DEC0] text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                ಕರ್ನಾಟಕ APMC
+                            <span class="font-extrabold text-[#1C5A2C] text-base sm:text-lg tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
+                                {{ $activeLocale === 'kn' 
+                                    ? \App\Models\SystemSetting::get('application_name_kn', \App\Models\SystemSetting::get('application_name', 'ಕೃಷಿ ಬಾಂಧವ')) 
+                                    : \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava') }}
                             </span>
                         </div>
-                        <p class="text-[11px] text-stone-500 font-medium font-kannada leading-none">
-                            {{ $activeLocale === 'en' ? 'Direct APMC Market Rates & Forecast' : 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ' }}
+                        <p class="text-[11px] text-stone-500 font-medium font-kannada leading-none mt-0.5">
+                            {{ $activeLocale === 'en' 
+                                ? \App\Models\SystemSetting::get('navbar_subtitle_en', 'Direct APMC Market Rates & Forecast') 
+                                : \App\Models\SystemSetting::get('navbar_subtitle_kn', 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ') }}
                         </p>
                     </div>
                 </a>
@@ -136,28 +140,19 @@
                     </a>
                 </nav>
 
-                <!-- Right Utility Bar: App CTA + Language Toggle + District -->
+                <!-- Right Utility Bar: Location Pill + Language Toggle -->
                 <div class="flex items-center gap-2 sm:gap-3">
                     <!-- Location Pill for Mobile/Quick access -->
                     <button type="button" 
                             x-data
                             @click="$dispatch('open-location-modal')" 
-                            class="hidden sm:flex items-center gap-1.5 bg-white border border-stone-200/90 rounded-full px-3 py-1.5 text-xs font-bold text-stone-800 transition hover:bg-stone-50 active:scale-95 cursor-pointer shadow-2xs"
+                            class="hidden sm:flex items-center gap-1.5 bg-[#FAF8F5] border border-[#DDD2BE] rounded-full px-3 py-1.5 text-xs font-bold text-stone-800 transition hover:bg-stone-100 active:scale-95 cursor-pointer shadow-2xs"
                             title="{{ $activeLocale === 'en' ? 'Click to change location' : 'ಸ್ಥಳ ಬದಲಾಯಿಸಲು ಕ್ಲಿಕ್ ಮಾಡಿ' }}">
                         <span class="text-rose-500 text-xs">📍</span>
                         <span class="max-w-[100px] truncate {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
                             {{ $activeLocale === 'en' ? ($activeDistrict->name ?? $activeDistrict->name_kn ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
                         </span>
                     </button>
-
-                    <!-- App Button -->
-                    <a href="{{ route('home') }}" 
-                       x-data
-                       @click.prevent="$dispatch('open-install-prompt')"
-                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#F0C24A] hover:bg-amber-400 text-stone-900 font-black text-xs shadow-xs transition active:scale-95 cursor-pointer">
-                        <span>📲</span>
-                        <span>{{ $activeLocale === 'en' ? 'App' : 'ಆ್ಯಪ್' }}</span>
-                    </a>
 
                     <!-- Interactive Kannada / English Toggle -->
                     <div class="flex items-center bg-white rounded-xl p-1 text-xs font-bold border border-stone-200/90 shadow-2xs">

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classic Hero Command Bar UI Styles — Krushi Baandhava</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Noto+Sans+Kannada:wght@400;600;700;800;900&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', 'Noto Sans Kannada', sans-serif; }
+    .kn-font { font-family: 'Noto Sans Kannada', sans-serif; }
+  </style>
+</head>
+<body class="bg-[#EFE9DC] text-stone-900 p-2 sm:p-6 min-h-screen">
+
+  <!-- TOP SELECTOR & VIEWPORT CONTROLS -->
+  <header class="max-w-4xl mx-auto bg-[#134423] text-white p-4 rounded-2xl shadow-xl mb-6 sticky top-2 z-50 border-2 border-[#1E5C33] flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5">
+      <span class="text-xl">🏛️</span>
+      <div>
+        <h1 class="font-black text-sm sm:text-base leading-tight">Classic UI Variations for Hero Command Dock</h1>
+        <p class="text-[11px] text-emerald-200">Same functional power (District + Quick Search + All Crops) in 4 distinct classic aesthetics</p>
+      </div>
+    </div>
+
+    <!-- Switchers -->
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Style Buttons -->
+      <div class="flex items-center bg-black/40 p-1 rounded-xl border border-emerald-700/60 text-xs font-bold">
+        <button onclick="switchStyle('styleA', this)" class="style-btn bg-amber-400 text-slate-950 px-2.5 py-1.5 rounded-lg font-black transition cursor-pointer">
+          A: Heritage Parchment
+        </button>
+        <button onclick="switchStyle('styleB', this)" class="style-btn text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer">
+          B: Deep Emerald
+        </button>
+        <button onclick="switchStyle('styleC', this)" class="style-btn text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer">
+          C: Sunlit Porcelain
+        </button>
+        <button onclick="switchStyle('styleD', this)" class="style-btn text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer">
+          D: Grounded Shelf
+        </button>
+      </div>
+
+      <!-- Viewport Toggle -->
+      <div class="flex items-center bg-black/40 p-1 rounded-xl border border-emerald-700/60 text-xs font-bold">
+        <button onclick="setViewport('desktop', this)" class="view-btn text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer">
+          💻 Desktop
+        </button>
+        <button onclick="setViewport('mobile', this)" class="view-btn bg-white text-[#134423] px-2.5 py-1.5 rounded-lg font-black transition cursor-pointer shadow-sm">
+          📱 Mobile
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- SIMULATOR CONTAINER                        -->
+  <!-- ========================================== -->
+  <main id="previewWrapper" style="max-width: 414px;" class="mx-auto transition-all duration-300">
+
+    <div class="bg-[#FAF8F5] rounded-3xl shadow-2xl overflow-hidden border-2 border-[#D9CEB8]">
+      
+      <!-- Top Brand Nav -->
+      <div class="bg-white border-b-2 border-[#E5DECE] px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-[#1C5A2C] text-emerald-100 flex items-center justify-center font-black text-sm">
+            🌾
+          </div>
+          <span class="font-extrabold text-[#1C5A2C] text-sm">Krushi Baandhava</span>
+        </div>
+        <span class="text-[11px] text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full font-bold border border-emerald-200">
+          ಕರ್ನಾಟಕ APMC
+        </span>
+      </div>
+
+      <!-- ==================== HERO BANNER ==================== -->
+      <div class="relative overflow-hidden p-5 sm:p-8 text-white min-h-[380px] flex flex-col justify-between"
+           style="background: linear-gradient(135deg, rgba(16, 54, 28, 0.96) 0%, rgba(12, 42, 22, 0.92) 50%, rgba(6, 22, 11, 0.90) 100%), radial-gradient(circle at top right, #257044 0%, transparent 60%);">
+        
+        <!-- Live Badge & Slogan -->
+        <div class="space-y-2 z-10 relative">
+          <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-[10px] font-bold text-emerald-200 border border-emerald-500/30">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>ನೇರ ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ • ಶಿವಮೊಗ್ಗ</span>
+          </div>
+
+          <h2 class="text-xl sm:text-3xl font-black text-white kn-font leading-tight">
+            ಬೆವರ ಹನಿಗೆ ಸಿಗಲಿ ತಕ್ಕ ಪ್ರತಿಫಲ, ರೈತನ ಕೈಲಿರಲಿ ಮಾರುಕಟ್ಟೆಯ ಬಲ
+          </h2>
+
+          <p class="text-xs text-emerald-100 kn-font leading-relaxed">
+            ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳ ಇಂದಿನ ನೇರ ದರ ಮತ್ತು ದರ ಮುನ್ಸೂಚನೆ.
+          </p>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- STYLE A: HERITAGE PARCHMENT & GOLD (WARM, ROYAL, TACTILE)                -->
+        <!-- ========================================================================= -->
+        <div id="viewStyleA" class="style-panel mt-6 z-10 relative">
+          
+          <div class="text-[10px] uppercase font-bold tracking-wider text-amber-300 mb-1.5 flex items-center justify-between">
+            <span>Style A: Heritage Parchment & Antique Gold</span>
+            <span class="bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded text-[9px] font-mono">CLASSIC ROYAL</span>
+          </div>
+
+          <!-- Parchment Dock with Gold-Bronze Trim -->
+          <div class="bg-[#FAF8F5] rounded-2xl p-2 sm:p-2.5 border-2 border-[#CBB892] shadow-2xl flex flex-col md:flex-row items-stretch md:items-center gap-2">
+            
+            <!-- Left: Heritage Location Seal -->
+            <button class="bg-[#EDE7DA] hover:bg-[#E5DDCB] text-stone-900 px-3.5 py-2.5 rounded-xl font-black text-xs transition flex items-center justify-between gap-2.5 shrink-0 border border-[#D9CEB8] shadow-inner cursor-pointer">
+              <div class="flex items-center gap-2">
+                <span class="text-base text-amber-700">🏛️</span>
+                <div class="text-left">
+                  <span class="block kn-font text-xs font-black text-stone-900 leading-tight">ಶಿವಮೊಗ್ಗ ಮಂಡಿ</span>
+                  <span class="block text-[9px] text-[#1C5A2C] font-black leading-none mt-0.5">ಬದಲಾಯಿಸಿ ▾</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-down text-[9px] text-stone-500"></i>
+            </button>
+
+            <!-- Center: Parchment Inset Search Bar -->
+            <div class="flex-1 relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+              <input type="text" placeholder="ಯಾವುದೇ ಬೆಳೆ ಹುಡುಕಿ... (ಅಡಿಕೆ, ಕಾಳುಮೆಣಸು, ಟೊಮೆಟೊ)" 
+                     class="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#D9CEB8] text-stone-900 text-xs font-semibold placeholder-stone-400 focus:outline-none focus:border-[#1C5A2C] shadow-inner">
+            </div>
+
+            <!-- Right: Deep Forest Gold-Accent Button -->
+            <button class="bg-[#134423] hover:bg-[#1C5A2C] text-amber-300 border border-amber-400/40 px-4 py-2.5 rounded-xl font-black text-xs transition flex items-center justify-center gap-2 shrink-0 shadow-md cursor-pointer">
+              <span class="kn-font text-white">ಎಲ್ಲಾ ಬೆಳೆಗಳು</span>
+              <span class="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded-full font-mono">40+</span>
+              <i class="fa-solid fa-arrow-right text-[10px] text-amber-300"></i>
+            </button>
+
+          </div>
+
+          <p class="text-[10px] text-emerald-200 mt-2 kn-font">
+            ✨ <strong>ವೈಶಿಷ್ಟ್ಯ:</strong> ಬೆಚ್ಚಗಿನ ಪಾರ್ಚ್‌ಮೆಂಟ್ (Parchment) ಬಣ್ಣ, ಆಂಟಿಕ್ ಗೋಲ್ಡ್ ಬಾರ್ಡರ್ ಹಾಗೂ ಡಾರ್ಕ್ ಫಾರೆಸ್ಟ್ ಗ್ರೀನ್ ಬಟನ್. ರಾಜಮನೆತನದ ಭವ್ಯತೆ ಮತ್ತು ಗಾಂಭೀರ್ಯ ನೀಡುತ್ತದೆ.
+          </p>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- STYLE B: DEEP EMERALD SOVEREIGN (MATCHES NEW WEATHER CARD CONTOUR AESTHETIC)-->
+        <!-- ========================================================================= -->
+        <div id="viewStyleB" class="style-panel mt-6 z-10 relative hidden">
+          
+          <div class="text-[10px] uppercase font-bold tracking-wider text-emerald-300 mb-1.5 flex items-center justify-between">
+            <span>Style B: Deep Emerald Sovereign (Atmospheric)</span>
+            <span class="bg-emerald-400/20 text-emerald-300 px-2 py-0.5 rounded text-[9px] font-mono">MATCHES WEATHER CARD</span>
+          </div>
+
+          <!-- Deep Emerald Pill with Contour Background & Fine Inset Glow -->
+          <div class="relative overflow-hidden rounded-2xl p-2 sm:p-2.5 border-2 border-emerald-500/40 shadow-2xl flex flex-col md:flex-row items-stretch md:items-center gap-2 text-white"
+               style="background: radial-gradient(circle at 90% 10%, #20623A 0%, #0F3B20 50%, #092414 100%);">
+            
+            <!-- Inset Subtle Topographic Line -->
+            <svg class="absolute -right-4 -top-4 w-28 h-28 pointer-events-none text-white select-none opacity-20" viewBox="0 0 100 100">
+              <circle cx="100" cy="0" r="80" stroke="currentColor" stroke-width="1.5" fill="none" />
+              <circle cx="100" cy="0" r="50" stroke="currentColor" stroke-width="1.5" fill="none" />
+            </svg>
+
+            <!-- Left: Glowing Location Badge -->
+            <button class="bg-black/35 hover:bg-black/50 text-white px-3.5 py-2.5 rounded-xl font-black text-xs transition flex items-center justify-between gap-2.5 shrink-0 border border-white/15 cursor-pointer">
+              <div class="flex items-center gap-2">
+                <span class="text-base text-emerald-300">📍</span>
+                <div class="text-left">
+                  <span class="block kn-font text-xs font-black text-white leading-tight">ಶಿವಮೊಗ್ಗ ಮಂಡಿ</span>
+                  <span class="block text-[9px] text-emerald-300 font-semibold leading-none mt-0.5">ಬದಲಾಯಿಸಿ ▾</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-down text-[9px] text-emerald-300"></i>
+            </button>
+
+            <!-- Center: Illuminated Translucent Search Bar -->
+            <div class="flex-1 relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-200/70 text-xs"></i>
+              <input type="text" placeholder="ಯಾವುದೇ ಬೆಳೆ ಹುಡುಕಿ... (ಅಡಿಕೆ, ಕಾಳುಮೆಣಸು, ಟೊಮೆಟೊ)" 
+                     class="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-emerald-200/60 text-xs font-semibold focus:outline-none focus:bg-white/15 focus:border-emerald-300">
+            </div>
+
+            <!-- Right: Solid White High-Contrast Action -->
+            <button class="bg-white hover:bg-emerald-50 text-[#134423] px-4 py-2.5 rounded-xl font-black text-xs transition flex items-center justify-center gap-2 shrink-0 shadow-lg cursor-pointer">
+              <span class="kn-font">ಎಲ್ಲಾ ಬೆಳೆಗಳು</span>
+              <span class="text-[9px] bg-[#1C5A2C] text-white px-1.5 py-0.5 rounded-full font-mono">40+</span>
+              <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            </button>
+
+          </div>
+
+          <p class="text-[10px] text-emerald-200 mt-2 kn-font">
+            ✨ <strong>ವೈಶಿಷ್ಟ್ಯ:</strong> ನಮ್ಮ ಹೊಸ ಹವಾಮಾನ ಕಾರ್ಡ್‌ನಂತೆ ರೇಡಿಯಲ್ ಎಮರಾಲ್ಡ್ ಗ್ರೇಡಿಯಂಟ್, ಸೂಕ್ಷ್ಮ ಆರ್ಕ್‌ಗಳು ಮತ್ತು ಗ್ಲಾಸ್‌ಮಾರ್ಫಿಕ್ ಹೈ-ಕಾಂಟ್ರಾಸ್ಟ್ ವೈಟ್ ಬಟನ್ ಹೊಂದಿದೆ.
+          </p>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- STYLE C: SUNLIT PORCELAIN (CRISP 2PX FOREST GREEN BORDER, HIGH CONTRAST)   -->
+        <!-- ========================================================================= -->
+        <div id="viewStyleC" class="style-panel mt-6 z-10 relative hidden">
+          
+          <div class="text-[10px] uppercase font-bold tracking-wider text-emerald-200 mb-1.5 flex items-center justify-between">
+            <span>Style C: Sunlit Porcelain (Daylight High-Contrast)</span>
+            <span class="bg-white/20 text-white px-2 py-0.5 rounded text-[9px] font-mono">ULTRA CLEAN</span>
+          </div>
+
+          <!-- Pure Solid White Box with 2px Forest Border -->
+          <div class="bg-white rounded-2xl p-2.5 border-2 border-[#1C5A2C] shadow-2xl flex flex-col md:flex-row items-stretch md:items-center gap-2 text-stone-900">
+            
+            <!-- Left: Location Tag with Green Badge -->
+            <button class="bg-[#FAF8F5] hover:bg-[#F2ECE1] text-stone-900 px-3.5 py-2.5 rounded-xl font-black text-xs transition flex items-center justify-between gap-2.5 shrink-0 border-2 border-[#E2DAC8] cursor-pointer">
+              <div class="flex items-center gap-2">
+                <span class="text-base text-emerald-700">📍</span>
+                <div class="text-left">
+                  <span class="block kn-font text-xs font-black text-stone-900 leading-tight">ಶಿವಮೊಗ್ಗ ಜಿಲ್ಲೆ</span>
+                  <span class="block text-[9px] text-[#1C5A2C] font-extrabold leading-none mt-0.5">ಬದಲಾಯಿಸಿ ▾</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-down text-[9px] text-stone-400"></i>
+            </button>
+
+            <!-- Center: Crisp Search Bar -->
+            <div class="flex-1 relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+              <input type="text" placeholder="ಯಾವುದೇ ಬೆಳೆ ಹುಡುಕಿ... (ಅಡಿಕೆ, ಕಾಳುಮೆಣಸು, ಟೊಮೆಟೊ)" 
+                     class="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border-2 border-[#E2DAC8] text-stone-900 text-xs font-bold placeholder-stone-400 focus:outline-none focus:border-[#1C5A2C] focus:bg-white">
+            </div>
+
+            <!-- Right: Vibrant Forest Action Button -->
+            <button class="bg-[#1C5A2C] hover:bg-[#134423] text-white px-4 py-2.5 rounded-xl font-black text-xs transition flex items-center justify-center gap-2 shrink-0 shadow-md cursor-pointer">
+              <span class="kn-font">ದರ ಪಟ್ಟಿ ನೋಡಿ</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+
+          </div>
+
+          <p class="text-[10px] text-emerald-200 mt-2 kn-font">
+            ✨ <strong>ವೈಶಿಷ್ಟ್ಯ:</strong> ಬಿಸಿಲಿನಲ್ಲೂ ಕಣ್ಣಿಗೆ ಸ್ಪಷ್ಟವಾಗಿ ಕಾಣುವ ಶುದ್ಧ ಬಿಳಿ (Pure White) ಮತ್ತು 2px ದಪ್ಪನೆಯ ಫಾರೆಸ್ಟ್ ಗ್ರೀನ್ ಬಾರ್ಡರ್. ಗರಿಷ್ಠ ಕಾಂಟ್ರಾಸ್ಟ್ ಮತ್ತು ಸರಳತೆ.
+          </p>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- STYLE D: ARCHITECTURAL GROUNDED SHELF (SEAMLESS STEPPED CONSOLE)           -->
+        <!-- ========================================================================= -->
+        <div id="viewStyleD" class="style-panel mt-6 z-10 relative hidden">
+          
+          <div class="text-[10px] uppercase font-bold tracking-wider text-amber-200 mb-1.5 flex items-center justify-between">
+            <span>Style D: Architectural Grounded Console (Command Bridge)</span>
+            <span class="bg-amber-500/20 text-amber-200 px-2 py-0.5 rounded text-[9px] font-mono">SEAMLESS HERO DOCK</span>
+          </div>
+
+          <!-- Dual-Level Segmented Console -->
+          <div class="bg-[#FAF8F5] rounded-2xl border-2 border-[#D9CEB8] shadow-2xl p-2 divide-y md:divide-y-0 md:divide-x divide-stone-200 flex flex-col md:flex-row items-stretch md:items-center text-stone-900">
+            
+            <!-- Segment 1: Location Trigger (35% width desktop) -->
+            <button class="p-2.5 hover:bg-stone-100 rounded-xl transition flex items-center justify-between text-left shrink-0 md:w-56 cursor-pointer">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center text-base font-black shrink-0 border border-emerald-200">
+                  📍
+                </div>
+                <div>
+                  <span class="text-[9px] text-stone-500 font-bold uppercase tracking-wider block">ನಿಮ್ಮ ಎಪಿಎಂಸಿ</span>
+                  <span class="kn-font text-xs font-black text-stone-900 block leading-tight">ಶಿವಮೊಗ್ಗ ಮಂಡಿ</span>
+                </div>
+              </div>
+              <span class="text-[10px] text-[#1C5A2C] font-black bg-white px-2 py-1 rounded-lg border border-[#D9CEB8]">
+                ಬದಲಿಸಿ ▾
+              </span>
+            </button>
+
+            <!-- Segment 2: Built-in Direct Search (Full remaining width) -->
+            <div class="p-2 flex-1 flex items-center gap-2">
+              <div class="relative w-full">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+                <input type="text" placeholder="ಬೆಳೆ ಹುಡುಕಿ (ಅಡಿಕೆ, ಕಾಳುಮೆಣಸು, ಟೊಮೆಟೊ)..." 
+                       class="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-stone-200 text-xs font-semibold placeholder-stone-400 focus:outline-none focus:border-[#1C5A2C]">
+              </div>
+              <button class="bg-[#1C5A2C] hover:bg-[#134423] text-white px-3.5 py-2 rounded-xl text-xs font-black shrink-0 transition flex items-center gap-1.5 cursor-pointer">
+                <span>ಶೋಧಿಸಿ</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+
+          </div>
+
+          <p class="text-[10px] text-emerald-200 mt-2 kn-font">
+            ✨ <strong>ವೈಶಿಷ್ಟ್ಯ:</strong> ಕಮಾಂಡ್ ಬ್ರಿಡ್ಜ್ (Command Bridge) ಶೈಲಿ. ಎಡಭಾಗದಲ್ಲಿ ಲೊಕೇಶನ್ ಕನ್ಸೋಲ್ ಹಾಗೂ ಬಲಭಾಗದಲ್ಲಿ ನೇರ ಶೋಧನಾ ಪಟ್ಟಿ (Direct Search Bar) ಒಂದೇ ಸಾಲಿನಲ್ಲಿ ಬೆಸೆದುಕೊಂಡಿದೆ.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Below Hero preview indicator -->
+      <div class="p-3 bg-[#FAF8F5] border-t border-stone-200 text-center text-xs text-stone-400">
+        ↓ Today's Market Rates & Weather Card Section Continue Below ↓
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Interactive JavaScript -->
+  <script>
+    function switchStyle(styleId, btn) {
+      document.querySelectorAll('.style-btn').forEach(b => {
+        b.className = 'style-btn text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer';
+      });
+      btn.className = 'style-btn bg-amber-400 text-slate-950 px-2.5 py-1.5 rounded-lg font-black transition cursor-pointer';
+
+      document.querySelectorAll('.style-panel').forEach(p => p.classList.add('hidden'));
+      if (styleId === 'styleA') document.getElementById('viewStyleA').classList.remove('hidden');
+      if (styleId === 'styleB') document.getElementById('viewStyleB').classList.remove('hidden');
+      if (styleId === 'styleC') document.getElementById('viewStyleC').classList.remove('hidden');
+      if (styleId === 'styleD') document.getElementById('viewStyleD').classList.remove('hidden');
+    }
+
+    function setViewport(mode, btn) {
+      document.querySelectorAll('.view-btn').forEach(b => {
+        b.className = 'view-btn text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer';
+      });
+      btn.className = 'view-btn bg-white text-[#134423] px-2.5 py-1.5 rounded-lg font-black transition cursor-pointer shadow-sm';
+
+      const wrapper = document.getElementById('previewWrapper');
+      if (mode === 'desktop') {
+        wrapper.style.maxWidth = '100%';
+      } else {
+        wrapper.style.maxWidth = '414px';
+      }
+    }
+  </script>
+
+</body>
+</html>

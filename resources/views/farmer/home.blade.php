@@ -5,19 +5,46 @@
 @section('content')
 @php
     $activeLocale = app()->getLocale();
+    $searchableCropsJson = json_encode(($sortedPrices ?? $distinctCropPrices)->map(function ($p) use ($activeLocale) {
+        return [
+            'id' => $p->crop_id,
+            'name' => $p->crop->name ?? '',
+            'name_kn' => $p->crop->name_kn ?? $p->crop->name ?? '',
+            'market' => $p->market->name ?? '',
+            'district' => $p->market->district->name ?? '',
+            'modal_price' => number_format($p->modal_price ?? 0),
+            'unit' => $p->crop->primary_unit ?? ($activeLocale === 'en' ? 'Qtl' : 'ಕ್ವಿಂಟಾಲ್'),
+            'photo' => $p->crop->photo_url ?? '',
+            'url' => route('farmer.crop.detail', $p->crop_id) . '?market=' . urlencode($p->market->name ?? ''),
+            'trend' => ($p->price_spread ?? 0) > 0 ? '↑' : (($p->price_spread ?? 0) < 0 ? '↓' : '→'),
+            'trend_class' => ($p->price_spread ?? 0) > 0 ? 'text-emerald-700 bg-emerald-50' : (($p->price_spread ?? 0) < 0 ? 'text-red-700 bg-red-50' : 'text-stone-600 bg-stone-100'),
+        ];
+    })->values());
 @endphp
 
 <div class="space-y-6" x-data="farmerHome()">
 
     <!-- ==================== 1. HERO BANNER (Negilu Krushi Clean Master Standard) ==================== -->
-    <section class="rounded-3xl relative overflow-hidden shadow-lg border-2 border-[#D9CEB8] min-h-[300px] sm:min-h-[340px] flex flex-col justify-between"
+    <section class="rounded-3xl relative shadow-lg border-2 border-[#D9CEB8] min-h-[300px] sm:min-h-[340px] flex flex-col justify-between z-30"
              style="background: linear-gradient(147deg, rgba(16, 54, 28, 0.94) 0%, rgb(12 42 22 / 65%) 50%, rgba(6, 22, 11, 0.88) 100%), url('{{ asset('images/hero_farmer.jpg') }}') center right / cover no-repeat;">
         
         <!-- Hero Content -->
-        <div class="p-5 sm:p-8 z-10 max-w-3xl space-y-3">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md text-xs font-bold text-emerald-200 border border-emerald-500/40 shadow-sm">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>{{ $activeLocale === 'en' ? 'Live APMC Market Rates' : 'ನೇರ ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ' }} • {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}</span>
+        <div class="p-4 sm:p-8 z-10 max-w-3xl space-y-2.5 sm:space-y-3">
+            
+            <!-- Top Eyebrow Row: Live Status + P1: Hero Top Guide Pill -->
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <!-- Live Eyebrow -->
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md text-xs font-bold text-emerald-200 border border-emerald-500/40 shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>{{ $activeLocale === 'en' ? 'Live APMC Market Rates' : 'ನೇರ ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ' }} • {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}</span>
+                </div>
+
+                <!-- P1: Hero Top Pill - How to Use (ಹೇಗೆ ಬಳಸುವುದು) -->
+                <a href="{{ route('farmer.articles.index') }}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-xs font-black border border-amber-400/40 backdrop-blur-md shadow-sm transition hover:scale-105 active:scale-95 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    <span>💡</span>
+                    <span>{{ $activeLocale === 'en' ? 'How to Use? ›' : 'ಹೇಗೆ ಬಳಸುವುದು? ›' }}</span>
+                </a>
             </div>
 
             <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
@@ -33,73 +60,153 @@
             </p>
         </div>
 
-        <!-- 3 Clean Floating Action Pills (Strictly NO WhatsApp, NO Where to Sell) -->
-        <div class="p-4 sm:p-6 z-10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-            
-            <!-- Action Pill 1: District Picker (Dispatches existing location modal) -->
-            <button type="button"
-                    @click="$dispatch('open-location-modal')"
-                    class="bg-white/95 hover:bg-white backdrop-blur-md rounded-2xl p-3 sm:p-3.5 text-left border-2 border-white/60 shadow-sm transition transform active:scale-95 flex items-center justify-between group cursor-pointer">
-                <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base sm:text-lg shrink-0">
-                        📍
+        <!-- Mobile-First Classic Integrated Command Dock (With Live Debounced Amazon Search) -->
+        <div class="p-3 sm:p-6 relative z-30">
+            <div class="bg-[#FAF8F5] rounded-2xl sm:rounded-3xl border-2 border-[#D9CEB8] shadow-2xl p-2.5 sm:p-3 md:py-2.5 md:px-4 relative flex flex-col md:flex-row md:items-center gap-2.5 md:gap-4"
+                 x-data="{
+                     searchQuery: '',
+                     isSearchOpen: false,
+                     results: [],
+                     allCrops: {{ $searchableCropsJson }},
+                     
+                     performSearch() {
+                         const q = this.searchQuery.toLowerCase().trim();
+                         if (!q) {
+                             this.results = this.allCrops.slice(0, 6);
+                             this.isSearchOpen = true;
+                             return;
+                         }
+                         this.results = this.allCrops.filter(c => 
+                             (c.name && c.name.toLowerCase().includes(q)) || 
+                             (c.name_kn && c.name_kn.toLowerCase().includes(q)) ||
+                             (c.market && c.market.toLowerCase().includes(q)) ||
+                             (c.district && c.district.toLowerCase().includes(q))
+                         ).slice(0, 8);
+                         this.isSearchOpen = true;
+                     },
+                     clearSearch() {
+                         this.searchQuery = '';
+                         this.results = this.allCrops.slice(0, 6);
+                         this.isSearchOpen = false;
+                     }
+                 }"
+                 @click.away="isSearchOpen = false">
+                
+                <!-- Mandi Hub (Row 1 on Mobile, Left Column on Desktop) -->
+                <div class="flex items-center justify-between md:justify-start gap-2 sm:gap-3 md:shrink-0">
+                    <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center text-sm sm:text-base font-black shrink-0 border border-emerald-200">
+                            📍
+                        </div>
+                        <div class="min-w-0">
+                            <span class="text-[9px] sm:text-[10px] text-stone-500 font-bold uppercase tracking-wider block leading-none">
+                                {{ $activeLocale === 'en' ? 'Your Mandi Center' : 'ನಿಮ್ಮ ಮಂಡಿ ಕೇಂದ್ರ' }}
+                            </span>
+                            <span class="font-black text-xs sm:text-sm text-stone-900 block truncate leading-tight mt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }} (APMC)
+                            </span>
+                        </div>
                     </div>
-                    <div class="min-w-0">
-                        <div class="font-black text-stone-900 text-xs sm:text-sm truncate {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
+
+                    <button type="button"
+                            @click="$dispatch('open-location-modal')"
+                            class="bg-[#EAF4EC] hover:bg-[#1C5A2C] text-[#1C5A2C] hover:text-white px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-xl text-[11px] font-black border border-[#B8DEC0] transition cursor-pointer shrink-0 md:ml-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? 'Change ▾' : 'ಬದಲಿಸಿ ▾' }}
+                    </button>
+                </div>
+
+                <!-- Divider: Horizontal on mobile, Vertical on desktop -->
+                <div class="border-t border-[#E5DECE] md:hidden"></div>
+                <div class="hidden md:block w-px h-8 bg-[#D9CEB8] shrink-0"></div>
+
+                <!-- Search Bar (Row 2 on Mobile, Expanded Right Column on Desktop) -->
+                <div class="relative flex-1 min-w-0">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs transition-colors duration-200"></i>
+                    
+                    <input type="text"
+                           x-model="searchQuery"
+                           @input.debounce.150ms="performSearch()"
+                           @focus="performSearch()"
+                           placeholder="{{ $activeLocale === 'en' ? 'Search any crop or mandi (e.g. Arecanut, Pepper, Tomato)...' : 'ಯಾವುದೇ ಬೆಳೆ ಅಥವಾ ಮಂಡಿ ಹುಡುಕಿ... (ಅಡಿಕೆ, ಕಾಳುಮೆಣಸು, ಟೊಮೆಟೊ)' }}"
+                           class="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-white border border-[#D9CEB8] text-xs sm:text-sm font-semibold text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#1C5A2C] focus:ring-2 focus:ring-[#1C5A2C]/20 focus:bg-emerald-50/10 shadow-inner transition-all duration-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+
+                    <!-- Clear ✕ Button with smooth scale/fade transition -->
+                    <button type="button"
+                            x-show="searchQuery.length > 0"
+                            x-transition:enter="transition ease-out duration-150 transform"
+                            x-transition:enter-start="opacity-0 scale-75"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-100 transform"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-75"
+                            @click="clearSearch()"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs cursor-pointer p-1" style="display: none;">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+
+                    <!-- AMAZON-STYLE LIVE FLOATING DROPDOWN WITH SILKY SMOOTH SLIDE & FADE -->
+                    <div x-show="isSearchOpen"
+                         x-transition:enter="transition ease-out duration-250 transform"
+                         x-transition:enter-start="opacity-0 -translate-y-2 scale-[0.98]"
+                         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                         x-transition:leave="transition ease-in duration-150 transform"
+                         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                         x-transition:leave-end="opacity-0 -translate-y-2 scale-[0.98]"
+                         style="display: none;"
+                         class="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_45px_-15px_rgba(28,90,44,0.15),0_10px_20px_-5px_rgba(0,0,0,0.08)] border-2 border-[#1C5A2C] overflow-hidden z-50 divide-y divide-stone-100 max-h-80 overflow-y-auto scroll-smooth">
+                        
+                        <!-- Header counter -->
+                        <div class="px-3.5 py-1.5 bg-[#FAF8F5] text-[10px] font-bold text-stone-500 flex items-center justify-between border-b border-stone-100">
+                            <span x-text="searchQuery.trim().length === 0 ? '{{ $activeLocale === 'en' ? 'Popular Karnataka Crops' : 'ಪ್ರಮುಖ ಬೆಳೆಗಳು' }}' : (results.length > 0 ? (results.length + ' {{ $activeLocale === 'en' ? 'crops found' : 'ಬೆಳೆಗಳು ಲಭ್ಯ' }}') : '{{ $activeLocale === 'en' ? 'Search Results' : 'ಫಲಿತಾಂಶ' }}')"></span>
+                            <span class="text-[9px] text-[#1C5A2C] font-black uppercase">LIVE APMC</span>
                         </div>
-                        <div class="text-[11px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} truncate">
-                            {{ $activeLocale === 'en' ? 'Tap to switch district' : 'ಜಿಲ್ಲೆ ಬದಲಾಯಿಸಲು ಸ್ಪರ್ಶಿಸಿ' }}
+
+                        <!-- Results List -->
+                        <template x-for="item in results" :key="item.id">
+                            <a :href="item.url" 
+                               class="flex items-center justify-between p-2.5 sm:p-3 hover:bg-[#EAF4EC] hover:pl-3.5 sm:hover:pl-4 transition-all duration-200 group cursor-pointer text-left">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <img :src="item.photo" :alt="item.name" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border border-stone-200 shrink-0 group-hover:scale-105 transition-transform duration-200 shadow-xs">
+                                    <div class="min-w-0">
+                                        <div class="font-black text-xs sm:text-sm text-stone-900 group-hover:text-[#1C5A2C] transition-colors duration-150 truncate {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                            <span x-text="item.name_kn"></span>
+                                            <span class="text-[10px] text-stone-400 font-normal ml-1" x-text="'(' + item.name + ')'"></span>
+                                        </div>
+                                        <div class="text-[10px] text-stone-500 font-medium truncate flex items-center gap-1 mt-0.5">
+                                            <span class="text-[9px] text-[#1C5A2C]">📍</span>
+                                            <span x-text="item.market ? (item.market + ' APMC') : 'Karnataka APMC'"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-right shrink-0 pl-2">
+                                    <div class="text-xs sm:text-sm font-black text-[#1C5A2C] leading-none group-hover:scale-105 transition-transform duration-150" x-text="'₹' + item.modal_price"></div>
+                                    <div class="text-[9px] text-stone-500 mt-0.5" x-text="'/ ' + item.unit"></div>
+                                </div>
+                            </a>
+                        </template>
+
+                        <!-- No results message -->
+                        <div x-show="results.length === 0 && searchQuery.trim().length > 0" class="p-5 text-center text-xs text-stone-500 bg-white space-y-1">
+                            <span class="text-2xl block">🔍</span>
+                            <p class="font-bold text-stone-700 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                {{ $activeLocale === 'en' ? 'No matching crops found' : 'ಯಾವುದೇ ಬೆಳೆ ಕಂಡುಬಂದಿಲ್ಲ' }}
+                            </p>
+                            <p class="text-[11px] text-stone-400 mt-0.5">
+                                {{ $activeLocale === 'en' ? 'Try searching Arecanut, Pepper, Tomato, Onion, etc.' : 'ದಯವಿಟ್ಟು ಬೇರೆ ಬೆಳೆ ಅಥವಾ ಮಂಡಿ ಹೆಸರನ್ನು ಟೈಪ್ ಮಾಡಿ' }}
+                            </p>
                         </div>
+
+                        <!-- Footer: View All in Directory -->
+                        <a href="#allCropsSection" 
+                           @click="isSearchOpen = false" 
+                           class="block p-2 bg-[#FAF8F5] hover:bg-[#F2ECE1] text-center text-xs font-black text-[#1C5A2C] transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Explore all 40+ crops in directory ↓' : 'ಎಲ್ಲಾ 40+ ಬೆಳೆಗಳನ್ನು ಕೆಳಗೆ ಪಟ್ಟಿಯಲ್ಲಿ ನೋಡಿ ↓' }}
+                        </a>
                     </div>
                 </div>
-                <span class="text-[11px] text-[#1C5A2C] font-black shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} group-hover:translate-x-0.5 transition">
-                    {{ $activeLocale === 'en' ? 'Change ›' : 'ಬದಲಾಯಿಸಿ ›' }}
-                </span>
-            </button>
 
-            <!-- Action Pill 2: How to use / Articles -->
-            <a href="{{ route('farmer.articles.index') }}"
-               class="bg-white/95 hover:bg-white backdrop-blur-md rounded-2xl p-3 sm:p-3.5 text-left border-2 border-white/60 shadow-sm transition transform active:scale-95 flex items-center justify-between group cursor-pointer">
-                <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base sm:text-lg shrink-0">
-                        💡
-                    </div>
-                    <div class="min-w-0">
-                        <div class="font-black text-stone-900 text-xs sm:text-sm truncate {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            {{ $activeLocale === 'en' ? 'How to Use' : 'ಹೇಗೆ ಬಳಸುವುದು' }}
-                        </div>
-                        <div class="text-[11px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} truncate">
-                            {{ $activeLocale === 'en' ? 'Farmer guidance tour' : 'ರೈತ ಬಳಕೆ ಮಾರ್ಗದರ್ಶನ' }}
-                        </div>
-                    </div>
-                </div>
-                <span class="text-[11px] text-[#1C5A2C] font-black shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} group-hover:translate-x-0.5 transition">
-                    {{ $activeLocale === 'en' ? 'View ›' : 'ನೋಡಿ ›' }}
-                </span>
-            </a>
-
-            <!-- Action Pill 3: Jump to All Crops Directory -->
-            <a href="#allCropsSection"
-               class="bg-white/95 hover:bg-white backdrop-blur-md rounded-2xl p-3 sm:p-3.5 text-left border-2 border-white/60 shadow-sm transition transform active:scale-95 flex items-center justify-between group cursor-pointer">
-                <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center text-base sm:text-lg shrink-0">
-                        🔍
-                    </div>
-                    <div class="min-w-0">
-                        <div class="font-black text-stone-900 text-xs sm:text-sm truncate {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            {{ $activeLocale === 'en' ? 'All Commodities' : 'ಎಲ್ಲಾ ಬೆಳೆಗಳ ದರ' }}
-                        </div>
-                        <div class="text-[11px] text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} truncate">
-                            {{ $activeLocale === 'en' ? 'Browse all APMC rates' : 'ಇಂದಿನ ಎಲ್ಲಾ ಮಂಡಿ ದರಗಳು' }}
-                        </div>
-                    </div>
-                </div>
-                <span class="text-[11px] text-[#1C5A2C] font-black shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} group-hover:translate-x-0.5 transition">
-                    {{ $activeLocale === 'en' ? 'Explore ›' : 'ನೋಡಿ ›' }}
-                </span>
-            </a>
-
+            </div>
         </div>
     </section>
 
@@ -349,32 +456,52 @@
                 <div class="bg-white border-2 border-[#D9CEB8] rounded-xl p-1 flex items-center shadow-sm">
                     <button type="button" 
                             @click="currentView = 'grid'" 
-                            :class="currentView === 'grid' ? 'bg-[#1C5A2C] text-white' : 'text-stone-600 hover:text-stone-900'"
-                            class="px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-grip"></i> 
+                            :class="currentView === 'grid' ? 'bg-[#1C5A2C] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'"
+                            class="px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                            <circle cx="3" cy="4.5" r="1.5"/>
+                            <circle cx="8" cy="4.5" r="1.5"/>
+                            <circle cx="13" cy="4.5" r="1.5"/>
+                            <circle cx="3" cy="11.5" r="1.5"/>
+                            <circle cx="8" cy="11.5" r="1.5"/>
+                            <circle cx="13" cy="11.5" r="1.5"/>
+                        </svg>
                         <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Cards' : 'ಕಾರ್ಡ್' }}</span>
                     </button>
                     <button type="button" 
                             @click="currentView = 'list'" 
-                            :class="currentView === 'list' ? 'bg-[#1C5A2C] text-white' : 'text-stone-600 hover:text-stone-900'"
+                            :class="currentView === 'list' ? 'bg-[#1C5A2C] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'"
                             class="px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5">
-                        <i class="fa-solid fa-list-ul"></i> 
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                            <circle cx="2.5" cy="3.5" r="1.2"/>
+                            <rect x="5.5" y="2.5" width="9" height="2" rx="1"/>
+                            <circle cx="2.5" cy="8" r="1.2"/>
+                            <rect x="5.5" y="7" width="9" height="2" rx="1"/>
+                            <circle cx="2.5" cy="12.5" r="1.2"/>
+                            <rect x="5.5" y="11.5" width="9" height="2" rx="1"/>
+                        </svg>
                         <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'List' : 'ಪಟ್ಟಿ' }}</span>
                     </button>
                 </div>
 
-                <!-- Live Client-side & Voice-Ready Search Input -->
+                <!-- Live Client-side & Voice-Ready Search Input with Smooth Focus & Transitions -->
                 <div class="relative flex-1 sm:w-72">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs transition-colors duration-200"></i>
                     <input type="text" 
                            x-model="searchQuery" 
-                           @input="filterCrops()"
+                           @input.debounce.150ms="filterCrops()"
                            placeholder="{{ $activeLocale === 'en' ? 'Search crop or mandi...' : 'ಬೆಳೆ ಅಥವಾ ಮಾರುಕಟ್ಟೆ ಹುಡುಕಿ...' }}" 
-                           class="w-full pl-9 pr-8 py-2 bg-white border-2 border-[#D9CEB8] focus:border-[#1C5A2C] rounded-xl text-xs font-semibold text-stone-800 outline-none transition-all {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} shadow-sm">
+                           class="w-full pl-9 pr-8 py-2 bg-white border-2 border-[#D9CEB8] focus:border-[#1C5A2C] focus:ring-2 focus:ring-[#1C5A2C]/20 focus:bg-emerald-50/10 rounded-xl text-xs font-semibold text-stone-800 outline-none transition-all duration-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} shadow-sm">
                     <button type="button" 
                             x-show="searchQuery.length > 0" 
+                            x-transition:enter="transition ease-out duration-150 transform"
+                            x-transition:enter-start="opacity-0 scale-75"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-100 transform"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-75"
                             @click="searchQuery = ''; filterCrops()" 
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs" style="display: none;">
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs cursor-pointer p-0.5" style="display: none;">
                         <i class="fa-solid fa-circle-xmark"></i>
                     </button>
                 </div>
@@ -424,7 +551,8 @@
                 <a href="{{ route('farmer.crop.detail', $price->crop_id) }}?market={{ urlencode($price->market->name) }}"
                    data-cat="{{ $price->crop->category->slug ?? 'other' }}" 
                    data-name="{{ strtolower($price->crop->name . ' ' . ($price->crop->name_kn ?? '') . ' ' . $price->market->name . ' ' . ($price->market->district->name ?? '')) }}"
-                   class="crop-article bg-white rounded-2xl border-2 border-[#E2DAC8] hover:border-[#1C5A2C] overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer block">
+                   class="crop-article bg-white rounded-2xl border-2 border-[#E2DAC8] hover:border-[#1C5A2C] overflow-hidden shadow-xs hover:shadow-md flex flex-col justify-between group cursor-pointer block"
+                   style="transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s, box-shadow 0.2s;">
                     
                     <!-- Clean Photo (No clutter badges, crop name on bottom gradient) -->
                     <div class="relative h-24 sm:h-32 overflow-hidden bg-stone-100">
@@ -510,7 +638,8 @@
             @forelse($distinctCropPrices as $price)
                 <div data-cat="{{ $price->crop->category->slug ?? 'other' }}"
                      data-name="{{ strtolower($price->crop->name . ' ' . ($price->crop->name_kn ?? '') . ' ' . $price->market->name . ' ' . ($price->market->district->name ?? '')) }}"
-                     class="crop-list-item bg-white rounded-2xl border-2 border-[#E2DAC8] hover:border-[#1C5A2C] p-3 sm:p-4 flex items-center justify-between gap-3 cursor-pointer shadow-sm transition-all hover:bg-emerald-50/30">
+                     class="crop-list-item bg-white rounded-2xl border-2 border-[#E2DAC8] hover:border-[#1C5A2C] p-3 sm:p-4 flex items-center justify-between gap-3 cursor-pointer shadow-sm hover:bg-emerald-50/30"
+                     style="transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s, background-color 0.2s;">
                     
                     <a href="{{ route('farmer.crop.detail', $price->crop_id) }}?market={{ urlencode($mover->market->name ?? $price->market->name) }}" 
                        class="flex items-center gap-3 min-w-0 flex-1">
@@ -559,8 +688,8 @@
             @endforelse
         </div>
 
-        <!-- Empty Search Fallback (Client Side) -->
-        <div id="clientNoResults" class="hidden text-center py-10 bg-white rounded-2xl border-2 border-dashed border-[#D9CEB8]">
+        <!-- Empty Search Fallback (Client Side) with Smooth Fade In -->
+        <div id="clientNoResults" class="hidden text-center py-10 bg-white rounded-2xl border-2 border-dashed border-[#D9CEB8] transition-all duration-200">
             <span class="text-3xl">🔍</span>
             <h4 class="text-sm font-black text-stone-800 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} mt-2">
                 {{ $activeLocale === 'en' ? 'No crops found matching your search' : 'ಹುಡುಕಾಟಕ್ಕೆ ತಕ್ಕ ಬೆಳೆ ಸಿಗಲಿಲ್ಲ' }}
@@ -598,6 +727,41 @@ function farmerHome() {
             const cat = this.selectedCat;
             let visibleCount = 0;
 
+            const transitionItem = (el, show) => {
+                if (el._hideTimer) {
+                    clearTimeout(el._hideTimer);
+                    el._hideTimer = null;
+                }
+
+                if (show) {
+                    const isHidden = el.style.display === 'none' || getComputedStyle(el).display === 'none';
+                    if (isHidden) {
+                        el.style.opacity = '0';
+                        el.style.transform = 'scale(0.96) translateY(6px)';
+                        el.style.display = 'flex';
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                el.style.opacity = '1';
+                                el.style.transform = 'scale(1) translateY(0)';
+                            });
+                        });
+                    } else {
+                        el.style.opacity = '1';
+                        el.style.transform = 'scale(1) translateY(0)';
+                    }
+                } else {
+                    const isVisible = el.style.display !== 'none' && getComputedStyle(el).display !== 'none';
+                    if (isVisible) {
+                        el.style.opacity = '0';
+                        el.style.transform = 'scale(0.96) translateY(6px)';
+                        el._hideTimer = setTimeout(() => {
+                            el.style.display = 'none';
+                            el._hideTimer = null;
+                        }, 220);
+                    }
+                }
+            };
+
             // Filter Grid Cards
             const gridCards = document.querySelectorAll('#cropsGrid .crop-article');
             gridCards.forEach(card => {
@@ -605,13 +769,10 @@ function farmerHome() {
                 const cardName = card.getAttribute('data-name');
                 const matchCat = (cat === 'all' || cardCat === cat);
                 const matchSearch = (!query || cardName.includes(query));
+                const shouldShow = matchCat && matchSearch;
 
-                if (matchCat && matchSearch) {
-                    card.style.display = 'flex';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
+                transitionItem(card, shouldShow);
+                if (shouldShow) visibleCount++;
             });
 
             // Filter List Items
@@ -621,20 +782,30 @@ function farmerHome() {
                 const itemName = item.getAttribute('data-name');
                 const matchCat = (cat === 'all' || itemCat === cat);
                 const matchSearch = (!query || itemName.includes(query));
+                const shouldShow = matchCat && matchSearch;
 
-                if (matchCat && matchSearch) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
+                transitionItem(item, shouldShow);
+                if (shouldShow) visibleCount++;
             });
 
             const noRes = document.getElementById('clientNoResults');
             if (noRes) {
                 if (visibleCount === 0 && (gridCards.length > 0 || listItems.length > 0)) {
                     noRes.classList.remove('hidden');
+                    noRes.style.opacity = '0';
+                    noRes.style.transform = 'translateY(6px)';
+                    requestAnimationFrame(() => {
+                        noRes.style.transition = 'opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1), transform 0.24s cubic-bezier(0.4, 0, 0.2, 1)';
+                        noRes.style.opacity = '1';
+                        noRes.style.transform = 'translateY(0)';
+                    });
                 } else {
-                    noRes.classList.add('hidden');
+                    noRes.style.opacity = '0';
+                    setTimeout(() => {
+                        if (visibleCount > 0) {
+                            noRes.classList.add('hidden');
+                        }
+                    }, 200);
                 }
             }
         }

@@ -111,6 +111,122 @@
                     </div>
                 </div>
 
+                <!-- ============================================================== -->
+                <!-- APPLICATION NAME & NAVBAR SUBTITLE MANAGER                     -->
+                <!-- ============================================================== -->
+                @php
+                    $appNameEn = \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava');
+                    $appNameKn = \App\Models\SystemSetting::get('application_name_kn', 'ಕೃಷಿ ಬಾಂಧವ');
+                    $navSubtitleEn = \App\Models\SystemSetting::get('navbar_subtitle_en', 'Direct APMC Market Rates & Forecast');
+                    $navSubtitleKn = \App\Models\SystemSetting::get('navbar_subtitle_kn', 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ');
+                @endphp
+                <div class="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 shadow-xl space-y-6"
+                     x-data="{
+                         navPreviewLang: 'kn',
+                         appNameEn: @js($appNameEn),
+                         appNameKn: @js($appNameKn),
+                         navSubtitleEn: @js($navSubtitleEn),
+                         navSubtitleKn: @js($navSubtitleKn)
+                     }">
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+                                🏷️
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-white">Application Name & Navbar Subtitle (ಅಪ್ಲಿಕೇಶನ್ ಹೆಸರು & ನ್ಯಾವ್‌ಬಾರ್ ಉಪ-ಶೀರ್ಷಿಕೆ)</h3>
+                                <p class="text-xs text-slate-400">Configure the platform brand name and supporting subtitle displayed in the top navigation bar.</p>
+                            </div>
+                        </div>
+
+                        <!-- Language Preview Switcher -->
+                        <div class="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl self-start sm:self-auto">
+                            <button type="button" @click="navPreviewLang = 'kn'"
+                                    :class="navPreviewLang === 'kn' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'"
+                                    class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                                ಕನ್ನಡ (Kn)
+                            </button>
+                            <button type="button" @click="navPreviewLang = 'en'"
+                                    :class="navPreviewLang === 'en' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'"
+                                    class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                                English (En)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Dynamic Navbar Preview -->
+                    <div class="rounded-2xl p-4 border-2 border-[#D9CEB8] bg-[#F5EFE6] shadow-md flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-[#1C5A2C] text-white flex items-center justify-center font-black text-xl shadow-inner border border-[#134423] shrink-0">
+                                🌾
+                            </div>
+                            <div>
+                                <span class="font-extrabold text-[#1C5A2C] text-base tracking-tight block leading-tight"
+                                      x-text="navPreviewLang === 'kn' ? (appNameKn || 'ಕೃಷಿ ಬಾಂಧವ') : (appNameEn || 'Krushi Baandhava')">
+                                </span>
+                                <p class="text-[11px] text-stone-500 font-medium font-kannada leading-none mt-1"
+                                   x-text="navPreviewLang === 'kn' ? (navSubtitleKn || 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ') : (navSubtitleEn || 'Direct APMC Market Rates & Forecast')">
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-emerald-800 bg-[#EAF4EC] border border-[#B8DEC0] px-2.5 py-1 rounded-full font-mono font-bold">
+                            ⚡ Navbar Preview
+                        </div>
+                    </div>
+
+                    <!-- Editable Fields Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Application Name (English) -->
+                        <div class="space-y-1.5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                            <label class="block text-xs font-bold text-amber-400">
+                                <span>Application Name (English)</span>
+                                <span class="text-slate-400 font-normal ml-1">(ಆಂಗ್ಲ ಹೆಸರು)</span>
+                            </label>
+                            <input type="text" form="settings-form-{{ $groupName }}" name="settings[application_name]" x-model="appNameEn"
+                                   placeholder="e.g. Krushi Baandhava"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans">
+                            <p class="text-[10px] text-slate-500">Primary brand name when user selects English.</p>
+                        </div>
+
+                        <!-- Application Name (Kannada) -->
+                        <div class="space-y-1.5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                            <label class="block text-xs font-bold text-amber-400">
+                                <span>ಕನ್ನಡ ಅಪ್ಲಿಕೇಶನ್ ಹೆಸರು</span>
+                                <span class="text-slate-400 font-normal ml-1">(Kannada App Name)</span>
+                            </label>
+                            <input type="text" form="settings-form-{{ $groupName }}" name="settings[application_name_kn]" x-model="appNameKn"
+                                   placeholder="ಉದಾ: ಕೃಷಿ ಬಾಂಧವ"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans">
+                            <p class="text-[10px] text-slate-500">Primary brand name when user selects Kannada.</p>
+                        </div>
+
+                        <!-- Navbar Subtitle (English) -->
+                        <div class="space-y-1.5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                            <label class="block text-xs font-bold text-amber-400">
+                                <span>Navbar Subtitle (English)</span>
+                                <span class="text-slate-400 font-normal ml-1">(ಆಂಗ್ಲ ಉಪ-ಶೀರ್ಷಿಕೆ)</span>
+                            </label>
+                            <input type="text" form="settings-form-{{ $groupName }}" name="settings[navbar_subtitle_en]" x-model="navSubtitleEn"
+                                   placeholder="e.g. Direct APMC Market Rates & Forecast"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans">
+                            <p class="text-[10px] text-slate-500">Sub-headline shown directly below brand name in English.</p>
+                        </div>
+
+                        <!-- Navbar Subtitle (Kannada) -->
+                        <div class="space-y-1.5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                            <label class="block text-xs font-bold text-amber-400">
+                                <span>ಕನ್ನಡ ನ್ಯಾವ್‌ಬಾರ್ ಉಪ-ಶೀರ್ಷಿಕೆ</span>
+                                <span class="text-slate-400 font-normal ml-1">(Kannada Navbar Subtitle)</span>
+                            </label>
+                            <input type="text" form="settings-form-{{ $groupName }}" name="settings[navbar_subtitle_kn]" x-model="navSubtitleKn"
+                                   placeholder="ಉದಾ: ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans">
+                            <p class="text-[10px] text-slate-500">Sub-headline shown directly below brand name in Kannada.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- HOMEPAGE HERO BANNER SLOGAN & SUBTITLE MANAGER -->
                 @php
                     $heroHeadlineKn = \App\Models\SystemSetting::get('hero_headline_kn', 'ಬೆವರ ಹನಿಗೆ ಸಿಗಲಿ ತಕ್ಕ ಪ್ರತಿಫಲ, ರೈತನ ಕೈಲಿರಲಿ ಮಾರುಕಟ್ಟೆಯ ಬಲ');
@@ -410,7 +526,7 @@
                 <!-- Settings Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @foreach($settings as $setting)
-                        @if(in_array($setting->key, ['hero_headline_kn', 'hero_headline_en', 'hero_subtitle_kn', 'hero_subtitle_en']))
+                        @if(in_array($setting->key, ['hero_headline_kn', 'hero_headline_en', 'hero_subtitle_kn', 'hero_subtitle_en', 'application_name', 'application_name_kn', 'navbar_subtitle_en', 'navbar_subtitle_kn']))
                             @continue
                         @endif
                         <div class="space-y-2 p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition flex flex-col justify-between"

@@ -13,7 +13,10 @@ class SystemSettingSeeder extends Seeder
     public function run(): void
     {
         $settings = [
-            ['key' => 'application_name', 'value' => 'Krushi Baandhava', 'type' => 'string', 'group' => 'general', 'description' => 'Platform application branding name.'],
+            ['key' => 'application_name', 'value' => 'Krushi Baandhava', 'type' => 'string', 'group' => 'general', 'description' => 'Platform application branding name in English.'],
+            ['key' => 'application_name_kn', 'value' => 'ಕೃಷಿ ಬಾಂಧವ', 'type' => 'string', 'group' => 'general', 'description' => 'Platform application branding name in Kannada (ಕನ್ನಡ ಹೆಸರು).'],
+            ['key' => 'navbar_subtitle_en', 'value' => 'Direct APMC Market Rates & Forecast', 'type' => 'string', 'group' => 'general', 'description' => 'Navbar Subtitle in English.'],
+            ['key' => 'navbar_subtitle_kn', 'value' => 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ', 'type' => 'string', 'group' => 'general', 'description' => 'Navbar Subtitle in Kannada (ನ್ಯಾವ್‌ಬಾರ್ ಉಪ-ಶೀರ್ಷಿಕೆ).'],
             ['key' => 'hero_headline_kn', 'value' => 'ಬೆವರ ಹನಿಗೆ ಸಿಗಲಿ ತಕ್ಕ ಪ್ರತಿಫಲ, ರೈತನ ಕೈಲಿರಲಿ ಮಾರುಕಟ್ಟೆಯ ಬಲ', 'type' => 'string', 'group' => 'general', 'description' => 'Homepage Hero Banner Headline in Kannada (ರೈತರ ಮುಖಪುಟದ ಶೀರ್ಷಿಕೆ).'],
             ['key' => 'hero_headline_en', 'value' => "Let every drop of sweat earn its true reward; let market strength be in the farmer's hands", 'type' => 'string', 'group' => 'general', 'description' => 'Homepage Hero Banner Headline in English.'],
             ['key' => 'hero_subtitle_kn', 'value' => 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳ ಇಂದಿನ ನೇರ ದರ ಮತ್ತು ದರ ಮುನ್ಸೂಚನೆ.', 'type' => 'string', 'group' => 'general', 'description' => 'Homepage Hero Banner Subtitle in Kannada (ರೈತರ ಮುಖಪುಟದ ಉಪ-ಶೀರ್ಷಿಕೆ).'],
