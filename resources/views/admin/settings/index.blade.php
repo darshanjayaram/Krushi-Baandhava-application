@@ -110,6 +110,118 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- HOMEPAGE HERO BANNER SLOGAN & SUBTITLE MANAGER -->
+                @php
+                    $heroHeadlineKn = \App\Models\SystemSetting::get('hero_headline_kn', 'ಬೆವರ ಹನಿಗೆ ಸಿಗಲಿ ತಕ್ಕ ಪ್ರತಿಫಲ, ರೈತನ ಕೈಲಿರಲಿ ಮಾರುಕಟ್ಟೆಯ ಬಲ');
+                    $heroHeadlineEn = \App\Models\SystemSetting::get('hero_headline_en', "Let every drop of sweat earn its true reward; let market strength be in the farmer's hands");
+                    $heroSubtitleKn = \App\Models\SystemSetting::get('hero_subtitle_kn', 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳ ಇಂದಿನ ನೇರ ದರ ಮತ್ತು ದರ ಮುನ್ಸೂಚನೆ.');
+                    $heroSubtitleEn = \App\Models\SystemSetting::get('hero_subtitle_en', 'Live prices and future trends from all Karnataka APMC mandis.');
+                @endphp
+                <div class="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 shadow-xl space-y-6"
+                     x-data="{
+                         previewLang: 'kn',
+                         headlineKn: @js($heroHeadlineKn),
+                         headlineEn: @js($heroHeadlineEn),
+                         subtitleKn: @js($heroSubtitleKn),
+                         subtitleEn: @js($heroSubtitleEn)
+                     }">
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg">
+                                🌾
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-white">Homepage Hero Slogan & Subtitle (ಮುಖಪುಟದ ಶೀರ್ಷಿಕೆ)</h3>
+                                <p class="text-xs text-slate-400">Configure the top banner inspiring tagline and description displayed on the farmer home screen.</p>
+                            </div>
+                        </div>
+
+                        <!-- Language Preview Switcher -->
+                        <div class="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl self-start sm:self-auto">
+                            <button type="button" @click="previewLang = 'kn'"
+                                    :class="previewLang === 'kn' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'"
+                                    class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                                ಕನ್ನಡ (Kn)
+                            </button>
+                            <button type="button" @click="previewLang = 'en'"
+                                    :class="previewLang === 'en' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'"
+                                    class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                                English (En)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Dynamic Preview Container (Mimics the Farmer App Hero Banner) -->
+                    <div class="rounded-2xl p-5 sm:p-6 border-2 border-emerald-900/60 shadow-lg relative overflow-hidden"
+                         style="background: linear-gradient(135deg, rgba(16, 54, 28, 0.96) 0%, rgba(12, 42, 22, 0.94) 50%, rgba(6, 22, 11, 0.92) 100%);">
+                        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-black/40 text-[10px] font-bold text-emerald-200 border border-emerald-500/40 mb-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span x-text="previewLang === 'kn' ? 'ನೇರ ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ • ಶಿವಮೊಗ್ಗ' : 'Live APMC Market Rates • Shivamogga'"></span>
+                        </div>
+                        <h4 class="text-base sm:text-xl font-black text-white leading-tight drop-shadow"
+                            x-text="previewLang === 'kn' ? (headlineKn || 'ಬೆವರ ಹನಿಗೆ ಸಿಗಲಿ ತಕ್ಕ ಪ್ರತಿಫಲ, ರೈತನ ಕೈಲಿರಲಿ ಮಾರುಕಟ್ಟೆಯ ಬಲ') : (headlineEn || 'Let every drop of sweat earn its true reward; let market strength be in the farmer\'s hands')">
+                        </h4>
+                        <p class="text-xs text-emerald-100/90 mt-1 max-w-xl leading-relaxed"
+                           x-text="previewLang === 'kn' ? (subtitleKn || 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳ ಇಂದಿನ ನೇರ ದರ ಮತ್ತು ದರ ಮುನ್ಸೂಚನೆ.') : (subtitleEn || 'Live prices and future trends from all Karnataka APMC mandis.')">
+                        </p>
+                        <div class="mt-2 text-[10px] text-emerald-400 font-mono">
+                            ⚡ Realtime Preview of Farmer Homepage Banner
+                        </div>
+                    </div>
+
+                    <!-- Editable Fields Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Kannada Headline -->
+                        <div class="space-y-1.5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                            <label class="block text-xs font-bold text-emerald-400">
+                                <span>ಕನ್ನಡ ಶೀರ್ಷಿಕೆ</span>
+                                <span class="text-slate-400 font-normal ml-1">(Kannada Headline)</span>
+                            </label>
+                            <input type="text" form="settings-form-{{ $groupName }}" name="settings[hero_headline_kn]" x-model="headlineKn"
+                                   placeholder="ಉದಾ: ಬೆವರ ಹನಿಗೆ ಸಿಗಲಿ ತಕ್ಕ ಪ್ರತಿಫಲ, ರೈತನ ಕೈಲಿರಲಿ ಮಾರುಕಟ್ಟೆಯ ಬಲ"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans">
+                            <p class="text-[10px] text-slate-500">Main headline displayed on the farmer homepage in Kannada mode.</p>
+                        </div>
+
+                        <!-- English Headline -->
+                        <div class="space-y-1.5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                            <label class="block text-xs font-bold text-emerald-400">
+                                <span>English Headline</span>
+                                <span class="text-slate-400 font-normal ml-1">(ಆಂಗ್ಲ ಶೀರ್ಷಿಕೆ)</span>
+                            </label>
+                            <input type="text" form="settings-form-{{ $groupName }}" name="settings[hero_headline_en]" x-model="headlineEn"
+                                   placeholder="e.g. Let every drop of sweat earn its true reward; let market strength be in the farmer's hands"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans">
+                            <p class="text-[10px] text-slate-500">Main headline displayed on the farmer homepage in English mode.</p>
+                        </div>
+
+                        <!-- Kannada Subtitle -->
+                        <div class="space-y-1.5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                            <label class="block text-xs font-bold text-emerald-400">
+                                <span>ಕನ್ನಡ ಉಪ-ಶೀರ್ಷಿಕೆ</span>
+                                <span class="text-slate-400 font-normal ml-1">(Kannada Subtitle)</span>
+                            </label>
+                            <textarea form="settings-form-{{ $groupName }}" name="settings[hero_subtitle_kn]" x-model="subtitleKn" rows="2"
+                                      placeholder="ಉದಾ: ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳ ಇಂದಿನ ನೇರ ದರ ಮತ್ತು ದರ ಮುನ್ಸೂಚನೆ."
+                                      class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans leading-relaxed"></textarea>
+                            <p class="text-[10px] text-slate-500">Supporting subtitle displayed under the Kannada headline.</p>
+                        </div>
+
+                        <!-- English Subtitle -->
+                        <div class="space-y-1.5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+                            <label class="block text-xs font-bold text-emerald-400">
+                                <span>English Subtitle</span>
+                                <span class="text-slate-400 font-normal ml-1">(ಆಂಗ್ಲ ಉಪ-ಶೀರ್ಷಿಕೆ)</span>
+                            </label>
+                            <textarea form="settings-form-{{ $groupName }}" name="settings[hero_subtitle_en]" x-model="subtitleEn" rows="2"
+                                      placeholder="e.g. Live prices and future trends from all Karnataka APMC mandis."
+                                      class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans leading-relaxed"></textarea>
+                            <p class="text-[10px] text-slate-500">Supporting subtitle displayed under the English headline.</p>
+                        </div>
+                    </div>
+                </div>
             @endif
 
             @if($groupName === 'pwa')
@@ -298,6 +410,9 @@
                 <!-- Settings Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @foreach($settings as $setting)
+                        @if(in_array($setting->key, ['hero_headline_kn', 'hero_headline_en', 'hero_subtitle_kn', 'hero_subtitle_en']))
+                            @continue
+                        @endif
                         <div class="space-y-2 p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition flex flex-col justify-between"
                              x-show="searchQuery === '' || '{{ strtolower($setting->key) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($setting->description) }}'.includes(searchQuery.toLowerCase())">
                             

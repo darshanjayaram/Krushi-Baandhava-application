@@ -110,7 +110,13 @@ class SystemSettingController extends Controller
         foreach ($inputSettings as $key => $val) {
             $setting = SystemSetting::where('key', $key)->first();
             if (!$setting) {
-                continue;
+                $setting = SystemSetting::create([
+                    'key' => $key,
+                    'value' => (string) $val,
+                    'type' => 'string',
+                    'group' => $tab,
+                    'description' => ucwords(str_replace('_', ' ', $key)),
+                ]);
             }
 
             $oldValues[$key] = $setting->value;

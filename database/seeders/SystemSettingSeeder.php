@@ -14,6 +14,10 @@ class SystemSettingSeeder extends Seeder
     {
         $settings = [
             ['key' => 'application_name', 'value' => 'Krushi Baandhava', 'type' => 'string', 'group' => 'general', 'description' => 'Platform application branding name.'],
+            ['key' => 'hero_headline_kn', 'value' => 'ಬೆವರ ಹನಿಗೆ ಸಿಗಲಿ ತಕ್ಕ ಪ್ರತಿಫಲ, ರೈತನ ಕೈಲಿರಲಿ ಮಾರುಕಟ್ಟೆಯ ಬಲ', 'type' => 'string', 'group' => 'general', 'description' => 'Homepage Hero Banner Headline in Kannada (ರೈತರ ಮುಖಪುಟದ ಶೀರ್ಷಿಕೆ).'],
+            ['key' => 'hero_headline_en', 'value' => "Let every drop of sweat earn its true reward; let market strength be in the farmer's hands", 'type' => 'string', 'group' => 'general', 'description' => 'Homepage Hero Banner Headline in English.'],
+            ['key' => 'hero_subtitle_kn', 'value' => 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳ ಇಂದಿನ ನೇರ ದರ ಮತ್ತು ದರ ಮುನ್ಸೂಚನೆ.', 'type' => 'string', 'group' => 'general', 'description' => 'Homepage Hero Banner Subtitle in Kannada (ರೈತರ ಮುಖಪುಟದ ಉಪ-ಶೀರ್ಷಿಕೆ).'],
+            ['key' => 'hero_subtitle_en', 'value' => 'Live prices and future trends from all Karnataka APMC mandis.', 'type' => 'string', 'group' => 'general', 'description' => 'Homepage Hero Banner Subtitle in English.'],
             ['key' => 'default_state', 'value' => 'Karnataka', 'type' => 'string', 'group' => 'localization', 'description' => 'Default state for market filtering.'],
             ['key' => 'default_district', 'value' => 'Shivamogga', 'type' => 'string', 'group' => 'localization', 'description' => 'Default fallback district when location is unavailable.'],
             ['key' => 'default_language', 'value' => 'kn', 'type' => 'string', 'group' => 'localization', 'description' => 'Default platform language (kn = Kannada, en = English).'],

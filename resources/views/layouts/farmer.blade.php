@@ -94,15 +94,21 @@
     <header class="sticky top-0 z-40 bg-[#F5EFE6]/95 backdrop-blur-md border-b border-[#E8DFC8]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 sm:h-18">
-                <!-- Brand Identity -->
-                <a href="{{ route('home') }}" class="flex items-center gap-2.5 group focus:outline-none">
-                    <div class="w-9 h-9 rounded-xl bg-white border border-stone-200/80 flex items-center justify-center p-1.5 shadow-2xs">
-                        <img src="{{ \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg') }}" alt="ಕೃಷಿ ಬಾಂಧವ" class="w-6 h-6 object-contain">
+                <!-- Brand Identity (Option 12 Icon & Site Name) -->
+                <a href="{{ route('home') }}" class="flex items-center gap-2.5 sm:gap-3 group focus:outline-none">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#1C5A2C] text-white flex items-center justify-center font-black text-xl shadow-inner border border-[#134423] shrink-0">
+                        🌾
                     </div>
                     <div>
-                        <div class="text-lg sm:text-xl font-black tracking-tight text-stone-900 flex items-center gap-1.5">
-                            <span class="font-kannada">ಕೃಷಿ ಬಾಂಧವ</span>
+                        <div class="flex items-center gap-1.5 sm:gap-2">
+                            <span class="font-extrabold text-[#1C5A2C] text-base sm:text-lg tracking-tight">Krushi Baandhava</span>
+                            <span class="hidden sm:inline-block bg-[#EAF4EC] text-[#1C5A2C] border border-[#B8DEC0] text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                ಕರ್ನಾಟಕ APMC
+                            </span>
                         </div>
+                        <p class="text-[11px] text-stone-500 font-medium font-kannada leading-none">
+                            {{ $activeLocale === 'en' ? 'Direct APMC Market Rates & Forecast' : 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ' }}
+                        </p>
                     </div>
                 </a>
 
@@ -171,8 +177,8 @@
         </div>
     </header>
 
-    <!-- Main Content Flow -->
-    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <!-- Main Content Flow (Compact mobile horizontal padding to give cards maximum width) -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3.5 sm:py-5">
         {{ $slot ?? '' }}
         @yield('content')
     </main>
