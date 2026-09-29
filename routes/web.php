@@ -92,12 +92,22 @@ Route::get('/manifest.json', function () {
     if ($display) $manifest['display'] = $display;
 
     $customIcon = \App\Models\SystemSetting::get('pwa_icon');
+    if (!$customIcon || $customIcon === '/icons/icon-512.svg') {
+        $customIcon = \App\Models\SystemSetting::get('app_logo');
+    }
     if ($customIcon) {
+        $ext = strtolower(pathinfo($customIcon, PATHINFO_EXTENSION));
+        $iconType = match($ext) {
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            default => 'image/svg+xml'
+        };
         $manifest['icons'] = [
             [
                 'src' => $customIcon,
                 'sizes' => '192x192 512x512',
-                'type' => 'image/png',
+                'type' => $iconType,
                 'purpose' => 'any maskable',
             ]
         ];
@@ -175,6 +185,8 @@ Route::prefix('admin')->group(function () {
         Route::delete('/datasources/mappings/fields/{mapping}', [DataSourceMappingController::class, 'destroyFieldMapping'])->name('admin.datasources.mappings.fields.destroy');
         Route::post('/datasources/{datasource}/mappings/crops', [DataSourceMappingController::class, 'storeCropAlias'])->name('admin.datasources.mappings.crops.store');
         Route::post('/datasources/{datasource}/mappings/markets', [DataSourceMappingController::class, 'storeMarketAlias'])->name('admin.datasources.mappings.markets.store');
+        Route::get('/datasources/agmarknet/captcha', [DataSourceController::class, 'agmarknetCaptcha'])->name('admin.datasources.agmarknet.captcha');
+        Route::post('/datasources/agmarknet/sync-historical', [DataSourceController::class, 'agmarknetHistoricalSync'])->name('admin.datasources.agmarknet.sync-historical');
 
         Route::resource('datasources', DataSourceController::class)->names('admin.datasources');
 

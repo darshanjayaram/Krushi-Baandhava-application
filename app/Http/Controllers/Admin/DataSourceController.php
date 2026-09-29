@@ -232,6 +232,9 @@ class DataSourceController extends Controller
      */
     public function triggerSync(Request $request, DataSource $datasource, MarketPriceIngestionService $ingestionService): JsonResponse|RedirectResponse
     {
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+
         try {
             $result = $ingestionService->ingest($datasource);
 
@@ -289,6 +292,9 @@ class DataSourceController extends Controller
      */
     public function syncAll(Request $request, MarketPriceIngestionService $ingestionService): JsonResponse|RedirectResponse
     {
+        @set_time_limit(600);
+        @ini_set('max_execution_time', '600');
+
         $activeSources = DataSource::where('is_active', true)->get();
         $targetDate = Carbon::today()->format('Y-m-d');
 
@@ -386,6 +392,9 @@ class DataSourceController extends Controller
      */
     public function retryCrop(Request $request, DataSource $datasource, MarketPriceIngestionService $ingestionService): JsonResponse
     {
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+
         $validated = $request->validate([
             'commodity_name' => ['required', 'string', 'max:150'],
             'crop_id' => ['nullable', 'exists:crops,id'],
@@ -443,6 +452,9 @@ class DataSourceController extends Controller
      */
     public function retryAll(DataSource $datasource, MarketPriceIngestionService $ingestionService): JsonResponse
     {
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+
         $result = $ingestionService->reprocessBatch($datasource->id);
 
         return response()->json([
@@ -527,6 +539,85 @@ class DataSourceController extends Controller
         }
 
         return back()->with('success', $msg);
+    }
+
+    /**
+     * Generate visual CAPTCHA for Agmarknet official sync.
+     */
+    public function agmarknetCaptcha(): JsonResponse
+    {
+        $datasource = DataSource::where('code', 'agmarknet_official')->first();
+        if (!$datasource) {
+            return response()->json(['ok' => false, 'error' => 'Official Agmarknet data source not found.'], 404);
+        }
+
+        try {
+            /** @var \App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider $provider */
+            $provider = DataSourceRegistry::make($datasource);
+            $captchaData = $provider->generateCaptcha();
+
+            return response()->json([
+                'ok' => $captchaData['success'],
+                'captcha_key' => $captchaData['captcha_key'],
+                'captcha_image' => $captchaData['captcha_image'],
+                'error' => $captchaData['error'],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Trigger Agmarknet historical sync with user-provided CAPTCHA.
+     */
+    public function agmarknetHistoricalSync(Request $request, MarketPriceIngestionService $ingestionService): JsonResponse
+    {
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+
+        $datasource = DataSource::where('code', 'agmarknet_official')->first();
+        if (!$datasource) {
+            return response()->json(['ok' => false, 'error' => 'Official Agmarknet data source not found.'], 404);
+        }
+
+        $validated = $request->validate([
+            'captcha_key' => 'required|string',
+            'captcha_code' => 'required|string|min:4|max:8',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date',
+            'crop_id' => 'nullable|integer',
+        ]);
+
+        try {
+            /** @var \App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider $provider */
+            $provider = DataSourceRegistry::make($datasource);
+
+            // Verify captcha first
+            $verifyRes = $provider->verifyCaptcha($validated['captcha_key'], $validated['captcha_code']);
+            if (!$verifyRes['success']) {
+                return response()->json([
+                    'ok' => false,
+                    'error' => $verifyRes['message'] ?? 'Invalid CAPTCHA code. Please try again.',
+                ], 422);
+            }
+
+            // Run ingestion with captcha parameters
+            $result = $ingestionService->ingest($datasource, [
+                'captcha_key' => $validated['captcha_key'],
+                'captcha_value' => $validated['captcha_code'],
+                'from_date' => $validated['from_date'] ?? null,
+                'to_date' => $validated['to_date'] ?? null,
+                'crop_id' => $validated['crop_id'] ?? null,
+            ]);
+
+            return response()->json([
+                'ok' => true,
+                'result' => $result,
+                'message' => "Agmarknet historical sync completed: {$result['inserted']} new records inserted, {$result['updated']} updated.",
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     /**

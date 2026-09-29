@@ -28,7 +28,7 @@ class NegiluKrushiAlignmentTest extends TestCase
      */
     public function test_all_core_crops_are_visible_on_homepage_with_district_selected(): void
     {
-        $response = $this->get('/?district=' . $this->shivamogga->id);
+        $response = $this->withSession(['locale' => 'en'])->get('/?district=' . $this->shivamogga->id . '&lang=en');
 
         $response->assertStatus(200);
 

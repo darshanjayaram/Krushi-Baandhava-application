@@ -1,7 +1,6 @@
-// Krushi Baandhava PWA Service Worker (v2)
-const CACHE_NAME = 'krushi-baandhava-v2';
+// Krushi Baandhava PWA Service Worker (v3)
+const CACHE_NAME = 'krushi-baandhava-v3';
 const STATIC_ASSETS = [
-    '/',
     '/offline',
     '/manifest.json',
     '/icons/icon-192.svg',

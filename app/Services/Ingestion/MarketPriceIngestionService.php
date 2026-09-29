@@ -57,18 +57,35 @@ class MarketPriceIngestionService
      *     errors: array<int, string>
      * }
      */
-    public function ingest(DataSource|string $dataSourceOrCode, array $options = []): array
+    public function ingest(DataSource|string|int $dataSourceOrCode, array $options = []): array
     {
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+
         $startTime = microtime(true);
         $startedAt = Carbon::now();
 
-        $dataSource = is_string($dataSourceOrCode)
-            ? DataSource::where('code', $dataSourceOrCode)->firstOrFail()
-            : $dataSourceOrCode;
+        $dataSource = is_numeric($dataSourceOrCode)
+            ? DataSource::findOrFail((int) $dataSourceOrCode)
+            : (is_string($dataSourceOrCode)
+                ? DataSource::where('code', $dataSourceOrCode)->firstOrFail()
+                : $dataSourceOrCode);
 
         $force = (bool) ($options['force'] ?? false);
         $dryRun = (bool) ($options['dry_run'] ?? false);
-        $filters = $options['filters'] ?? [];
+        $filters = array_merge([
+            'force' => $force,
+            'from_date' => $options['from_date'] ?? null,
+            'to_date' => $options['to_date'] ?? null,
+            'date' => $options['date'] ?? null,
+            'crop_id' => $options['crop_id'] ?? null,
+            'commodity' => $options['commodity'] ?? null,
+            'captcha_key' => $options['captcha_key'] ?? null,
+            'captcha_value' => $options['captcha_value'] ?? ($options['captcha_code'] ?? null),
+            'captcha_code' => $options['captcha_code'] ?? null,
+        ], $options['filters'] ?? []);
+        $filters['force'] = $force;
+        $filters = array_filter($filters, fn ($v) => $v !== null && $v !== '');
 
         $counts = [
             'received' => 0,
@@ -97,7 +114,7 @@ class MarketPriceIngestionService
 
             foreach ($rawRecords as $record) {
                 // Determine raw commodity name for crop tracking
-                $rawCropName = trim((string)($record['commodity'] ?? ($record['Commodity'] ?? ($record['source_crop'] ?? 'Unknown'))));
+                $rawCropName = trim((string)($record['crop'] ?? ($record['commodity'] ?? ($record['Commodity'] ?? ($record['cmdt_name'] ?? ($record['source_crop'] ?? 'Unknown'))))));
                 if (empty($rawCropName)) {
                     $rawCropName = 'Unknown';
                 }
@@ -109,7 +126,14 @@ class MarketPriceIngestionService
                     ->where('checksum', $checksum)
                     ->first();
 
-                if ($existingRaw && !$force) {
+                // A raw record is only considered a duplicate if its canonical price actually exists in market_prices.
+                // If the user has pruned or deleted market_prices, the price must not be skipped as duplicate.
+                $canonicalPriceExists = false;
+                if ($existingRaw) {
+                    $canonicalPriceExists = MarketPrice::where('raw_record_id', $existingRaw->id)->exists();
+                }
+
+                if ($existingRaw && $canonicalPriceExists && !$force) {
                     $counts['duplicate']++;
                     if (!isset($cropStats[$rawCropName])) {
                         $cropStats[$rawCropName] = [
@@ -246,18 +270,6 @@ class MarketPriceIngestionService
                     continue;
                 }
 
-                // Coconut & Copra are strictly governed by Coconut Development Board (exclude generic APMC feeds)
-                if ($crop->isCoconutBoard() && $dataSource->code !== 'coconut_board') {
-                    $rawModel->update([
-                        'processing_status' => 'skipped',
-                        'processed_at' => Carbon::now(),
-                        'error_message' => "Skipped: Coconut/Copra commodity rates are strictly managed via Coconut Development Board data source.",
-                    ]);
-                    $counts['skipped'] = ($counts['skipped'] ?? 0) + 1;
-                    $cropStats[$cropEntryKey]['skipped']++;
-                    continue;
-                }
-
                 // 4. Resolve Canonical Variety
                 $variety = $this->resolveVariety($crop->id, $normalized['source_variety'] ?? null, $dataSource->id);
                 if (!$variety && $this->shouldAutoProvisionMasterData()) {
@@ -332,6 +344,7 @@ class MarketPriceIngestionService
                         'modal_price'      => $modalPrice,
                         'arrival_quantity' => $arrivalQty,
                         'unit'             => $normalized['unit'] ?? 'Quintal',
+                        'grade'            => $normalized['grade'] ?? $normalized['source_grade'] ?? 'Average',
                         'raw_record_id'    => $rawModel->id,
                     ]
                 );

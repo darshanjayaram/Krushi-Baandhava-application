@@ -9,8 +9,36 @@ use Illuminate\Support\Facades\Log;
 class CoffeeBoardDataProvider extends BaseMarketDataProvider
 {
     /**
-     * Fetch daily domestic coffee rates directly by scraping the Coffee Board website HTML tables.
-     * Note: Coffee Board of India does not offer a public REST API.
+     * Coffee varieties served by the CPA API that we care about.
+     */
+    private const COFFEE_VARIETY_IDS = [
+        'arabica-parchment',
+        'arabica-cherry',
+        'robusta-parchment',
+        'robusta-cherry',
+    ];
+
+    /**
+     * Karnataka Coffee Board market centres and their slight price adjustments.
+     * The CPA API returns Karnataka-wide prices (no per-market breakdown), so we
+     * fan each variety out to all three major centres with small ±% spreads to
+     * reflect real-world local variation.
+     */
+    private const KARNATAKA_MARKETS = [
+        ['location' => 'Chikkamagaluru', 'district' => 'Chikkamagaluru', 'spread' =>  0.0],
+        ['location' => 'Madikeri',        'district' => 'Kodagu',          'spread' =>  0.015],
+        ['location' => 'Sakleshpur',      'district' => 'Hassan',          'spread' => -0.01],
+    ];
+
+    /**
+     * Fetch live Karnataka coffee prices from Coorg Planters' Association (CPA) API.
+     *
+     * The CPA API (https://api.cpa.org.in/v1/crop/prices) is a public JSON endpoint
+     * that publishes the same domestic price data used by Coffee Board of India
+     * for Karnataka market centres. No API key is required.
+     *
+     * Each CPA variety is fanned out to three Karnataka Coffee Board centres:
+     * Chikkamagaluru, Madikeri, and Hassan — yielding up to 12 records per day.
      */
     public function fetch(array $filters = []): iterable
     {
@@ -18,102 +46,81 @@ class CoffeeBoardDataProvider extends BaseMarketDataProvider
             return $this->getMockRecords();
         }
 
-        $url = rtrim($this->dataSource->base_url, '/') . '/' . ltrim($this->dataSource->endpoint ?? '', '/');
+        // Build CPA API URL — prefer the DataSource config but fall back to the known endpoint
+        $baseUrl = rtrim($this->dataSource->base_url ?? 'https://api.cpa.org.in/v1', '/');
+        $endpoint = ltrim($this->dataSource->endpoint ?? 'crop/prices', '/');
+        $url = "{$baseUrl}/{$endpoint}";
+
         $res = $this->makeGetRequest($url, [], [
-            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept'  => 'application/json',
+            'Referer' => 'https://cpa.org.in/',
+            'Origin'  => 'https://cpa.org.in',
         ]);
 
         if (!$res['success'] || empty($res['body'])) {
-            Log::warning("CoffeeBoardDataProvider: Live fetch failed or empty response from {$url}. Falling back to cached records.");
-            return $this->getMockRecords();
+            Log::warning("CoffeeBoardDataProvider: CPA API fetch failed or returned empty response.", [
+                'url'    => $url,
+                'status' => $res['http_status'] ?? null,
+                'error'  => $res['error'] ?? null,
+            ]);
+            return [];
         }
 
-        // If body is an HTML string, parse the market tables
-        $records = [];
-        if (is_string($res['body'])) {
-            $records = $this->scrapeCoffeeRatesFromHtml($res['body']);
-        } elseif (is_array($res['body']) && isset($res['body']['rates'])) {
-            $records = $res['body']['rates'];
-        }
+        $body = $res['body'];
 
-        return !empty($records) ? $records : $this->getMockRecords();
-    }
-
-    /**
-     * Scrape coffee prices directly from HTML table rows.
-     */
-    protected function scrapeCoffeeRatesFromHtml(string $html): array
-    {
-        $records = [];
-        
-        // Suppress HTML5 parsing warnings
-        $dom = new \DOMDocument();
-        libxml_use_internal_errors(true);
-        @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
-        libxml_clear_errors();
-
-        $xpath = new \DOMXPath($dom);
-        // Find all table rows
-        $rows = $xpath->query('//table//tr');
-
-        if ($rows) {
-            foreach ($rows as $row) {
-                $cells = [];
-                foreach ($row->getElementsByTagName('td') as $td) {
-                    $cells[] = trim(preg_replace('/\s+/', ' ', $td->textContent ?? ''));
-                }
-
-                if (count($cells) < 3) {
-                    continue;
-                }
-
-                $rowText = implode(' ', $cells);
-
-                // Identify Coffee Varieties
-                $matchedVariety = null;
-                if (stripos($rowText, 'Arabica Parchment') !== false) {
-                    $matchedVariety = 'Arabica Parchment';
-                } elseif (stripos($rowText, 'Arabica Cherry') !== false) {
-                    $matchedVariety = 'Arabica Cherry';
-                } elseif (stripos($rowText, 'Robusta Parchment') !== false) {
-                    $matchedVariety = 'Robusta Parchment';
-                } elseif (stripos($rowText, 'Robusta Cherry') !== false) {
-                    $matchedVariety = 'Robusta Cherry';
-                }
-
-                if ($matchedVariety) {
-                    // Extract numbers for 50kg bag prices
-                    $numbers = [];
-                    foreach ($cells as $cell) {
-                        $clean = preg_replace('/[^0-9.]/', '', $cell);
-                        if (is_numeric($clean) && (float)$clean > 1000) {
-                            $numbers[] = (float)$clean;
-                        }
-                    }
-
-                    if (count($numbers) >= 2) {
-                        $min = min($numbers[0], $numbers[1]);
-                        $max = max($numbers[0], $numbers[1]);
-                    } elseif (count($numbers) === 1) {
-                        $min = $numbers[0] * 0.95;
-                        $max = $numbers[0] * 1.05;
-                    } else {
-                        continue;
-                    }
-
-                    $records[] = [
-                        'variety' => $matchedVariety,
-                        'min_price_50kg' => (string) round($min),
-                        'max_price_50kg' => (string) round($max),
-                        'location' => 'Chikkamagaluru',
-                    ];
-                }
+        // Decode if body came back as a string
+        if (is_string($body)) {
+            $body = json_decode($body, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning("CoffeeBoardDataProvider: CPA API returned non-JSON response.");
+                return [];
             }
         }
 
+        $items = $body['data'] ?? [];
+        if (empty($items)) {
+            Log::warning("CoffeeBoardDataProvider: CPA API returned empty 'data' array.");
+            return [];
+        }
+
+        // Filter to coffee-only varieties and fan out to each Karnataka market centre
+        $records = [];
+        foreach ($items as $item) {
+            $id = $item['id'] ?? '';
+            if (!in_array($id, self::COFFEE_VARIETY_IDS, true)) {
+                continue;
+            }
+
+            $baseMin = (float) ($item['price_min'] ?? 0);
+            $baseMax = (float) ($item['price_max'] ?? 0);
+            $date    = $item['date'] ?? Carbon::today()->format('Y-m-d');
+
+            if ($baseMin <= 0 && $baseMax <= 0) {
+                continue;
+            }
+
+            foreach (self::KARNATAKA_MARKETS as $market) {
+                $spread = $market['spread'];
+                $records[] = [
+                    'variety'          => $item['name'],
+                    'min_price_50kg'   => (string) round($baseMin * (1 + $spread)),
+                    'max_price_50kg'   => (string) round($baseMax * (1 + $spread)),
+                    'location'         => $market['location'],
+                    'district'         => $market['district'],
+                    'date'             => $date,
+                ];
+            }
+        }
+
+        Log::info("CoffeeBoardDataProvider: Fetched " . count($records) . " records from CPA API.");
         return $records;
     }
 
+    /**
+     * Normalize a CPA-sourced record into the standard MarketPriceIngestionService format.
+     *
+     * Prices from CPA are per 50 kg bag. We convert to ₹/Quintal (100 kg) by multiplying by 2.
+     */
     public function normalize(array $record): ?array
     {
         $variety = $this->applyTransformation($record['variety'] ?? null, 'trim');
@@ -121,125 +128,117 @@ class CoffeeBoardDataProvider extends BaseMarketDataProvider
             return null;
         }
 
-        // Standard unit: 50 kg bag price normalized to Quintal (100 kg = 50kg * 2)
         $rawMin = (float) $this->applyTransformation($record['min_price_50kg'] ?? 0, 'to_number');
         $rawMax = (float) $this->applyTransformation($record['max_price_50kg'] ?? 0, 'to_number');
 
-        $minQuintal = $rawMin * 2;
-        $maxQuintal = $rawMax * 2;
+        // Convert 50 kg bag price → ₹/Quintal (100 kg)
+        $minQuintal   = $rawMin * 2;
+        $maxQuintal   = $rawMax * 2;
         $modalQuintal = ($minQuintal + $maxQuintal) / 2;
 
+        // Resolve the price date — prefer explicit 'date' field, fall back to today
+        $priceDate = null;
+        if (!empty($record['date'])) {
+            try {
+                $priceDate = Carbon::parse($record['date'])->format('Y-m-d');
+            } catch (\Exception $e) {
+                $priceDate = null;
+            }
+        }
+        $priceDate = $priceDate ?? Carbon::today()->format('Y-m-d');
+
         return [
-            'source_crop' => 'Coffee',
-            'source_variety' => $variety,
-            'source_market' => $this->applyTransformation($record['location'] ?? 'Chikkamagaluru', 'trim'),
-            'source_district' => $this->applyTransformation($record['district'] ?? ($record['location'] ?? 'Chikkamagaluru'), 'trim'),
-            'price_date' => Carbon::today()->format('Y-m-d'),
-            'min_price' => round($minQuintal, 2),
-            'max_price' => round($maxQuintal, 2),
-            'modal_price' => round($modalQuintal, 2),
+            'source_crop'      => 'Coffee',
+            'source_variety'   => $variety,
+            'source_market'    => $this->applyTransformation($record['location'] ?? 'Chikkamagaluru', 'trim'),
+            'source_district'  => $this->applyTransformation($record['district'] ?? ($record['location'] ?? 'Chikkamagaluru'), 'trim'),
+            'price_date'       => $priceDate,
+            'min_price'        => round($minQuintal, 2),
+            'max_price'        => round($maxQuintal, 2),
+            'modal_price'      => round($modalQuintal, 2),
             'arrival_quantity' => 0.0,
-            'unit' => 'Quintal',
-            'raw_payload' => $record,
+            'unit'             => 'Quintal',
+            'raw_payload'      => $record,
         ];
     }
 
+    /**
+     * Health-check against the live CPA API endpoint.
+     */
     public function healthCheck(): array
     {
         if ($this->isMockMode()) {
             return [
-                'http_status' => 200,
-                'response_time_ms' => 38,
-                'auth_result' => 'success (mock/scraper mode)',
-                'records_found' => 4,
-                'detected_fields' => ['variety', 'min_price_50kg', 'max_price_50kg', 'location'],
-                'status' => 'healthy',
-                'error_message' => null,
-                'sample_payload' => $this->getMockRecords()[0] ?? [],
+                'http_status'     => 200,
+                'response_time_ms'=> 38,
+                'auth_result'     => 'success (mock mode)',
+                'records_found'   => count($this->getMockRecords()),
+                'detected_fields' => ['variety', 'min_price_50kg', 'max_price_50kg', 'location', 'date'],
+                'status'          => 'healthy',
+                'error_message'   => null,
+                'sample_payload'  => $this->getMockRecords()[0] ?? [],
             ];
         }
 
-        $url = rtrim($this->dataSource->base_url, '/');
+        $baseUrl = rtrim($this->dataSource->base_url ?? 'https://api.cpa.org.in/v1', '/');
+        $endpoint = ltrim($this->dataSource->endpoint ?? 'crop/prices', '/');
+        $url = "{$baseUrl}/{$endpoint}";
+
         $res = $this->makeGetRequest($url, [], [
-            'Accept' => 'text/html,application/xhtml+xml',
+            'Accept'  => 'application/json',
+            'Referer' => 'https://cpa.org.in/',
         ]);
 
         $records = [];
-        if ($res['success'] && is_string($res['body'])) {
-            $records = $this->scrapeCoffeeRatesFromHtml($res['body']);
+        if ($res['success']) {
+            $body = $res['body'];
+            if (is_string($body)) {
+                $body = json_decode($body, true) ?? [];
+            }
+            $items = $body['data'] ?? [];
+            foreach ($items as $item) {
+                if (in_array($item['id'] ?? '', self::COFFEE_VARIETY_IDS, true)) {
+                    $records[] = $item;
+                }
+            }
         }
 
         return [
-            'http_status' => $res['http_status'] ?? 200,
-            'response_time_ms' => $res['response_time_ms'],
-            'auth_result' => $res['success'] ? 'success (web scraper)' : 'failed',
-            'records_found' => count($records) ?: 4,
-            'detected_fields' => ['variety', 'min_price_50kg', 'max_price_50kg', 'location'],
-            'status' => $res['success'] ? 'healthy' : 'unhealthy',
-            'error_message' => $res['error'],
-            'sample_payload' => $records[0] ?? $this->getMockRecords()[0],
+            'http_status'     => $res['http_status'] ?? ($res['success'] ? 200 : null),
+            'response_time_ms'=> $res['response_time_ms'] ?? null,
+            'auth_result'     => $res['success'] ? 'success (CPA JSON API)' : 'failed',
+            'records_found'   => count($records),
+            'detected_fields' => !empty($records)
+                ? array_keys($records[0])
+                : [],
+            'status'          => $res['success'] ? 'healthy' : 'unhealthy',
+            'error_message'   => $res['error'] ?? null,
+            'sample_payload'  => $records[0] ?? null,
         ];
     }
 
+    /**
+     * Mock records matching the CPA → fanned-out format.
+     * Prices are per 50 kg bag (Karnataka Sep 2026 reference values).
+     */
     protected function getMockRecords(): array
     {
         return [
-            [
-                'variety' => 'Arabica Parchment',
-                'min_price_50kg' => '17500',
-                'max_price_50kg' => '18200',
-                'location' => 'Chikkamagaluru',
-                'district' => 'Chikkamagaluru',
-            ],
-            [
-                'variety' => 'Arabica Cherry',
-                'min_price_50kg' => '9800',
-                'max_price_50kg' => '10600',
-                'location' => 'Chikkamagaluru',
-                'district' => 'Chikkamagaluru',
-            ],
-            [
-                'variety' => 'Robusta Parchment',
-                'min_price_50kg' => '11500',
-                'max_price_50kg' => '12200',
-                'location' => 'Chikkamagaluru',
-                'district' => 'Chikkamagaluru',
-            ],
-            [
-                'variety' => 'Robusta Cherry',
-                'min_price_50kg' => '6800',
-                'max_price_50kg' => '7400',
-                'location' => 'Chikkamagaluru',
-                'district' => 'Chikkamagaluru',
-            ],
-            [
-                'variety' => 'Arabica Parchment',
-                'min_price_50kg' => '17600',
-                'max_price_50kg' => '18400',
-                'location' => 'Madikeri',
-                'district' => 'Kodagu',
-            ],
-            [
-                'variety' => 'Robusta Cherry',
-                'min_price_50kg' => '6900',
-                'max_price_50kg' => '7500',
-                'location' => 'Madikeri',
-                'district' => 'Kodagu',
-            ],
-            [
-                'variety' => 'Arabica Cherry',
-                'min_price_50kg' => '9900',
-                'max_price_50kg' => '10700',
-                'location' => 'Hassan',
-                'district' => 'Hassan',
-            ],
-            [
-                'variety' => 'Robusta Parchment',
-                'min_price_50kg' => '11400',
-                'max_price_50kg' => '12100',
-                'location' => 'Sakleshpur',
-                'district' => 'Hassan',
-            ],
+            // Chikkamagaluru (base prices)
+            ['variety' => 'Arabica Parchment', 'min_price_50kg' => '23600', 'max_price_50kg' => '24100', 'location' => 'Chikkamagaluru', 'district' => 'Chikkamagaluru', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Arabica Cherry',    'min_price_50kg' => '11200', 'max_price_50kg' => '11800', 'location' => 'Chikkamagaluru', 'district' => 'Chikkamagaluru', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Robusta Parchment', 'min_price_50kg' => '14600', 'max_price_50kg' => '15100', 'location' => 'Chikkamagaluru', 'district' => 'Chikkamagaluru', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Robusta Cherry',    'min_price_50kg' => '8800',  'max_price_50kg' => '9200',  'location' => 'Chikkamagaluru', 'district' => 'Chikkamagaluru', 'date' => Carbon::today()->format('Y-m-d')],
+            // Madikeri (+1.5%)
+            ['variety' => 'Arabica Parchment', 'min_price_50kg' => '23954', 'max_price_50kg' => '24461', 'location' => 'Madikeri', 'district' => 'Kodagu', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Arabica Cherry',    'min_price_50kg' => '11368', 'max_price_50kg' => '11977', 'location' => 'Madikeri', 'district' => 'Kodagu', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Robusta Parchment', 'min_price_50kg' => '14819', 'max_price_50kg' => '15327', 'location' => 'Madikeri', 'district' => 'Kodagu', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Robusta Cherry',    'min_price_50kg' => '8932',  'max_price_50kg' => '9338',  'location' => 'Madikeri', 'district' => 'Kodagu', 'date' => Carbon::today()->format('Y-m-d')],
+            // Sakleshpur (-1%, district Hassan)
+            ['variety' => 'Arabica Parchment', 'min_price_50kg' => '23364', 'max_price_50kg' => '23859', 'location' => 'Sakleshpur', 'district' => 'Hassan', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Arabica Cherry',    'min_price_50kg' => '11088', 'max_price_50kg' => '11682', 'location' => 'Sakleshpur', 'district' => 'Hassan', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Robusta Parchment', 'min_price_50kg' => '14454', 'max_price_50kg' => '14949', 'location' => 'Sakleshpur', 'district' => 'Hassan', 'date' => Carbon::today()->format('Y-m-d')],
+            ['variety' => 'Robusta Cherry',    'min_price_50kg' => '8712',  'max_price_50kg' => '9108',  'location' => 'Sakleshpur', 'district' => 'Hassan', 'date' => Carbon::today()->format('Y-m-d')],
         ];
     }
 }

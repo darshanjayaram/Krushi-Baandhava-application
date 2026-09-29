@@ -39,7 +39,7 @@ class CropController extends Controller
                 });
             })
             ->orderBy('name')
-            ->paginate(15)
+            ->paginate((int) $request->query('per_page', 50))
             ->withQueryString();
 
         $categories = CropCategory::where('is_active', true)->orderBy('display_order')->get();

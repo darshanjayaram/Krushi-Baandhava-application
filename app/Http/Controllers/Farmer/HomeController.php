@@ -83,8 +83,8 @@ class HomeController extends Controller
                 $price = MarketPrice::karnataka()
                     ->with(['crop.category', 'variety', 'market.district', 'dataSource'])
                     ->where('crop_id', $crop->id)
-                    ->where('price_date', $latestPriceDate)
                     ->whereHas('market', fn ($m) => $m->where('district_id', $activeDistrict->id))
+                    ->orderBy('price_date', 'desc')
                     ->orderBy('modal_price', 'desc')
                     ->first();
 
@@ -156,6 +156,44 @@ class HomeController extends Controller
             ->unique('crop_id')
             ->take(4)
             ->values();
+
+        // 5a. Resolve authentic day-over-day price trend (Rise / Drop / Stable) against previous trading sessions
+        $priorPrices = \Illuminate\Support\Facades\DB::select("
+            SELECT mp.crop_id, mp.market_id, mp.variety_id, mp.modal_price
+            FROM market_prices mp
+            INNER JOIN (
+                SELECT crop_id, market_id, MAX(price_date) as max_date
+                FROM market_prices
+                WHERE price_date < ?
+                GROUP BY crop_id, market_id
+            ) prev ON mp.crop_id = prev.crop_id 
+              AND mp.market_id = prev.market_id 
+              AND mp.price_date = prev.max_date
+        ", [$latestPriceDate]);
+
+        $priorMap = [];
+        $cropPriorMap = [];
+        foreach ($priorPrices as $pr) {
+            $priorMap[$pr->crop_id . '_' . $pr->market_id] = (float) $pr->modal_price;
+            if (!isset($cropPriorMap[$pr->crop_id])) {
+                $cropPriorMap[$pr->crop_id] = (float) $pr->modal_price;
+            }
+        }
+
+        $attachDailyTrend = function ($item) use ($priorMap, $cropPriorMap) {
+            $prevModal = $priorMap[$item->crop_id . '_' . $item->market_id] ?? ($cropPriorMap[$item->crop_id] ?? null);
+            if ($prevModal !== null && $prevModal > 0) {
+                $item->daily_price_change = (float) ($item->modal_price - $prevModal);
+                $item->daily_change_percent = round((($item->modal_price - $prevModal) / $prevModal) * 100, 1);
+            } else {
+                $item->daily_price_change = 0.0;
+                $item->daily_change_percent = 0.0;
+            }
+            $item->daily_trend = ($item->daily_price_change > 0) ? 'rise' : (($item->daily_price_change < 0) ? 'drop' : 'stable');
+        };
+
+        $curatedPrices->each($attachDailyTrend);
+        $topMovers->each($attachDailyTrend);
 
         // 6. Major Crops Catalog Grid
         $majorCrops = Crop::with(['category', 'varieties' => fn ($q) => $q->where('is_active', true)])

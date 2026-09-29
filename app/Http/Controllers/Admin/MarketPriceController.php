@@ -293,6 +293,8 @@ class MarketPriceController extends Controller
             'crop_id' => ['nullable', 'exists:crops,id'],
             'update_analytics' => ['nullable', 'boolean'],
             'force' => ['nullable', 'boolean'],
+            'captcha_key' => ['nullable', 'string'],
+            'captcha_code' => ['nullable', 'string', 'max:10'],
         ]);
 
         $fromDate = Carbon::parse($validated['from_date'])->toDateString();
@@ -305,7 +307,7 @@ class MarketPriceController extends Controller
         $syncStartTimestamp = Carbon::now()->subSeconds(2);
 
         // Configure extended execution limits for multi-year batch backfill (up to 6 years)
-        @set_time_limit(600);
+        @set_time_limit(900);
         @ini_set('memory_limit', '512M');
 
         // Maximum span guard: Allow up to 6 years (2,192 days) of multi-year auction archives
@@ -390,10 +392,12 @@ class MarketPriceController extends Controller
                     'filters' => array_filter([
                         'from_date' => $fromDate,
                         'to_date' => $toDate,
-                        'date' => $toDate,
                         'crop_id' => $cropId,
                         'commodity' => $targetCommodity,
-                    ]),
+                        'captcha_key' => $validated['captcha_key'] ?? null,
+                        'captcha_value' => $validated['captcha_code'] ?? null,
+                        'captcha_code' => $validated['captcha_code'] ?? null,
+                    ], fn ($val) => $val !== null && $val !== ''),
                 ]);
 
                 $srcReceived += (int) ($res['received'] ?? 0);

@@ -34,7 +34,7 @@ abstract class BaseMarketDataProvider implements MarketDataProviderInterface
      */
     protected function isMockMode(): bool
     {
-        return (bool) config('services.data_sources.mock_mode', env('DATA_SOURCE_MOCK_MODE', true));
+        return (bool) config('services.data_sources.mock_mode', env('DATA_SOURCE_MOCK_MODE', false));
     }
 
     /**

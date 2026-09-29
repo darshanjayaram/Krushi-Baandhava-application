@@ -29,6 +29,8 @@ class AdminPriceRetentionAndRangeSyncTest extends TestCase
     {
         parent::setUp();
 
+        config(['services.data_sources.mock_mode' => true]);
+
         $this->admin = User::firstOrCreate(
             ['email' => 'admin_retention_test@krushibaandhava.org'],
             [
@@ -53,15 +55,9 @@ class AdminPriceRetentionAndRangeSyncTest extends TestCase
         $this->market = Market::first() ?? Market::where('is_active', true)->firstOrFail();
         $this->crop = Crop::first() ?? Crop::where('is_active', true)->firstOrFail();
 
-        $this->dataSource = DataSource::where('code', 'ceda_agmarknet')->first()
-            ?? DataSource::create([
-                'name' => 'CEDA Agmarknet',
-                'code' => 'ceda_agmarknet',
-                'driver_class' => \App\Services\DataSources\Ceda\CedaAgmarknetDataProvider::class,
-                'base_url' => 'https://api.ceda.ashoka.edu.in/v1',
-                'auth_type' => 'bearer',
-                'is_active' => true,
-            ]);
+        $this->dataSource = DataSource::where('code', 'agmarknet_official')->first()
+            ?? DataSource::where('code', 'data_gov_mandi')->first()
+            ?? DataSource::firstOrFail();
     }
 
     public function test_admin_can_view_prices_page_with_archive_breakdown_and_year_month_filters(): void

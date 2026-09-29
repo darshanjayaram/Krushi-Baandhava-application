@@ -12,7 +12,7 @@
                 <span>💰</span> Daily Market Prices
                 <span class="text-xs font-semibold px-2 py-0.5 bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 rounded-full font-kannada">ದೈನಂದಿನ ಬೆಲೆಗಳು</span>
             </h1>
-            <p class="text-sm text-slate-400 font-medium">Canonicalized, deduplicated APMC mandi price feeds from data.gov.in, CEDA Agmarknet, TSS Sirsi, and commodity boards.</p>
+            <p class="text-sm text-slate-400 font-medium">Canonicalized, deduplicated APMC mandi price feeds from Karnataka State APMC (KRAMA), Official AGMARKNET, data.gov.in, TSS Sirsi, and commodity boards.</p>
         </div>
         <div class="flex items-center flex-wrap gap-2">
             <button @click="archiveDrawerOpen = !archiveDrawerOpen" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shadow-sm cursor-pointer">
@@ -469,12 +469,48 @@
                 <form x-show="syncMode === 'range'" @submit.prevent="runSync('range')" class="mt-4 space-y-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Target Feed</label>
-                        <select name="data_source_id" x-model="selectedSource" class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <select name="data_source_id" x-model="selectedSource" @change="onSourceChange()" class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                             <option value="">All Active Sources (Batch)</option>
                             @foreach($dataSources as $ds)
                                 <option value="{{ $ds->id }}">{{ $ds->name }} ({{ $ds->code }})</option>
                             @endforeach
                         </select>
+                    </div>
+
+                    <!-- Official AGMARKNET CAPTCHA Box (Visible when Official Agmarknet is chosen) -->
+                    <div x-show="isAgmarknetSourceSelected()" class="bg-slate-950 border border-purple-500/40 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                                <span>🛡️</span> Security Verification (Official AGMARKNET API)
+                            </span>
+                            <button type="button" @click="refreshAgmarknetCaptcha()" class="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer">
+                                <span :class="agmarknetCaptchaLoading ? 'animate-spin inline-block' : ''">🔄</span>
+                                <span>Refresh Image</span>
+                            </button>
+                        </div>
+
+                        <!-- Image container -->
+                        <div class="h-16 bg-white/95 rounded-xl border border-slate-700/60 flex items-center justify-center p-2 overflow-hidden shadow-inner">
+                            <template x-if="agmarknetCaptchaLoading">
+                                <span class="text-slate-500 text-xs font-medium animate-pulse">Generating security CAPTCHA...</span>
+                            </template>
+                            <template x-if="!agmarknetCaptchaLoading && agmarknetCaptchaImage">
+                                <img :src="agmarknetCaptchaImage" alt="AGMARKNET Security CAPTCHA" class="h-12 object-contain select-none">
+                            </template>
+                        </div>
+
+                        <!-- Captcha Input -->
+                        <div>
+                            <input type="text" 
+                                   x-model="agmarknetCaptchaCode" 
+                                   maxlength="8" 
+                                   placeholder="Type the 6 characters from image above..." 
+                                   class="w-full bg-slate-900 border border-slate-700 text-center tracking-widest text-sm font-mono font-black text-amber-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 uppercase placeholder:normal-case placeholder:text-slate-500 placeholder:text-xs placeholder:tracking-normal">
+                        </div>
+
+                        <p class="text-[11px] text-purple-300/80 leading-relaxed">
+                            💡 Directorate of Marketing & Inspection (DMI) requires this quick 6-character verification to unlock multi-year auction archives.
+                        </p>
                     </div>
 
                     <div>
@@ -544,7 +580,7 @@
                     </div>
 
                     <div class="bg-cyan-950/40 p-3 rounded-xl text-xs text-cyan-300 font-medium leading-relaxed border border-cyan-800/60">
-                        🚀 <strong>Multi-Year Historical Backfill (Up to 6 Years):</strong> Pulls multi-year auction trade archives directly from CEDA Agmarknet / APMC feeds. Automatically computes 5-year rolling seasonal baselines, accurately maps peak selling months, and powers 4-horizon price forecasts.
+                        🚀 <strong>Multi-Year Historical Backfill (Up to 6 Years):</strong> Pulls multi-year auction trade archives directly from Official AGMARKNET / KRAMA feeds. Automatically computes 5-year rolling seasonal baselines, accurately maps peak selling months, and powers 4-horizon price forecasts.
                     </div>
 
                     <div class="flex items-center justify-end gap-2 pt-2">
@@ -590,7 +626,7 @@
                               :class="syncProgressPercent >= 20 ? 'border-emerald-500 bg-emerald-950 text-emerald-400' : 'border-slate-700 bg-slate-900 text-slate-500'">
                             ✓
                         </span>
-                        <span class="font-medium">Handshake with Agmarknet / CEDA mandi feeds</span>
+                        <span class="font-medium">Handshake with Official AGMARKNET / KRAMA mandi feeds</span>
                     </div>
                     <div class="flex items-center gap-3" :class="syncProgressPercent >= 50 ? 'text-emerald-400' : 'text-slate-500'">
                         <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border"
@@ -912,6 +948,40 @@ function pricesManager() {
         pruneDays: 365,
         pruneYear: '{{ count($availableYears) > 1 ? $availableYears[1] : (date('Y') - 1) }}',
         pruneMonth: '',
+        agmarknetSourceId: '{{ $dataSources->firstWhere('code', 'agmarknet_official')?->id ?? 4 }}',
+        agmarknetCaptchaKey: '',
+        agmarknetCaptchaImage: '',
+        agmarknetCaptchaCode: '',
+        agmarknetCaptchaLoading: false,
+
+        isAgmarknetSourceSelected() {
+            return String(this.selectedSource) === String(this.agmarknetSourceId);
+        },
+
+        async onSourceChange() {
+            if (this.isAgmarknetSourceSelected() && !this.agmarknetCaptchaImage) {
+                await this.refreshAgmarknetCaptcha();
+            }
+        },
+
+        async refreshAgmarknetCaptcha() {
+            this.agmarknetCaptchaLoading = true;
+            this.agmarknetCaptchaImage = '';
+            try {
+                const res = await fetch('{{ route('admin.datasources.agmarknet.captcha') }}', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.agmarknetCaptchaKey = data.captcha_key;
+                    this.agmarknetCaptchaImage = data.captcha_image;
+                }
+            } catch (e) {
+                console.warn('Captcha fetch error:', e);
+            } finally {
+                this.agmarknetCaptchaLoading = false;
+            }
+        },
 
         get uniqueRejections() {
             if (!this.syncRejections || !this.syncRejections.length) return [];
@@ -947,6 +1017,7 @@ function pricesManager() {
             this.syncProgressStage = '';
             this.syncElapsedSeconds = 0;
             this.forceSync = false;
+            this.agmarknetCaptchaCode = '';
             this.syncSummary = {
                 received: 0,
                 inserted: 0,
@@ -959,6 +1030,9 @@ function pricesManager() {
             this.syncErrorMessage = '';
             if (this.syncTimerInterval) clearInterval(this.syncTimerInterval);
             if (this.syncProgressInterval) clearInterval(this.syncProgressInterval);
+            if (this.isAgmarknetSourceSelected()) {
+                this.refreshAgmarknetCaptcha();
+            }
         },
 
         startProgressAnimation(mode) {
@@ -966,7 +1040,7 @@ function pricesManager() {
             this.syncProgressPercent = 12;
             this.syncElapsedSeconds = 0;
             this.syncProgressStage = mode === 'range' 
-                ? 'Connecting to CEDA Agmarknet historical archive...'
+                ? 'Connecting to Official AGMARKNET / KRAMA historical archive...'
                 : 'Connecting to upstream APMC mandi feeds...';
 
             this.syncTimerInterval = setInterval(() => {
@@ -1047,6 +1121,8 @@ function pricesManager() {
                     to_date: this.toDate,
                     update_analytics: this.updateAnalytics ? 1 : 0,
                     force: this.forceSync ? 1 : 0,
+                    captcha_key: this.agmarknetCaptchaKey || null,
+                    captcha_code: this.agmarknetCaptchaCode || null,
                 };
             }
 

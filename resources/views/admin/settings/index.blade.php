@@ -635,8 +635,9 @@
                                 <!-- ============================================ -->
                                 @elseif($setting->key === 'primary_feed_provider')
                                     <select name="settings[{{ $setting->key }}]" class="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-medium">
-                                        <option value="ceda_agmarknet" {{ $setting->value === 'ceda_agmarknet' ? 'selected' : '' }}>CEDA Agmarknet (Ashoka University — High-Speed & Clean Mandis)</option>
-                                        <option value="datagov_direct" {{ $setting->value === 'datagov_direct' ? 'selected' : '' }}>data.gov.in Direct OGDS Mandi API</option>
+                                        <option value="krama_karnataka" {{ $setting->value === 'krama_karnataka' ? 'selected' : '' }}>KRAMA (Karnataka APMC Board — Primary Live Feed)</option>
+                                        <option value="agmarknet_official" {{ $setting->value === 'agmarknet_official' ? 'selected' : '' }}>Official AGMARKNET (Govt of India — Multi-Year Historical & Predictions)</option>
+                                        <option value="datagov_direct" {{ $setting->value === 'datagov_direct' ? 'selected' : '' }}>data.gov.in Direct OGDS Mandi API (National Fallback)</option>
                                     </select>
 
                                 @elseif($setting->key === 'market_sync_interval')

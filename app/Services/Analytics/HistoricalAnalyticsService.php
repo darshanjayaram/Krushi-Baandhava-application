@@ -199,19 +199,33 @@ class HistoricalAnalyticsService
     /**
      * Get daily historical price and arrival timeseries for charting.
      */
-    public function getDailyTrends(int $cropId, ?int $marketId = null, int $days = 30): array
+    public function getDailyTrends(int $cropId, ?int $marketId = null, int $days = 30, ?int $varietyId = null): array
     {
         $endDate = Carbon::today();
         $startDate = Carbon::today()->subDays($days - 1);
 
         if ($marketId !== null) {
             // Market-specific daily trend
-            $prices = MarketPrice::karnataka()
+            $query = MarketPrice::karnataka()
                 ->where('crop_id', $cropId)
                 ->where('market_id', $marketId)
-                ->whereBetween('price_date', [$startDate->toDateString(), $endDate->toDateString()])
-                ->orderBy('price_date', 'asc')
-                ->get();
+                ->whereBetween('price_date', [$startDate->toDateString(), $endDate->toDateString()]);
+
+            if ($varietyId !== null) {
+                $query->where('variety_id', $varietyId);
+            }
+
+            $prices = $query->orderBy('price_date', 'asc')->get();
+
+            // If empty with varietyId, fall back to market-wide price query
+            if ($prices->isEmpty() && $varietyId !== null) {
+                $prices = MarketPrice::karnataka()
+                    ->where('crop_id', $cropId)
+                    ->where('market_id', $marketId)
+                    ->whereBetween('price_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orderBy('price_date', 'asc')
+                    ->get();
+            }
 
             if ($prices->isNotEmpty()) {
                 $labels = [];
@@ -241,16 +255,27 @@ class HistoricalAnalyticsService
             }
 
             // Fall back to state-level daily trends if market has no records in this window
-            $stateTrend = $this->getDailyTrends($cropId, null, $days);
+            $stateTrend = $this->getDailyTrends($cropId, null, $days, $varietyId);
             $stateTrend['scope'] = 'state_fallback';
             return $stateTrend;
         }
 
         // State-level trend: Try precomputed daily statistics first
-        $stats = PriceDailyStatistic::where('crop_id', $cropId)
-            ->whereBetween('record_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->orderBy('record_date', 'asc')
-            ->get();
+        $statsQuery = PriceDailyStatistic::where('crop_id', $cropId)
+            ->whereBetween('record_date', [$startDate->toDateString(), $endDate->toDateString()]);
+
+        if ($varietyId !== null) {
+            $statsQuery->where('variety_id', $varietyId);
+        }
+
+        $stats = $statsQuery->orderBy('record_date', 'asc')->get();
+
+        if ($stats->isEmpty() && $varietyId !== null) {
+            $stats = PriceDailyStatistic::where('crop_id', $cropId)
+                ->whereBetween('record_date', [$startDate->toDateString(), $endDate->toDateString()])
+                ->orderBy('record_date', 'asc')
+                ->get();
+        }
 
         if ($stats->isNotEmpty()) {
             $grouped = $stats->groupBy(fn ($item) => Carbon::parse($item->record_date)->format('Y-m-d'));
@@ -281,13 +306,28 @@ class HistoricalAnalyticsService
         }
 
         // Dynamic fallback directly from MarketPrice if stats table isn't yet backfilled
-        $rawPrices = MarketPrice::karnataka()
+        $rawQuery = MarketPrice::karnataka()
             ->where('crop_id', $cropId)
-            ->whereBetween('price_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->selectRaw('price_date, AVG(modal_price) as avg_modal, MIN(min_price) as min_val, MAX(max_price) as max_val, SUM(COALESCE(arrival_quantity, 0)) as total_arr')
+            ->whereBetween('price_date', [$startDate->toDateString(), $endDate->toDateString()]);
+
+        if ($varietyId !== null) {
+            $rawQuery->where('variety_id', $varietyId);
+        }
+
+        $rawPrices = $rawQuery->selectRaw('price_date, AVG(modal_price) as avg_modal, MIN(min_price) as min_val, MAX(max_price) as max_val, SUM(COALESCE(arrival_quantity, 0)) as total_arr')
             ->groupBy('price_date')
             ->orderBy('price_date', 'asc')
             ->get();
+
+        if ($rawPrices->isEmpty() && $varietyId !== null) {
+            $rawPrices = MarketPrice::karnataka()
+                ->where('crop_id', $cropId)
+                ->whereBetween('price_date', [$startDate->toDateString(), $endDate->toDateString()])
+                ->selectRaw('price_date, AVG(modal_price) as avg_modal, MIN(min_price) as min_val, MAX(max_price) as max_val, SUM(COALESCE(arrival_quantity, 0)) as total_arr')
+                ->groupBy('price_date')
+                ->orderBy('price_date', 'asc')
+                ->get();
+        }
 
         $labels = [];
         $modalPrices = [];
@@ -318,7 +358,7 @@ class HistoricalAnalyticsService
     /**
      * Compute 12-month seasonal analysis & Best Months to Sell.
      */
-    public function getSeasonalAnalysis(int $cropId, ?int $marketId = null): array
+    public function getSeasonalAnalysis(int $cropId, ?int $marketId = null, ?int $varietyId = null): array
     {
         $kannadaMonths = [
             1 => 'ಜನವರಿ',
@@ -395,8 +435,37 @@ class HistoricalAnalyticsService
             $query->where('market_prices.market_id', $marketId);
         }
 
+        if ($varietyId !== null) {
+            $query->where('market_prices.variety_id', $varietyId);
+        }
+
         $yearMonthRecords = $query->get();
         $distinctMonthsCount = $yearMonthRecords->pluck('month_num')->unique()->count();
+
+        // If filtering by variety yielded very sparse data, try without variety
+        if ($varietyId !== null && $distinctMonthsCount < 6) {
+            $fallbackQuery = clone $query;
+            // query without variety
+            $yearMonthRecords = DB::table('market_prices')
+                ->join('markets', 'market_prices.market_id', '=', 'markets.id')
+                ->join('districts', 'markets.district_id', '=', 'districts.id')
+                ->join('states', 'districts.state_id', '=', 'states.id')
+                ->where('states.code', 'KA')
+                ->where('market_prices.crop_id', $cropId)
+                ->when($marketId !== null, fn($q) => $q->where('market_prices.market_id', $marketId))
+                ->selectRaw('
+                    YEAR(price_date) as year_num,
+                    MONTH(price_date) as month_num,
+                    AVG(modal_price) as avg_price,
+                    MIN(min_price) as min_price,
+                    MAX(max_price) as max_price,
+                    COUNT(market_prices.id) as total_obs,
+                    SUM(COALESCE(arrival_quantity, 0)) as total_arr
+                ')
+                ->groupBy(DB::raw('YEAR(price_date), MONTH(price_date)'))
+                ->get();
+            $distinctMonthsCount = $yearMonthRecords->pluck('month_num')->unique()->count();
+        }
 
         $market = null;
         if ($marketId !== null) {
@@ -406,18 +475,26 @@ class HistoricalAnalyticsService
         // If market-specific has fewer than 10 distinct calendar months, calibrate the state-level seasonal curve
         // to this market's actual price baseline so the farmer gets a complete 12-month calendar tailored to this mandi.
         if ($marketId !== null && $distinctMonthsCount < 10) {
-            $stateAnalysis = $this->getSeasonalAnalysis($cropId, null);
+            $stateAnalysis = $this->getSeasonalAnalysis($cropId, null, $varietyId);
 
             // If state-level itself lacks seasonal data, return insufficient state
             if (empty($stateAnalysis['has_seasonal_data'])) {
                 return $stateAnalysis;
             }
 
-            // Determine this market's actual price baseline for this crop
+            // Determine this market's actual price baseline for this crop and variety
             $marketAvgPrice = (float) DB::table('market_prices')
                 ->where('crop_id', $cropId)
                 ->where('market_id', $marketId)
+                ->when($varietyId !== null, fn($q) => $q->where('variety_id', $varietyId))
                 ->avg('modal_price');
+
+            if ($marketAvgPrice <= 0 && $varietyId !== null) {
+                $marketAvgPrice = (float) DB::table('market_prices')
+                    ->where('crop_id', $cropId)
+                    ->where('market_id', $marketId)
+                    ->avg('modal_price');
+            }
 
             // Fallback to state baseline if this market has never recorded a price for this crop
             $marketBaseline = $marketAvgPrice > 0 ? $marketAvgPrice : (float) $stateAnalysis['annual_baseline'];
@@ -521,8 +598,17 @@ class HistoricalAnalyticsService
                 ];
             }
 
+            $marketObj = $marketId !== null ? Market::find($marketId) : null;
+            $annualMean = (float) $yearMonthRecords->avg('avg_price');
+            if ($annualMean <= 0 && $marketId !== null) {
+                $annualMean = (float) (MarketPrice::karnataka()->where('crop_id', $cropId)->where('market_id', $marketId)->avg('modal_price') ?: 0.0);
+            }
+            if ($annualMean <= 0) {
+                $annualMean = (float) (MarketPrice::karnataka()->where('crop_id', $cropId)->avg('modal_price') ?: 0.0);
+            }
+
             return [
-                'annual_baseline' => round((float) ($yearMonthRecords->avg('avg_price') ?: 0), 2),
+                'annual_baseline' => round($annualMean, 2),
                 'monthly_profile' => $monthlyProfile,
                 'best_months' => [],
                 'peak_months_kn' => [],
@@ -534,6 +620,10 @@ class HistoricalAnalyticsService
                 'distinct_months' => $distinctMonthsCount,
                 'message_kn' => "ವಿಶ್ವಾಸಾರ್ಹ ಋತುಮಾನ ವಿಶ್ಲೇಷಣೆಗೆ ಕನಿಷ್ಠ 2 ಪ್ರತ್ಯೇಕ ತಿಂಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ (ಪ್ರಸ್ತುತ {$distinctMonthsCount} ತಿಂಗಳ ದರ ಲಭ್ಯವಿದೆ).",
                 'message_en' => "At least 2 distinct months of market price records are required for seasonal analysis (currently {$distinctMonthsCount} month(s) available).",
+                'market_id' => $marketId,
+                'market_name' => $marketObj?->name ?? ($marketId === null ? 'Karnataka State Average' : 'Market'),
+                'market_name_kn' => $marketObj?->name_kn ?? ($marketId === null ? 'ಕರ್ನಾಟಕ ರಾಜ್ಯ ಸರಾಸರಿ' : 'ಮಾರುಕಟ್ಟೆ'),
+                'scope' => $marketId !== null ? 'market' : 'state',
             ];
         }
 
@@ -814,7 +904,7 @@ class HistoricalAnalyticsService
     /**
      * Compute statistical summary (min, max, avg, volatility / std dev, total arrivals).
      */
-    public function getStatisticalSummary(int $cropId, ?int $marketId = null, int $days = 30): array
+    public function getStatisticalSummary(int $cropId, ?int $marketId = null, int $days = 30, ?int $varietyId = null): array
     {
         $startDate = Carbon::today()->subDays($days - 1)->toDateString();
         $endDate = Carbon::today()->toDateString();
@@ -827,11 +917,19 @@ class HistoricalAnalyticsService
             $query->where('market_id', $marketId);
         }
 
+        if ($varietyId !== null) {
+            $query->where('variety_id', $varietyId);
+        }
+
         $prices = $query->pluck('modal_price')->map(fn ($p) => (float) $p);
+
+        if ($prices->isEmpty() && $varietyId !== null) {
+            return $this->getStatisticalSummary($cropId, $marketId, $days, null);
+        }
 
         if ($prices->isEmpty()) {
             if ($marketId !== null) {
-                return $this->getStatisticalSummary($cropId, null, $days);
+                return $this->getStatisticalSummary($cropId, null, $days, $varietyId);
             }
 
             return [

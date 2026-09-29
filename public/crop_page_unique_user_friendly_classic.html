@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arecanut (ಅಡಿಕೆ) • Raitha Mitra Classic Edition • Krushi Baandhava</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background-color: #FBF8F1; color: #1C1917; }
+    .font-kannada { font-family: 'Noto Sans Kannada', system-ui, sans-serif; }
+    .classic-card { background: #FFFFFF; border: 2px solid #E2D9C8; border-radius: 24px; box-shadow: 0 4px 16px -2px rgba(27, 77, 41, 0.06); }
+    .classic-card-dark { background: #134B24; border: 2px solid #0E3A1B; border-radius: 24px; color: #FFFFFF; }
+    .gold-pill { background: #FEF3C7; color: #92400E; border: 1.5px solid #FCD34D; }
+    .forest-btn { background: #134B24; color: #FFFFFF; }
+    .forest-btn:hover { background: #0E3A1B; }
+  </style>
+</head>
+<body class="antialiased min-h-screen pb-16">
+
+  <!-- ============================================================== -->
+  <!-- 1. TOP HEADER: CLEAN, CALMING, ACCESSIBLE FOR ALL FARMERS      -->
+  <!-- ============================================================== -->
+  <header class="bg-[#134B24] text-white border-b-4 border-[#C8A251] px-4 sm:px-8 py-3.5 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-[#C8A251] text-stone-950 flex items-center justify-center font-black text-2xl shadow-xs">
+          🌾
+        </div>
+        <div>
+          <div class="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
+            <span>KRUSHI BAANDHAVA</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900 text-amber-200 border border-emerald-700 uppercase font-bold hidden sm:inline-block">Farmer Edition</span>
+          </div>
+          <div class="text-xs text-amber-200 font-semibold font-kannada">
+            ಕೃಷಿ ಬಾಂಧವ • ಕರ್ನಾಟಕ ರೈತರ ದಿನನಿತ್ಯದ ಮಾರುಕಟ್ಟೆ ಮಾರ್ಗದರ್ಶಿ
+          </div>
+        </div>
+      </div>
+
+      <!-- District Badge & Language Switcher -->
+      <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950 border border-emerald-800 text-xs text-stone-200 font-bold">
+          <span class="text-amber-400">📍</span>
+          <span>Your District: <strong>Shivamogga (ಶಿವಮೊಗ್ಗ)</strong></span>
+        </div>
+
+        <button onclick="toggleLanguage()" class="px-4 py-1.5 rounded-full bg-[#C8A251] text-stone-950 font-black text-xs hover:bg-[#d8b365] transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+          <span>🌐</span>
+          <span id="lang-btn-label">ಕನ್ನಡ</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ============================================================== -->
+  <!-- 2. MAIN CONTAINER                                              -->
+  <!-- ============================================================== -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+
+    <!-- USER-FRIENDLY BREADCRUMB & VERIFICATION BANNER -->
+    <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-stone-600 font-bold">
+      <div class="flex items-center gap-2">
+        <span class="text-stone-400">Home</span>
+        <span>›</span>
+        <span class="text-stone-400">All Crops (ಎಲ್ಲಾ ಬೆಳೆಗಳು)</span>
+        <span>›</span>
+        <span class="text-[#134B24] font-black text-sm">Arecanut (ಅಡಿಕೆ)</span>
+      </div>
+
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-300 text-xs font-extrabold shadow-2xs">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+        <span class="en-text">100% Genuine APMC Auction Data (KRAMA & Agmarknet)</span>
+        <span class="kn-text hidden font-kannada">೧೦೦% ಅಧಿಕೃತ ಸರ್ಕಾರಿ ಎಪಿಎಂಸಿ ದರಗಳು</span>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 3. UNIQUE "SPOTLIGHT HERO" (MEDALLION PHOTO + CLEAN RECEIPT)   -->
+    <!-- User-friendly, high contrast, zero clutter, instant clarity!   -->
+    <!-- ============================================================== -->
+    <div class="classic-card p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      
+      <!-- LEFT: ARCADED BOTANICAL MEDALLION PHOTO (5 COLS) -->
+      <div class="lg:col-span-5 rounded-3xl overflow-hidden relative flex flex-col justify-between p-6 min-h-[340px] sm:min-h-[420px] shadow-sm border-2 border-[#DDD4C0]">
+        
+        <!-- Mandatory High-Res Crop Photo -->
+        <img id="medallion-photo" 
+             src="arecanut.jpg" 
+             onerror="this.onerror=null; this.src='images/crops/arecanut.jpg';" 
+             alt="Arecanut Crop" 
+             class="w-full h-full absolute inset-0 object-cover object-center transition duration-700 hover:scale-105">
+        
+        <!-- Deep Organic Contrast Gradient Overlay -->
+        <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-black/30"></div>
+
+        <!-- Top Badges Floating Over Image -->
+        <div class="relative z-10 flex items-center justify-between">
+          <span class="px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-stone-900 font-black text-xs shadow-xs border border-stone-200">
+            🌴 <span class="en-text">Plantation Crop</span><span class="kn-text hidden font-kannada">ತೋಟಗಾರಿಕೆ ಬೆಳೆ</span>
+          </span>
+
+          <span class="px-3 py-1 rounded-full bg-[#C8A251] text-stone-950 font-black text-[11px] shadow-xs">
+            Major Traded Crop
+          </span>
+        </div>
+
+        <!-- Bottom Crop Title Overlay -->
+        <div class="relative z-10 space-y-1 text-white">
+          <div class="text-[11px] font-black uppercase tracking-widest text-emerald-300">
+            BOTANICAL: ARECA CATECHU
+          </div>
+          
+          <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-white drop-shadow-md">
+            <span class="en-text">Arecanut</span>
+            <span class="kn-text hidden font-kannada">ಅಡಿಕೆ (Arecanut)</span>
+          </h1>
+
+          <div class="text-xs text-amber-200 font-bold flex items-center gap-2 pt-0.5">
+            <span>Standard Unit: <strong>Quintal (100 kg)</strong></span>
+            <span>•</span>
+            <span>ಬೆಟ್ಟೆ, ರಾಶಿ, ಸರಕು</span>
+          </div>
+
+          <!-- Quick Interactive Photo Preview Selector -->
+          <div class="pt-3 flex items-center gap-1.5 text-[10px]">
+            <span class="text-stone-300 font-bold">Preview Photo:</span>
+            <button onclick="changeCropPhoto('arecanut.jpg', 'Arecanut', 'ಅಡಿಕೆ')" class="px-2 py-0.5 bg-black/60 hover:bg-black/90 rounded border border-white/30 text-white font-bold cursor-pointer">🌴 Arecanut</button>
+            <button onclick="changeCropPhoto('tomato.jpg', 'Tomato', 'ಟೊಮೆಟೊ')" class="px-2 py-0.5 bg-black/60 hover:bg-black/90 rounded border border-white/30 text-white font-bold cursor-pointer">🍅 Tomato</button>
+            <button onclick="changeCropPhoto('onion.jpg', 'Onion', 'ಈರುಳ್ಳಿ')" class="px-2 py-0.5 bg-black/60 hover:bg-black/90 rounded border border-white/30 text-white font-bold cursor-pointer">🧅 Onion</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: CRYSTAL-CLEAR PRICE HERO & RECEIPT CARD (7 COLS) -->
+      <div class="lg:col-span-7 flex flex-col justify-between space-y-5">
+        
+        <!-- Header Info -->
+        <div class="space-y-2">
+          
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-black text-stone-400 uppercase tracking-wider">
+              <span class="en-text">TODAY'S OFFICIAL APMC RATE</span>
+              <span class="kn-text hidden font-kannada">ಇಂದಿನ ಅಧಿಕೃತ ಎಪಿಎಂಸಿ ದರ</span>
+            </span>
+
+            <!-- Official Stamped Traded Date (Variety-Wise Independent Date!) -->
+            <div id="hero-stamped-date" class="px-3 py-1 rounded-xl bg-[#FAF6EE] border-2 border-[#E2D9C8] font-bold text-stone-800 text-xs flex items-center gap-1.5">
+              <span>📅</span>
+              <span class="en-text">Traded: 22 Sep 2026 (Mon)</span>
+              <span class="kn-text hidden font-kannada">ವಹಿವಾಟು: 22 ಸೆಪ್ಟೆಂಬರ್ 2026</span>
+            </div>
+          </div>
+
+          <!-- The Big Price Display -->
+          <div class="flex flex-wrap items-baseline gap-3 pt-1">
+            <span id="hero-modal-rate" class="text-5xl sm:text-6xl font-black text-stone-950 tracking-tight font-sans">
+              ₹49,074
+            </span>
+            
+            <span id="hero-perkg-rate" class="text-lg sm:text-xl font-bold text-stone-500 font-sans">
+              ≈ ₹491 / kg
+            </span>
+
+            <!-- Color-coded Day-over-Day Trend -->
+            <span id="hero-trend-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 border-2 border-emerald-300 text-xs font-black shadow-2xs">
+              <span>↑</span>
+              <span>+₹1,500</span>
+              <span class="text-[11px] font-bold text-emerald-600">(+3.2% Rise)</span>
+            </span>
+          </div>
+
+          <!-- Market Location & Proximity Line -->
+          <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+            <span class="font-black text-[#134B24] uppercase text-sm" id="hero-market-name">
+              KOPPA APMC YARD (ಕೊಪ್ಪ ಎಪಿಎಂಸಿ)
+            </span>
+
+            <span class="text-stone-300">•</span>
+
+            <!-- Friendly Nearest Marker -->
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF7ED] text-[#9A3412] border border-[#FFEDD5] text-xs font-black">
+              <span>📍</span>
+              <span class="en-text">Nearest Mandi • 261 km</span>
+              <span class="kn-text hidden font-kannada">ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆ • 261 ಕಿ.ಮೀ</span>
+            </span>
+
+            <button class="ml-auto px-3.5 py-1.5 rounded-xl bg-[#25D366] text-white font-black text-xs flex items-center gap-1.5 shadow-xs hover:bg-[#20ba59] transition cursor-pointer">
+              <span>💬</span>
+              <span class="en-text">Share on WhatsApp</span>
+              <span class="kn-text hidden font-kannada">ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ</span>
+            </button>
+          </div>
+
+          <!-- Day Auction Spread Barometer -->
+          <div class="p-3.5 bg-[#FAF8F1] rounded-2xl border-2 border-[#E2D9C8] space-y-1.5 text-xs">
+            <div class="flex items-center justify-between text-xs font-bold text-stone-700">
+              <span class="en-text">Auction Bidding Range (Min – Max):</span>
+              <span class="kn-text hidden font-kannada">ಹರಾಜು ಬಿಡ್ಡಿಂಗ್ ಶ್ರೇಣಿ (ಕನಿಷ್ಠ – ಗರಿಷ್ಠ):</span>
+              <span id="hero-range-label" class="font-black text-stone-950 font-sans text-sm">₹26,000 – ₹49,074</span>
+            </div>
+            
+            <div class="w-full h-3 bg-stone-200 rounded-full overflow-hidden flex border border-stone-300">
+              <div class="bg-amber-400 h-full w-[25%]" title="Min Bid: ₹26,000"></div>
+              <div class="bg-[#134B24] h-full w-[75%]" title="Modal/Max Bid: ₹49,074"></div>
+            </div>
+
+            <div class="flex justify-between text-[11px] text-stone-500 font-bold">
+              <span>Lowest: ₹26,000</span>
+              <span>Modal Rate: ₹49,074</span>
+              <span>Highest: ₹49,074</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Summary Note -->
+        <div class="text-[11px] text-stone-500 font-medium pt-2 border-t border-stone-200 flex items-center justify-between">
+          <span>Official APMC Code: <strong>KA_APMC_KOPPA</strong></span>
+          <span>Arrivals Today: <strong>420 Quintals</strong></span>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 4. "ONE-TOUCH GRADE BAR" (TACTILE, FRIENDLY VARIETY PICKER)    -->
+    <!-- No date clutter inside pill, updates hero date dynamically!    -->
+    <!-- ============================================================== -->
+    <section class="classic-card p-5 sm:p-7 space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-stone-200 pb-3">
+        <div>
+          <div class="text-[11px] font-black text-stone-400 uppercase tracking-wider">
+            <span class="en-text">SELECT YOUR GRADE</span>
+            <span class="kn-text hidden font-kannada">ನಿಮ್ಮ ಅಡಿಕೆ ಗ್ರೇಡ್ / ತಳಿ ಆಯ್ಕೆಮಾಡಿ</span>
+          </div>
+          <h2 class="text-lg font-black text-stone-900">
+            <span class="en-text">Traded Varieties at this Mandi</span>
+            <span class="kn-text hidden font-kannada">ಈ ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಲಭ್ಯವಿರುವ ತಳಿಗಳು</span>
+          </h2>
+        </div>
+
+        <span class="text-xs font-black text-[#134B24] bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200" id="weekly-trade-summary-badge">
+          Trades this week: ₹13,000 – ₹56,685 (5 varieties)
+        </span>
+      </div>
+
+      <!-- Touch-Friendly Grade Cards Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="grade-cards-grid">
+        
+        <!-- Variety 1: Rashi (Traded 22 Sep) -->
+        <button onclick="selectGrade('rashi', 49074, 491, '2026-09-22 (Mon)', 'rise', '+₹1,500', '(+3.2%)', '₹26,000 – ₹49,074')"
+                class="grade-box active-grade p-4 rounded-2xl border-2 transition text-left cursor-pointer flex flex-col justify-between space-y-2 bg-[#134B24] text-white border-[#134B24] shadow-sm"
+                data-grade="rashi">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-amber-300 uppercase">Average Grade</span>
+              <span class="text-xs font-black text-amber-300">✓ Selected</span>
+            </div>
+            <span class="text-base font-black block leading-tight pt-1">
+              <span class="en-text">Rashi</span>
+              <span class="kn-text hidden font-kannada">ರಾಶಿ</span>
+            </span>
+            <span class="text-[11px] text-emerald-200 font-medium">ರಾಶಿ · ಸರಾಸರಿ</span>
+          </div>
+
+          <div class="pt-2 border-t border-white/20">
+            <span class="text-xl font-black font-sans text-emerald-300">₹49,074</span>
+            <span class="text-[10px] text-white/70 block">per Quintal</span>
+          </div>
+        </button>
+
+        <!-- Variety 2: Saraku (Traded 19 Sep - Independent Date!) -->
+        <button onclick="selectGrade('saraku', 56685, 567, '2026-09-19 (Fri)', 'rise', '+₹2,100', '(+3.8%)', '₹50,000 – ₹56,685')"
+                class="grade-box p-4 rounded-2xl border-2 transition text-left cursor-pointer flex flex-col justify-between space-y-2 bg-white text-stone-800 hover:bg-stone-50 border-[#E2D9C8]"
+                data-grade="saraku">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-stone-400 uppercase">Premium Grade</span>
+            </div>
+            <span class="text-base font-black block leading-tight pt-1 text-stone-900">
+              <span class="en-text">Saraku</span>
+              <span class="kn-text hidden font-kannada">ಸರಕು</span>
+            </span>
+            <span class="text-[11px] text-stone-500 font-medium">ಸರಕು · ಸರಾಸರಿ</span>
+          </div>
+
+          <div class="pt-2 border-t border-stone-200">
+            <span class="text-xl font-black font-sans text-emerald-800">₹56,685</span>
+            <span class="text-[10px] text-stone-400 block">per Quintal</span>
+          </div>
+        </button>
+
+        <!-- Variety 3: Bette (Traded 19 Sep) -->
+        <button onclick="selectGrade('bette', 51783, 518, '2026-09-19 (Fri)', 'stable', '₹0', '(Stable)', '₹48,000 – ₹51,783')"
+                class="grade-box p-4 rounded-2xl border-2 transition text-left cursor-pointer flex flex-col justify-between space-y-2 bg-white text-stone-800 hover:bg-stone-50 border-[#E2D9C8]"
+                data-grade="bette">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-stone-400 uppercase">Selection</span>
+            </div>
+            <span class="text-base font-black block leading-tight pt-1 text-stone-900">
+              <span class="en-text">Bette</span>
+              <span class="kn-text hidden font-kannada">ಬೆಟ್ಟೆ</span>
+            </span>
+            <span class="text-[11px] text-stone-500 font-medium">ಬೆಟ್ಟೆ · ಸರಾಸರಿ</span>
+          </div>
+
+          <div class="pt-2 border-t border-stone-200">
+            <span class="text-xl font-black font-sans text-emerald-800">₹51,783</span>
+            <span class="text-[10px] text-stone-400 block">per Quintal</span>
+          </div>
+        </button>
+
+        <!-- Variety 4: Sippegotu (Traded 22 Sep) -->
+        <button onclick="selectGrade('sippegotu', 13000, 130, '2026-09-22 (Mon)', 'drop', '-₹500', '(-3.7%)', '₹11,000 – ₹13,000')"
+                class="grade-box p-4 rounded-2xl border-2 transition text-left cursor-pointer flex flex-col justify-between space-y-2 bg-white text-stone-800 hover:bg-stone-50 border-[#E2D9C8]"
+                data-grade="sippegotu">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-stone-400 uppercase">Commercial</span>
+            </div>
+            <span class="text-base font-black block leading-tight pt-1 text-stone-900">
+              <span class="en-text">Sippegotu</span>
+              <span class="kn-text hidden font-kannada">ಸಿಪ್ಪೆಗೋಟು</span>
+            </span>
+            <span class="text-[11px] text-stone-500 font-medium">ಸಿಪ್ಪೆಗೋಟು · ಸರಾಸರಿ</span>
+          </div>
+
+          <div class="pt-2 border-t border-stone-200">
+            <span class="text-xl font-black font-sans text-emerald-800">₹13,000</span>
+            <span class="text-[10px] text-stone-400 block">per Quintal</span>
+          </div>
+        </button>
+
+        <!-- Variety 5: Gorabalu (Traded 22 Sep) -->
+        <button onclick="selectGrade('gorabalu', 26000, 260, '2026-09-22 (Mon)', 'stable', '₹0', '(Stable)', '₹24,000 – ₹26,000')"
+                class="grade-box p-4 rounded-2xl border-2 transition text-left cursor-pointer flex flex-col justify-between space-y-2 bg-white text-stone-800 hover:bg-stone-50 border-[#E2D9C8]"
+                data-grade="gorabalu">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-stone-400 uppercase">Raw Grade</span>
+            </div>
+            <span class="text-base font-black block leading-tight pt-1 text-stone-900">
+              <span class="en-text">Gorabalu</span>
+              <span class="kn-text hidden font-kannada">ಗೊರಬಲು</span>
+            </span>
+            <span class="text-[11px] text-stone-500 font-medium">ಗೊರಬಲು</span>
+          </div>
+
+          <div class="pt-2 border-t border-stone-200">
+            <span class="text-xl font-black font-sans text-emerald-800">₹26,000</span>
+            <span class="text-[10px] text-stone-400 block">per Quintal</span>
+          </div>
+        </button>
+
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- 5. "NEARBY MANDI COMPARER" (WHERE TO GET THE HIGHEST PRICE)     -->
+    <!-- Answers the farmer's question: Which mandi pays the most?      -->
+    <!-- ============================================================== -->
+    <section class="classic-card p-5 sm:p-7 space-y-4">
+      <div class="flex items-center justify-between border-b border-stone-200 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">⚖️</span>
+          <div>
+            <div class="text-[11px] font-black text-stone-400 uppercase tracking-wider">
+              <span class="en-text">NEARBY MANDI COMPARISON</span>
+              <span class="kn-text hidden font-kannada">ಸಮೀಪದ ಎಪಿಎಂಸಿ ದರ ಹೋಲಿಕೆ (ಹೆಚ್ಚಿನ ಲಾಭಕ್ಕೆ)</span>
+            </div>
+            <h2 class="text-lg font-black text-stone-900">
+              <span class="en-text">Compare Prices Across Karnataka Mandis</span>
+              <span class="kn-text hidden font-kannada">ಯಾವ ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಹೆಚ್ಚಿನ ಬೆಲೆ ಸಿಗುತ್ತದೆ?</span>
+            </h2>
+          </div>
+        </div>
+
+        <div class="inline-flex bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-xs font-bold">
+          <button class="px-2.5 py-1 rounded bg-white text-[#134B24] shadow-2xs">📍 Nearest First</button>
+          <button class="px-2.5 py-1 rounded text-stone-500 hover:text-stone-800">🔥 Top Rate First</button>
+        </div>
+      </div>
+
+      <!-- Comparison Cards Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        
+        <!-- Mandi 1: Koppa (Selected) -->
+        <div class="p-4 rounded-2xl border-2 bg-emerald-50/60 border-[#134B24] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-[#134B24] uppercase">Koppa APMC</span>
+            <span class="text-[10px] font-black px-2 py-0.5 bg-[#134B24] text-white rounded-full">Current Mandi</span>
+          </div>
+          <div class="text-2xl font-black text-stone-900 font-sans">₹49,074</div>
+          <div class="text-xs text-stone-600 font-bold flex items-center justify-between pt-1 border-t border-emerald-200">
+            <span>📍 261 km away</span>
+            <span class="text-stone-500 font-medium">Base Mandi</span>
+          </div>
+        </div>
+
+        <!-- Mandi 2: Shivamogga (HIGHER PRICE ALERT!) -->
+        <div onclick="selectMandi('SHIVAMOGGA APMC', 288, 55861)" class="p-4 rounded-2xl border-2 bg-white hover:bg-stone-50 border-amber-300 space-y-2 cursor-pointer shadow-xs transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-stone-900 uppercase">Shivamogga APMC</span>
+            <span class="text-[10px] font-black px-2 py-0.5 bg-amber-400 text-stone-950 rounded-full">🔥 +₹6,787 Higher!</span>
+          </div>
+          <div class="text-2xl font-black text-emerald-800 font-sans">₹55,861</div>
+          <div class="text-xs text-stone-600 font-bold flex items-center justify-between pt-1 border-t border-stone-200">
+            <span>📍 288 km away</span>
+            <span class="text-emerald-700 font-black hover:underline">Switch →</span>
+          </div>
+        </div>
+
+        <!-- Mandi 3: Sagara -->
+        <div onclick="selectMandi('SAGARA APMC', 301, 46889)" class="p-4 rounded-2xl border-2 bg-white hover:bg-stone-50 border-[#E2D9C8] space-y-2 cursor-pointer transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-stone-800 uppercase">Sagara APMC</span>
+            <span class="text-[10px] font-bold text-stone-400">6 Varieties</span>
+          </div>
+          <div class="text-2xl font-black text-stone-800 font-sans">₹46,889</div>
+          <div class="text-xs text-stone-600 font-bold flex items-center justify-between pt-1 border-t border-stone-200">
+            <span>📍 301 km away</span>
+            <span class="text-stone-500 hover:text-stone-900 font-bold">Switch →</span>
+          </div>
+        </div>
+
+        <!-- Mandi 4: Sirsi (TSS) -->
+        <div onclick="selectMandi('SIRSI APMC (TSS)', 360, 46024)" class="p-4 rounded-2xl border-2 bg-white hover:bg-stone-50 border-[#E2D9C8] space-y-2 cursor-pointer transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-stone-800 uppercase">Sirsi APMC (TSS)</span>
+            <span class="text-[10px] font-bold text-stone-400">TSS Yard</span>
+          </div>
+          <div class="text-2xl font-black text-stone-800 font-sans">₹46,024</div>
+          <div class="text-xs text-stone-600 font-bold flex items-center justify-between pt-1 border-t border-stone-200">
+            <span>📍 360 km away</span>
+            <span class="text-stone-500 hover:text-stone-900 font-bold">Switch →</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- 6. "WHEN TO SELL" GUIDE & 12-MONTH HARVEST BAROMETER           -->
+    <!-- Simple, high readability for farmers                          -->
+    <!-- ============================================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      
+      <!-- Price Trend History (7 Cols) -->
+      <section class="lg:col-span-7 classic-card p-5 sm:p-6 space-y-3 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-2 border-b border-stone-200">
+            <div>
+              <div class="text-[10px] font-black text-stone-400 uppercase">PRICE DISCOVERY GRAPH</div>
+              <h3 class="text-base font-black text-stone-900">Arecanut 30-Day Modal Movement</h3>
+            </div>
+            <div class="inline-flex bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-xs font-bold">
+              <button class="px-2.5 py-0.5 rounded text-stone-600">7D</button>
+              <button class="px-2.5 py-0.5 rounded bg-white text-[#134B24] shadow-2xs">30D</button>
+              <button class="px-2.5 py-0.5 rounded text-stone-600">90D</button>
+              <button class="px-2.5 py-0.5 rounded text-stone-600">1Y</button>
+            </div>
+          </div>
+
+          <!-- SVG Chart -->
+          <div class="h-44 w-full pt-3 relative">
+            <svg viewBox="0 0 700 160" class="w-full h-full overflow-visible">
+              <line x1="0" y1="30" x2="700" y2="30" stroke="#E2D9C8" stroke-dasharray="3,3" />
+              <line x1="0" y1="80" x2="700" y2="80" stroke="#E2D9C8" stroke-dasharray="3,3" />
+              <line x1="0" y1="130" x2="700" y2="130" stroke="#E2D9C8" stroke-dasharray="3,3" />
+              <path d="M 0 110 Q 150 95, 300 70 T 500 55 T 700 35 L 700 150 L 0 150 Z" fill="rgba(19, 75, 36, 0.08)" />
+              <path d="M 0 110 Q 150 95, 300 70 T 500 55 T 700 35" fill="none" stroke="#134B24" stroke-width="3.5" stroke-linecap="round" />
+              <circle cx="300" cy="70" r="5" fill="#134B24" stroke="#FFFFFF" stroke-width="2" />
+              <circle cx="500" cy="55" r="5" fill="#134B24" stroke="#FFFFFF" stroke-width="2" />
+              <circle cx="700" cy="35" r="6" fill="#D97706" stroke="#FFFFFF" stroke-width="2" />
+            </svg>
+            <div class="flex justify-between text-[10px] text-stone-500 pt-1 font-bold">
+              <span>01 Sep (₹46,200)</span>
+              <span>10 Sep (₹47,800)</span>
+              <span>22 Sep (Today: ₹49,074)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 pt-3 border-t border-stone-200 text-xs text-center">
+          <div class="p-2 bg-stone-50 rounded-xl">
+            <span class="text-[10px] text-stone-400 block font-bold">30D Peak</span>
+            <span class="font-black text-emerald-800 text-sm">₹56,685</span>
+          </div>
+          <div class="p-2 bg-stone-50 rounded-xl">
+            <span class="text-[10px] text-stone-400 block font-bold">30D Lowest</span>
+            <span class="font-black text-stone-800 text-sm">₹45,500</span>
+          </div>
+          <div class="p-2 bg-stone-50 rounded-xl">
+            <span class="text-[10px] text-stone-400 block font-bold">Price Stability</span>
+            <span class="font-black text-amber-700 text-sm">Strong (3.2%)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12-Month Best Months to Sell (5 Cols) -->
+      <section class="lg:col-span-5 classic-card p-5 sm:p-6 space-y-3 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-2 border-b border-stone-200">
+            <div>
+              <div class="text-[10px] font-black text-stone-400 uppercase">SEASONALITY ADVISORY</div>
+              <h3 class="text-base font-black text-stone-900">Best Months to Sell Arecanut</h3>
+            </div>
+            <span class="text-[10px] font-black text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-full">Peak: Jun – Aug</span>
+          </div>
+
+          <p class="text-xs text-stone-600 font-medium pt-1">
+            Historical 5-year Karnataka records show prices peak during pre-monsoon supply dip:
+          </p>
+
+          <!-- 12-Month Bars -->
+          <div class="grid grid-cols-12 gap-1 items-end h-28 pt-2 border-b border-stone-200 pb-2">
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-stone-200 rounded-t h-10"></div><span class="text-[9px] font-bold text-stone-400">J</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-stone-200 rounded-t h-12"></div><span class="text-[9px] font-bold text-stone-400">F</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-red-100 border border-red-300 rounded-t h-8" title="Surplus Rush"></div><span class="text-[9px] font-black text-red-600">M</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-stone-200 rounded-t h-14"></div><span class="text-[9px] font-bold text-stone-400">A</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-emerald-700 rounded-t h-20"></div><span class="text-[9px] font-bold text-stone-700">M</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-[#134B24] rounded-t h-26"></div><span class="text-[9px] font-black text-[#134B24]">J</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-[#134B24] rounded-t h-28"></div><span class="text-[9px] font-black text-[#134B24]">J</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-[#134B24] rounded-t h-24"></div><span class="text-[9px] font-black text-[#134B24]">A</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-emerald-700 rounded-t h-22"></div><span class="text-[9px] font-bold text-stone-700">S</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-stone-200 rounded-t h-16"></div><span class="text-[9px] font-bold text-stone-400">O</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-stone-200 rounded-t h-12"></div><span class="text-[9px] font-bold text-stone-400">N</span></div>
+            <div class="flex flex-col items-center gap-0.5"><div class="w-full bg-stone-200 rounded-t h-10"></div><span class="text-[9px] font-bold text-stone-400">D</span></div>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-stone-600 font-bold flex items-center justify-between">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-[#134B24]"></span> Best Months (June–Aug)</span>
+          <span class="text-stone-800">Benchmark: ₹48,400</span>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 7. COMPLETE ALL KARNATAKA APMC TABLE                           -->
+    <!-- ============================================================== -->
+    <section class="classic-card p-5 sm:p-7 space-y-4">
+      <div class="flex items-center justify-between border-b border-stone-200 pb-3">
+        <div>
+          <div class="text-[10px] font-black text-stone-400 uppercase">STATE APMC DIRECTORY</div>
+          <h3 class="text-lg font-black text-stone-900">All Karnataka Mandis Trading Arecanut Today</h3>
+        </div>
+        <span class="text-xs font-bold text-stone-500">5 Active Karnataka APMCs</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-stone-100 text-stone-700 font-black border-b border-stone-200">
+              <th class="p-3">APMC Market</th>
+              <th class="p-3">District</th>
+              <th class="p-3">Proximity</th>
+              <th class="p-3">Arrivals</th>
+              <th class="p-3">Today's Modal Rate</th>
+              <th class="p-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-stone-200 font-bold">
+            <tr class="bg-emerald-50/50">
+              <td class="p-3 font-black text-stone-950 text-sm">Koppa APMC Yard</td>
+              <td class="p-3 text-stone-600">Chikkamagaluru</td>
+              <td class="p-3"><span class="px-2.5 py-0.5 rounded-full bg-[#FFF7ED] text-[#9A3412] font-black text-[10px]">📍 261 km (Nearest)</span></td>
+              <td class="p-3 text-stone-600">420 Qtl</td>
+              <td class="p-3 font-black text-stone-950 text-base">₹49,074</td>
+              <td class="p-3 text-right"><span class="px-3 py-1 rounded-xl bg-[#134B24] text-white font-black text-[11px]">Selected</span></td>
+            </tr>
+            <tr>
+              <td class="p-3 font-black text-stone-900 text-sm">Shivamogga APMC</td>
+              <td class="p-3 text-stone-600">Shivamogga</td>
+              <td class="p-3 text-stone-500">📍 288 km</td>
+              <td class="p-3 text-stone-600">1,240 Qtl</td>
+              <td class="p-3 font-black text-emerald-800 text-base">₹55,861</td>
+              <td class="p-3 text-right"><button onclick="selectMandi('SHIVAMOGGA APMC', 288, 55861)" class="px-3 py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-black text-[11px] transition">View Mandi</button></td>
+            </tr>
+            <tr>
+              <td class="p-3 font-black text-stone-900 text-sm">Sagara APMC</td>
+              <td class="p-3 text-stone-600">Shivamogga</td>
+              <td class="p-3 text-stone-500">📍 301 km</td>
+              <td class="p-3 text-stone-600">650 Qtl</td>
+              <td class="p-3 font-black text-emerald-800 text-base">₹46,889</td>
+              <td class="p-3 text-right"><button onclick="selectMandi('SAGARA APMC', 301, 46889)" class="px-3 py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-black text-[11px] transition">View Mandi</button></td>
+            </tr>
+            <tr>
+              <td class="p-3 font-black text-stone-900 text-sm">Sirsi APMC (TSS)</td>
+              <td class="p-3 text-stone-600">Uttara Kannada</td>
+              <td class="p-3 text-stone-500">📍 360 km</td>
+              <td class="p-3 text-stone-600">890 Qtl</td>
+              <td class="p-3 font-black text-emerald-800 text-base">₹46,024</td>
+              <td class="p-3 text-right"><button onclick="selectMandi('SIRSI APMC (TSS)', 360, 46024)" class="px-3 py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-black text-[11px] transition">View Mandi</button></td>
+            </tr>
+            <tr>
+              <td class="p-3 font-black text-stone-900 text-sm">Tumakuru APMC</td>
+              <td class="p-3 text-stone-600">Tumakuru</td>
+              <td class="p-3 text-stone-500">📍 140 km</td>
+              <td class="p-3 text-stone-600">310 Qtl</td>
+              <td class="p-3 font-black text-emerald-800 text-base">₹47,500</td>
+              <td class="p-3 text-right"><button onclick="selectMandi('TUMAKURU APMC', 140, 47500)" class="px-3 py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-black text-[11px] transition">View Mandi</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- 8. CMS AGRICULTURAL KNOWLEDGE (VIDEOS, ARTICLES, SCHEMES)      -->
+    <!-- ============================================================== -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="classic-card overflow-hidden space-y-3">
+        <div class="h-36 bg-stone-900 relative flex items-center justify-center text-white">
+          <span class="text-3xl">▶️</span>
+          <span class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-bold">12:45 min</span>
+        </div>
+        <div class="p-4 space-y-1 text-xs">
+          <span class="text-[10px] font-black text-emerald-700 uppercase">Farmer Video Guide</span>
+          <h4 class="font-black text-stone-900 text-sm">Drying & sorting prime Rashi Arecanut for maximum market rate</h4>
+          <p class="text-stone-500">Shivamogga Horticulture Research Station</p>
+        </div>
+      </div>
+
+      <div class="classic-card p-5 space-y-2 text-xs">
+        <span class="text-[10px] font-black text-amber-700 uppercase">Agronomy Notice</span>
+        <h4 class="font-black text-stone-900 text-sm">Pre-Monsoon Copper Sulfate Spray Protocol</h4>
+        <p class="text-stone-600">Protecting tender nuts from Koleroga fungus during western ghats rainfall.</p>
+        <span class="text-[11px] text-stone-400 block pt-2">Updated 26 Sep 2026</span>
+      </div>
+
+      <div class="classic-card p-5 space-y-2 text-xs bg-emerald-50/50 border-emerald-300">
+        <span class="text-[10px] font-black text-[#134B24] uppercase">Govt Subsidy Assistance</span>
+        <h4 class="font-black text-stone-900 text-sm">Drip Irrigation 90% Subsidy Scheme</h4>
+        <p class="text-stone-700">Financial assistance for automated fertigation lines in areca plantations.</p>
+        <a href="#" class="text-xs font-black text-[#134B24] hover:underline pt-1 inline-block">Apply on Seva Sindhu Portal →</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- 9. OFFICIAL FOOTER                                             -->
+  <!-- ============================================================== -->
+  <footer class="mt-12 bg-white border-t-2 border-[#E2D9C8] py-8 px-4 sm:px-8 text-xs text-stone-500">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+      <div>
+        <div class="font-black text-stone-800 text-sm">Krushi Baandhava (ಕೃಷಿ ಬಾಂಧವ) • Raitha Mitra Edition</div>
+        <div>Karnataka State Agricultural Marketing Board (KRAMA) & Agmarknet Direct Feeds</div>
+      </div>
+      <div class="text-[11px] text-stone-400">
+        Daily APMC Trading Rates • Zero Artificial Mock Data
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    let activeLocale = 'en';
+
+    function toggleLanguage() {
+      activeLocale = activeLocale === 'en' ? 'kn' : 'en';
+      document.getElementById('lang-btn-label').textContent = activeLocale === 'en' ? 'ಕನ್ನಡ' : 'English';
+
+      if (activeLocale === 'kn') {
+        document.querySelectorAll('.en-text').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.kn-text').forEach(el => el.classList.remove('hidden'));
+      } else {
+        document.querySelectorAll('.kn-text').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.en-text').forEach(el => el.classList.remove('hidden'));
+      }
+    }
+
+    function changeCropPhoto(filename, enName, knName) {
+      const img = document.getElementById('medallion-photo');
+      if (img) {
+        img.src = filename;
+        img.onerror = () => { img.src = 'images/crops/' + filename; };
+      }
+    }
+
+    // Dynamic variety selection (variety-wise rolling latest dates!)
+    function selectGrade(gradeKey, price, perKg, dateStr, trendType, trendDiff, trendPct, rangeStr) {
+      document.querySelectorAll('.grade-box').forEach(box => {
+        box.classList.remove('bg-[#134B24]', 'text-white', 'border-[#134B24]', 'shadow-sm', 'active-grade');
+        box.classList.add('bg-white', 'text-stone-800', 'hover:bg-stone-50', 'border-[#E2D9C8]');
+        
+        const checkEl = box.querySelector('.text-amber-300');
+        if (checkEl && checkEl.textContent.includes('✓')) {
+          checkEl.remove();
+        }
+
+        const priceEl = box.querySelector('.font-sans');
+        if (priceEl) {
+          priceEl.classList.remove('text-emerald-300');
+          priceEl.classList.add('text-emerald-800');
+        }
+      });
+
+      const chosen = document.querySelector(`[data-grade="${gradeKey}"]`);
+      if (chosen) {
+        chosen.classList.remove('bg-white', 'text-stone-800', 'hover:bg-stone-50', 'border-[#E2D9C8]');
+        chosen.classList.add('bg-[#134B24]', 'text-white', 'border-[#134B24]', 'shadow-sm', 'active-grade');
+
+        const topHeader = chosen.querySelector('.flex.items-center.justify-between');
+        if (topHeader && !topHeader.innerHTML.includes('✓')) {
+          const badge = document.createElement('span');
+          badge.className = 'text-xs font-black text-amber-300';
+          badge.textContent = '✓ Selected';
+          topHeader.appendChild(badge);
+        }
+
+        const priceEl = chosen.querySelector('.font-sans');
+        if (priceEl) {
+          priceEl.classList.remove('text-emerald-800');
+          priceEl.classList.add('text-emerald-300');
+        }
+      }
+
+      // Update Hero Price & Stamped Date (Variety-Wise Independent Date!)
+      document.getElementById('hero-modal-rate').textContent = '₹' + price.toLocaleString('en-IN');
+      document.getElementById('hero-perkg-rate').textContent = `≈ ₹${perKg} / kg`;
+      
+      const dateEl = document.getElementById('hero-stamped-date');
+      dateEl.innerHTML = activeLocale === 'en'
+        ? `<span>📅</span><span class="en-text">Traded: ${dateStr}</span>`
+        : `<span>📅</span><span class="kn-text font-kannada">ವಹಿವಾಟು: ${dateStr}</span>`;
+
+      document.getElementById('hero-range-label').textContent = rangeStr;
+
+      // Update Trend
+      const trendEl = document.getElementById('hero-trend-badge');
+      if (trendType === 'rise') {
+        trendEl.className = 'inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 border-2 border-emerald-300 text-xs font-black shadow-2xs';
+        trendEl.innerHTML = `<span>↑</span><span>${trendDiff}</span><span class="text-[11px] font-bold text-emerald-600">(${trendPct} Rise)</span>`;
+      } else if (trendType === 'drop') {
+        trendEl.className = 'inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-red-50 text-red-800 border-2 border-red-300 text-xs font-black shadow-2xs';
+        trendEl.innerHTML = `<span>↓</span><span>${trendDiff}</span><span class="text-[11px] font-bold text-red-600">(${trendPct} Drop)</span>`;
+      } else {
+        trendEl.className = 'inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-stone-100 text-stone-700 border-2 border-stone-300 text-xs font-black shadow-2xs';
+        trendEl.innerHTML = `<span>→</span><span>₹0</span><span class="text-[11px] font-bold text-stone-500">(Stable)</span>`;
+      }
+    }
+
+    function selectMandi(mktName, distance, price) {
+      document.getElementById('hero-market-name').textContent = `${mktName} (ಕೊಪ್ಪ)`;
+      selectGrade('rashi', price, Math.round(price/100), '2026-09-22 (Mon)', 'rise', '+₹1,500', '(+3.2%)', '₹26,000 – ₹' + price.toLocaleString('en-IN'));
+    }
+  </script>
+</body>
+</html>

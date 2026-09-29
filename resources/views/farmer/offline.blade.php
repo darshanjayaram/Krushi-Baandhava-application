@@ -3,8 +3,19 @@
 @section('content')
 <div class="max-w-xl mx-auto px-4 py-12 sm:py-16 text-center">
 
+    @php
+        $appLogo = \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg');
+        $hasCustomLogo = $appLogo && $appLogo !== '/icons/icon-192.svg' && file_exists(public_path(ltrim($appLogo, '/')));
+    @endphp
+
+    @if($hasCustomLogo)
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white border-2 border-[#D9CEB8] flex items-center justify-center p-1 shadow-sm overflow-hidden">
+            <img src="{{ asset($appLogo) }}" alt="{{ \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava') }}" class="w-full h-full object-contain">
+        </div>
+    @endif
+
     <!-- Offline Visual Signal -->
-    <div class="w-24 h-24 mx-auto rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 mb-6 shadow-sm">
+    <div class="w-20 h-20 mx-auto rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 mb-6 shadow-sm">
         <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-5.657-2.615m0 0l2.829-2.829m-2.829 2.829L3 21m5.657-8.485a5 5 0 01-1.414-3.536m0 0l2.829 2.829m1.414-5.657L3 3" />
         </svg>

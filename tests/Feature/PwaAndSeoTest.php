@@ -50,7 +50,7 @@ class PwaAndSeoTest extends TestCase
         $this->assertFileExists($swPath);
 
         $swContent = file_get_contents($swPath);
-        $this->assertStringContainsString('krushi-baandhava-v2', $swContent);
+        $this->assertMatchesRegularExpression('/krushi-baandhava-v\d+/', $swContent);
         $this->assertStringContainsString("'/offline'", $swContent);
         $this->assertStringContainsString('self.addEventListener(\'install\'', $swContent);
         $this->assertStringContainsString('self.addEventListener(\'fetch\'', $swContent);

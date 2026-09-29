@@ -34,20 +34,23 @@ class AdminCropImageAndMissedCropsTest extends TestCase
         $response->assertStatus(200);
 
         // Verify missed crops on page 1
-        $response->assertSee('Jowar', false);
         $response->assertSee('Green Chilli', false);
         $response->assertSee('Banana', false);
         $response->assertSee('Groundnut', false);
         $response->assertSee('Cotton', false);
 
         // Verify Kannada names on page 1
-        $response->assertSee('ಜೋಳ', false);
         $response->assertSee('ಹಸಿಮೆಣಸಿನಕಾಯಿ', false);
         $response->assertSee('ಬಾಳೆಹಣ್ಣು', false);
         $response->assertSee('ಕಡಲೆಕಾಯಿ', false);
         $response->assertSee('ಹತ್ತಿ', false);
 
         // Verify page 2 crops via search
+        $jowarResponse = $this->actingAs($this->admin)->get('/admin/crops?search=Jowar');
+        $jowarResponse->assertStatus(200);
+        $jowarResponse->assertSee('Jowar', false);
+        $jowarResponse->assertSee('ಜೋಳ', false);
+
         $turResponse = $this->actingAs($this->admin)->get('/admin/crops?search=Tur');
         $turResponse->assertStatus(200);
         $turResponse->assertSee('Tur', false);

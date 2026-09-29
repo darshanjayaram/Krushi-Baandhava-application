@@ -85,25 +85,16 @@ protected function generateMarketCode(string $name, ?int $ignoreId = null): stri
 
 ---
 
-## 4. Quick-Fill from Standard Karnataka Mandi Directory
+## 4. Quick-Fill from Standard Karnataka Mandi Directory (165+ Presets)
 
-A curated directory of 45+ Karnataka APMC yards and Commodity Board centres is embedded directly in the form header:
+A comprehensive directory of **165+ Karnataka APMC main yards, sub-markets, and Commodity Board purchase centres** is embedded directly in the form header, powered by `App\Support\KarnatakaMandiDirectory`.
 
-### Supported Quick-Fill Presets:
-- **Shivamogga District**: Shivamogga APMC, Sagara APMC, Shikaripura APMC, Bhadravathi APMC
-- **Davanagere District**: Channagiri APMC, Davanagere APMC, Harihara APMC
-- **Chikkamagaluru District**: Chikkamagaluru APMC, Tarikere APMC, Kadur APMC, Coffee Board Centre
-- **Uttara Kannada District**: Sirsi APMC, Yellapur APMC, Kumta APMC
-- **Dakshina Kannada District**: Mangaluru APMC (Baikampady), Bantwal APMC, Puttur APMC, Sullia APMC
-- **Udupi District**: Udupi APMC, Kundapura APMC, CDB Field Office
-- **Tumakuru District**: Tumakuru APMC, Tiptur APMC (Copra), CDB Office
-- **Hassan District**: Hassan APMC, Arsikere APMC, Channarayapatna APMC, Sakleshpur APMC, Arsikere (CDB Centre)
-- **Mysuru District**: Mysuru APMC (Bandipalya), Nanjangud APMC
-- **Mandya District**: Mandya APMC, CDB Centre
-- **Kolar & Chikkaballapura**: Kolar APMC (Tomato), Srinivaspur APMC, Chikkaballapura APMC
-- **Bengaluru Urban**: Yeshwanthpur APMC, Binny Mill (F&V)
-- **North Karnataka**: Hubballi APMC (Amaragol), Belagavi APMC, Ballari APMC, Kalaburagi APMC (Nehru Gunj), Vijayapura APMC, Raichur APMC
-- **Commodity Boards**: Madikeri (Coffee Board), Balehonnur (Coffee Board), Arsikere (CDB Centre), etc.
+### Key Capabilities:
+- **All 31 Karnataka Districts Covered**: Grouped by district using `<optgroup>` tags (e.g. `📍 Shivamogga (7)`, `📍 Belagavi (11)`, `📍 Tumakuru (10)`, `📍 Mandya (7)`, etc.) with live district counts.
+- **Bi-Lingual Names**: Displays English and official Kannada names (e.g. `Shivamogga APMC — ಶಿವಮೊಗ್ಗ ಎಪಿಎಂಸಿ`, `Thirthahalli APMC — ತೀರ್ಥಹಳ್ಳಿ ಎಪಿಎಂಸಿ`).
+- **Comprehensive KRAMA Alignment**: Fully aligned with KRAMA (Karnataka State Agricultural Marketing Board) market definitions and official APMC jurisdiction.
+- **Pre-Configured Raw Aliases**: Each directory entry includes historical spelling aliases from KRAMA and Agmarknet feeds (e.g. `TIRTHAHALLI`, `SHIKARIPUR`, `CHANNAGIRI`).
+- **Commodity Boards Included**: Specialized Coffee Board auction centres (Madikeri, Sakleshpur, Chikkamagaluru, Balehonnur) and Coconut Development Board (CDB) market offices (Arsikere, Tiptur, Udupi, Mandya).
 
 ### Behavior:
 Selecting any preset instantly auto-populates:

@@ -12,6 +12,47 @@ use Tests\TestCase;
 
 class CommodityBoardPricesTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $coffee = Crop::where('slug', 'coffee')->orWhere('name', 'Coffee')->first();
+        if ($coffee) {
+            $m = Market::where('code', 'CB_CKM')->first() ?? Market::first();
+            $ds = DataSource::where('code', 'coffee_board')->first() ?? DataSource::first();
+            MarketPrice::firstOrCreate([
+                'crop_id' => $coffee->id,
+                'market_id' => $m->id,
+                'price_date' => Carbon::today()->toDateString(),
+            ], [
+                'district_id' => $m->district_id,
+                'min_price' => 19500,
+                'max_price' => 20500,
+                'modal_price' => 20000,
+                'unit' => '50kg Bag',
+                'data_source_id' => $ds->id,
+            ]);
+        }
+
+        $coconut = Crop::whereIn('slug', ['coconut', 'copra'])->first();
+        if ($coconut) {
+            $m = Market::where('code', 'CDB_TPT')->first() ?? Market::first();
+            $ds = DataSource::where('code', 'coconut_board')->first() ?? DataSource::first();
+            MarketPrice::firstOrCreate([
+                'crop_id' => $coconut->id,
+                'market_id' => $m->id,
+                'price_date' => Carbon::today()->toDateString(),
+            ], [
+                'district_id' => $m->district_id,
+                'min_price' => 2500,
+                'max_price' => 3000,
+                'modal_price' => 2800,
+                'unit' => 'Quintal',
+                'data_source_id' => $ds->id,
+            ]);
+        }
+    }
+
     public function test_coffee_crop_detail_shows_coffee_board_rates_and_centres_without_apmc(): void
     {
         $coffee = Crop::where('slug', 'coffee')->orWhere('name', 'Coffee')->firstOrFail();

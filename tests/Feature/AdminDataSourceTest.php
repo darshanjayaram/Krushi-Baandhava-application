@@ -264,9 +264,10 @@ class AdminDataSourceTest extends TestCase
     {
         $allSources = DataSource::pluck('code')->toArray();
 
-        // Exactly the 5 genuine data sources must be present
+        // The genuine data sources must be present
+        $this->assertContains('krama_karnataka', $allSources);
+        $this->assertContains('agmarknet_official', $allSources);
         $this->assertContains('data_gov_mandi', $allSources);
-        $this->assertContains('ceda_agmarknet', $allSources);
         $this->assertContains('coffee_board', $allSources);
         $this->assertContains('coconut_board', $allSources);
         $this->assertContains('tss_sirsi', $allSources);
@@ -275,11 +276,11 @@ class AdminDataSourceTest extends TestCase
         $this->assertNotContains('krama', $allSources);
         $this->assertNotContains('agmarknet', $allSources);
 
-        // DataSourceRegistry should only list the 5 genuine providers
+        // DataSourceRegistry should list the genuine providers
         $providers = \App\Services\DataSources\DataSourceRegistry::getAvailableProviders();
-        $this->assertCount(5, $providers);
+        $this->assertArrayHasKey(\App\Services\DataSources\Krama\KramaMarketDataProvider::class, $providers);
+        $this->assertArrayHasKey(\App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider::class, $providers);
         $this->assertArrayHasKey(\App\Services\DataSources\DataGov\DataGovMarketDataProvider::class, $providers);
-        $this->assertArrayHasKey(\App\Services\DataSources\Ceda\CedaAgmarknetDataProvider::class, $providers);
         $this->assertArrayHasKey(\App\Services\DataSources\CoffeeBoard\CoffeeBoardDataProvider::class, $providers);
         $this->assertArrayHasKey(\App\Services\DataSources\CoconutBoard\CoconutBoardDataProvider::class, $providers);
         $this->assertArrayHasKey(\App\Services\DataSources\TssSirsi\TssSirsiDataProvider::class, $providers);

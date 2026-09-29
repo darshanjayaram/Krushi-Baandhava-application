@@ -37,16 +37,23 @@
         <div class="flex items-center gap-2">
             <span class="text-emerald-400 text-base">⚡</span>
             <h3 class="text-xs font-bold text-white uppercase tracking-wider">Quick-Fill from Standard Karnataka Mandi Directory</h3>
-            <span class="px-2 py-0.5 rounded-full bg-emerald-900/50 text-[10px] font-semibold text-emerald-300 border border-emerald-700/50">45+ Presets Available</span>
+            <span class="px-2 py-0.5 rounded-full bg-emerald-900/50 text-[10px] font-semibold text-emerald-300 border border-emerald-700/50">{{ count($presets) }}+ Presets Available (All KRAMA APMCs)</span>
         </div>
-        <p class="text-[11px] text-slate-400">Select a known Karnataka APMC yard or commodity board centre to automatically pre-fill names, district, coordinates, and code.</p>
+        <p class="text-[11px] text-slate-400">Select a known Karnataka APMC yard or commodity board centre from KRAMA (Karnataka State Agricultural Marketing Board) to automatically pre-fill names, Kannada translation, district, coordinates, and code.</p>
         <div>
-            <select id="preset_selector" class="w-full sm:max-w-lg px-3.5 py-2.5 bg-slate-950 border border-emerald-700/60 rounded-xl text-emerald-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                <option value="">-- Choose Standard APMC / Board to Auto-Fill Form --</option>
-                @foreach($presets as $idx => $preset)
-                    <option value="{{ $idx }}" data-json="{{ json_encode($preset) }}">
-                        {{ $preset['name'] }} ({{ $preset['district'] }})
-                    </option>
+            <select id="preset_selector" class="w-full sm:max-w-xl px-3.5 py-2.5 bg-slate-950 border border-emerald-700/60 rounded-xl text-emerald-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <option value="">-- Choose Standard KRAMA APMC / Board to Auto-Fill Form ({{ count($presets) }} Mandis) --</option>
+                @php
+                    $groupedPresets = collect($presets)->groupBy('district')->sortKeys();
+                @endphp
+                @foreach($groupedPresets as $districtName => $districtPresets)
+                    <optgroup label="📍 {{ $districtName }} ({{ count($districtPresets) }})">
+                        @foreach($districtPresets as $idx => $preset)
+                            <option value="{{ $idx }}" data-json="{{ json_encode($preset) }}">
+                                {{ $preset['name'] }} — {{ $preset['name_kn'] ?? '' }}
+                            </option>
+                        @endforeach
+                    </optgroup>
                 @endforeach
             </select>
         </div>

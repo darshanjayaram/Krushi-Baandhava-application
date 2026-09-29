@@ -136,12 +136,11 @@
             </div>
             <form action="{{ route('admin.deployment-hub.sync-prices') }}" method="POST">
                 @csrf
-                <div class="mb-3">
                     <select name="source" class="w-full px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-purple-500">
-                        <option value="data_gov_mandi">data.gov.in (OGD India)</option>
-                        <option value="ceda_agmarknet">CEDA Agmarknet (Ashoka Univ)</option>
+                        <option value="krama_karnataka" selected>KRAMA (Karnataka APMC Board — Primary Live)</option>
+                        <option value="data_gov_mandi">data.gov.in (National Fallback)</option>
+                        <option value="agmarknet_official">Official AGMARKNET (DMI / MoA&FW)</option>
                     </select>
-                </div>
                 <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-1.5">
                     <span>🚀</span>
                     <span>Sync Rates Now</span>

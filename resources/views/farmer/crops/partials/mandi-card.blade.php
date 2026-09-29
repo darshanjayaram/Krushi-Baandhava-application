@@ -181,7 +181,7 @@
                 $mandiShare .= "\n";
             }
 
-            $mandiShare .= ($activeLocale === 'en' ? "📅 Date: " : "📅 ದಿನಾಂಕ: ") . $group->price_date->format('d M Y') . "\n";
+            $mandiShare .= ($activeLocale === 'en' ? "📅 Date: " : "📅 ದಿನಾಂಕ: ") . \Carbon\Carbon::parse($group->price_date)->format('d M Y') . "\n";
             $mandiShare .= ($activeLocale === 'en' ? "👉 View full details: " : "👉 ಸಂಪೂರ್ಣ ವಿವರಗಳಿಗೆ: ") . url()->current();
         @endphp
         <a href="https://wa.me/?text={{ rawurlencode($mandiShare) }}" 

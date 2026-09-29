@@ -155,6 +155,7 @@ class SirsiTumakuruAndSchedulingTest extends TestCase
         $this->assertFalse($ds->isDue($sunday));
 
         // Test hourly frequency
+        $ds->sync_days = 'all_days';
         $ds->sync_frequency = 'hourly';
         $ds->last_sync_at = Carbon::now()->subMinutes(65);
         $this->assertTrue($ds->isDue(Carbon::now()));

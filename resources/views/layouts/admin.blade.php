@@ -11,6 +11,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+    @php
+        $adminLogo = \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg');
+        $adminLogoExt = strtolower(pathinfo($adminLogo, PATHINFO_EXTENSION));
+        $adminLogoMime = match($adminLogoExt) {
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            default => 'image/svg+xml'
+        };
+        $adminLogoVersion = file_exists(public_path(ltrim($adminLogo, '/'))) ? filemtime(public_path(ltrim($adminLogo, '/'))) : '1';
+        $adminLogoUrl = asset($adminLogo) . '?v=' . $adminLogoVersion;
+    @endphp
+    <link rel="icon" type="{{ $adminLogoMime }}" href="{{ $adminLogoUrl }}">
+    <link rel="shortcut icon" href="{{ $adminLogoUrl }}">
+
     <style>
         body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
     </style>
@@ -39,8 +54,8 @@
         <!-- Sidebar Header / Brand -->
         <div class="h-16 px-6 flex items-center justify-between border-b border-slate-800">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg border border-emerald-400/30">
-                    <img src="{{ \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg') }}" alt="Krushi Baandhava" class="w-6 h-6 object-contain">
+                <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shadow-lg border border-emerald-400/30 p-1 shrink-0 overflow-hidden">
+                    <img src="{{ $adminLogoUrl }}" alt="Krushi Baandhava" class="w-full h-full object-contain">
                 </div>
                 <div>
                     <span class="font-extrabold text-white text-base tracking-tight leading-none block">Krushi Admin</span>

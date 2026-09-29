@@ -94,4 +94,54 @@ class FarmerPriceForecastTest extends TestCase
         $this->assertEquals(15, $data['forecast']['horizons'][2]['horizon_days']);
         $this->assertEquals(30, $data['forecast']['horizons'][3]['horizon_days']);
     }
+
+    public function test_forecast_updates_dynamically_based_on_variety_and_market_selection(): void
+    {
+        $thirthahalli = Market::where('name', 'like', '%Thirthahalli%')->first();
+        if (!$thirthahalli) {
+            $this->markTestSkipped('Thirthahalli market not found in database.');
+        }
+
+        $sarakuVariety = \App\Models\CropVariety::where('crop_id', $this->crop->id)->where('name', 'like', '%Saraku%')->first();
+        $sippegotuVariety = \App\Models\CropVariety::where('crop_id', $this->crop->id)->where('name', 'like', '%Sippegotu%')->first();
+
+        if (!$sarakuVariety || !$sippegotuVariety) {
+            $this->markTestSkipped('Saraku or Sippegotu variety not found.');
+        }
+
+        // 1. Visit with Saraku variety
+        $sarakuResponse = $this->get(route('farmer.crop.detail', [
+            'crop' => $this->crop->id,
+            'market' => $thirthahalli->name,
+            'variety' => $sarakuVariety->id,
+        ]));
+
+        $sarakuResponse->assertStatus(200);
+        $sarakuForecast = $sarakuResponse->viewData('forecast');
+        $this->assertTrue($sarakuForecast['is_sufficient']);
+        $this->assertNotEmpty($sarakuForecast['horizons']);
+        // Saraku current modal price is around 70k, so 7d forecast must be well above 40k
+        $this->assertGreaterThan(40000, $sarakuForecast['horizons'][1]['expected_price']);
+
+        // 2. Visit with Sippegotu variety
+        $sippeResponse = $this->get(route('farmer.crop.detail', [
+            'crop' => $this->crop->id,
+            'market' => $thirthahalli->name,
+            'variety' => $sippegotuVariety->id,
+        ]));
+
+        $sippeResponse->assertStatus(200);
+        $sippeForecast = $sippeResponse->viewData('forecast');
+        $this->assertTrue($sippeForecast['is_sufficient']);
+        $this->assertNotEmpty($sippeForecast['horizons']);
+        // Sippegotu current modal price is around 14k, so 7d forecast must be below 25k
+        $this->assertLessThan(25000, $sippeForecast['horizons'][1]['expected_price']);
+
+        // 3. Projections for Saraku and Sippegotu must be completely distinct and calibrated to their respective prices
+        $this->assertNotEquals(
+            $sarakuForecast['horizons'][1]['expected_price'],
+            $sippeForecast['horizons'][1]['expected_price'],
+            "Forecast expected price should differ significantly between Saraku and Sippegotu"
+        );
+    }
 }

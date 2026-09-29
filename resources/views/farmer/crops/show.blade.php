@@ -1,7 +1,7 @@
 @extends('layouts.farmer')
 
 @php
-    $activeLocale = app()->getLocale();
+    $activeLocale = $activeLocale ?? (request()->query('lang') ?: (session('locale') ?: (request()->cookie('locale') ?: app()->getLocale())));
 @endphp
 
 @section('title', ($activeLocale === 'en' 
@@ -12,13 +12,13 @@
 @section('content')
 @php
     $selectedMarketPrices = $selectedMarketPrices ?? collect();
-    if ($selectedMarketPrices->isNotEmpty()) {
-        $activePriceItem = $varietyId 
-            ? ($selectedMarketPrices->firstWhere('variety_id', $varietyId) ?? $selectedMarketPrices->first())
-            : $selectedMarketPrices->first();
-    } else {
-        $activePriceItem = $mandiPrices->first();
-    }
+    $activePriceItem = $activePriceItem ?? (
+        $selectedMarketPrices->isNotEmpty()
+            ? ($varietyId 
+                ? ($selectedMarketPrices->firstWhere('variety_id', $varietyId) ?? $selectedMarketPrices->first())
+                : ($selectedMarketPrices->where('price_date', $latestDate)->sortByDesc('modal_price')->first() ?? $selectedMarketPrices->first()))
+            : $mandiPrices->first()
+    );
 
     $displayModal = $activePriceItem ? (float) $activePriceItem->modal_price : ($stats['avg_modal'] > 0 ? (float) $stats['avg_modal'] : 0);
     $rawMktName = $selectedMarket ? $selectedMarket->name : ($activePriceItem ? $activePriceItem->market->name : null);
@@ -140,7 +140,7 @@
                         {{ $activeLocale === 'en' ? 'CURRENT PRICE' : 'ಇಂದಿನ ದರ' }}
                     </span>
                     <span class="text-[11px] font-semibold text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? 'Updated:' : 'ನವೀಕರಿಸಲಾಗಿದೆ:' }} {{ $stats['date_formatted'] }}
+                        {{ $activeLocale === 'en' ? 'Updated:' : 'ನವೀಕರಿಸಲಾಗಿದೆ:' }} {{ \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M Y') }}
                     </span>
                 </div>
 
@@ -159,9 +159,23 @@
                         </div>
                     @endif
 
-                    @if($activePriceItem && $activePriceItem->price_spread > 0)
-                        <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold font-sans">
-                            ↑ +₹{{ number_format($activePriceItem->price_spread, 0) }}
+                    @if(isset($dailyPriceChangeTrend) && $dailyPriceChangeTrend === 'rise')
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold font-sans">
+                            <span>↑</span>
+                            <span>+₹{{ number_format(abs($dailyPriceChange), 0) }}</span>
+                            <span class="text-[11px] font-semibold text-emerald-600">(+{{ abs($dailyPriceChangePercent) }}%)</span>
+                        </span>
+                    @elseif(isset($dailyPriceChangeTrend) && $dailyPriceChangeTrend === 'drop')
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 text-xs font-bold font-sans">
+                            <span>↓</span>
+                            <span>-₹{{ number_format(abs($dailyPriceChange), 0) }}</span>
+                            <span class="text-[11px] font-semibold text-red-600">({{ $dailyPriceChangePercent }}%)</span>
+                        </span>
+                    @elseif(isset($dailyPriceChangeTrend) && $dailyPriceChangeTrend === 'stable' && $dailyPriceChange !== null)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-600 text-xs font-bold font-sans">
+                            <span>→</span>
+                            <span>₹0</span>
+                            <span class="text-[11px] font-semibold text-stone-500">({{ $activeLocale === 'en' ? 'Stable' : 'ಸ್ಥಿರ' }})</span>
                         </span>
                     @endif
                 </div>
@@ -171,6 +185,13 @@
                     <span class="font-bold text-stone-800">
                         {{ $activeLocale === 'kn' ? ($crop->standard_unit === 'Quintal' ? 'ಕ್ವಿಂಟಾಲ್' : ($crop->standard_unit ?? 'ಕ್ವಿಂಟಾಲ್')) : ($crop->standard_unit ?? 'Quintal') }} • @ {{ strtoupper($displayMarketName) }}
                     </span>
+
+                    @if($activePriceItem && $activePriceItem->min_price > 0 && $activePriceItem->max_price > 0 && $activePriceItem->price_spread > 0)
+                        <span class="text-stone-300">•</span>
+                        <span class="text-stone-600 font-semibold" title="{{ $activeLocale === 'en' ? 'Day auction min-max range' : 'ದೈನಂದಿನ ಹರಾಜು ಕನಿಷ್ಠ-ಗರಿಷ್ಠ ವ್ಯಾಪ್ತಿ' }}">
+                            {{ $activeLocale === 'en' ? 'Day Range:' : 'ಶ್ರೇಣಿ:' }} ₹{{ number_format($activePriceItem->min_price, 0) }} – ₹{{ number_format($activePriceItem->max_price, 0) }}
+                        </span>
+                    @endif
 
                     @if(!empty($isSelectedActualNearest) && !empty($nearestDistanceKm))
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#fff4e5] text-[#9a5b00] border border-[#ffe0b2] text-[11px] font-extrabold whitespace-nowrap shadow-2xs"
@@ -187,7 +208,7 @@
                     @endif
 
                     <span class="text-stone-300">•</span>
-                    <span class="text-stone-500 font-medium">{{ $activeLocale === 'en' ? 'as of' : 'ದಿನಾಂಕ' }} {{ \Carbon\Carbon::parse($latestDate)->format('d M') }}</span>
+                    <span class="text-stone-500 font-medium">{{ $activeLocale === 'en' ? 'as of' : 'ದಿನಾಂಕ' }} {{ \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M') }}</span>
 
                     @if($boardMeta)
                         <span class="text-amber-900 font-bold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} text-[11px]">({{ $activeLocale === 'en' ? $boardMeta['badge_en'] : $boardMeta['badge_kn'] }})</span>
@@ -206,7 +227,7 @@
                     <div class="inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-stone-900 text-white shadow-xs">
                         <div>
                             <div class="text-[11px] font-extrabold tracking-wide uppercase text-stone-300 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                                {{ $displayMarketPrices->first()->variety ? $displayMarketPrices->first()->variety->displayName($activeLocale) : ($activeLocale === 'en' ? 'Standard Grade' : 'ಸಾಮಾನ್ಯ ಗ್ರೇಡ್') }}
+                                {{ $displayMarketPrices->first()->getDisplayVarietyGrade($activeLocale) }}
                             </div>
                             <div class="text-base font-black text-emerald-400 font-sans tracking-tight">
                                 ₹{{ number_format($displayMarketPrices->first()->modal_price, 0) }}
@@ -217,20 +238,29 @@
             @elseif($displayMarketPrices->count() > 1)
                 <!-- Multiple Grades: Wrap Row Without Horizontal Scroll -->
                 <div class="space-y-2 pt-2 border-t border-stone-100">
-                    <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? 'PICK YOUR GRADE' : 'ಗ್ರೇಡ್ ಆಯ್ಕೆಮಾಡಿ' }}
+                    <div class="flex items-center justify-between">
+                        <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'PICK YOUR GRADE' : 'ಗ್ರೇಡ್ ಆಯ್ಕೆಮಾಡಿ' }}
+                        </div>
+                        <span class="text-[11px] text-stone-500 font-medium">
+                            @if(isset($weeklyMinTradedPrice) && $weeklyMinTradedPrice > 0 && isset($weeklyMaxTradedPrice) && $weeklyMaxTradedPrice > 0)
+                                {{ $activeLocale === 'en' ? 'Trades this week: ₹' . number_format($weeklyMinTradedPrice, 0) . ' – ₹' . number_format($weeklyMaxTradedPrice, 0) . ' (' . $displayMarketPrices->count() . ' varieties)' : 'ಈ ವಾರದ ವಹಿವಾಟು: ₹' . number_format($weeklyMinTradedPrice, 0) . ' – ₹' . number_format($weeklyMaxTradedPrice, 0) . ' (' . $displayMarketPrices->count() . ' ತಳಿಗಳು)' }}
+                            @else
+                                {{ $activeLocale === 'en' ? 'Active Market Trades (' . $displayMarketPrices->count() . ' varieties)' : 'ಸಕ್ರಿಯ ಮಾರುಕಟ್ಟೆ ವಹಿವಾಟು (' . $displayMarketPrices->count() . ' ತಳಿಗಳು)' }}
+                            @endif
+                        </span>
                     </div>
 
                     <div class="flex flex-wrap gap-2 text-xs">
                         @foreach($displayMarketPrices as $smp)
                             @php
-                                $isVarSelected = ($varietyId == $smp->variety_id) || (!$varietyId && $loop->first);
-                                $vLabel = $smp->variety ? $smp->variety->displayName($activeLocale) : ($activeLocale === 'en' ? 'Standard' : 'ಸಾಮಾನ್ಯ');
+                                $isVarSelected = ($activePriceItem && $activePriceItem->variety_id == $smp->variety_id && (!$smp->grade || empty($gradeParam) || strcasecmp($activePriceItem->grade ?? '', $smp->grade) === 0));
+                                $vGradeLabel = $smp->getDisplayVarietyGrade($activeLocale);
                             @endphp
-                            <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'variety' => $smp->variety_id, 'market' => $displayMarketName])) }}"
-                               class="px-3.5 py-2 rounded-2xl font-bold transition border flex flex-col items-start gap-0.5 cursor-pointer {{ $isVarSelected ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
+                            <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'variety' => $smp->variety_id, 'grade' => $smp->grade, 'market' => $displayMarketName])) }}"
+                               class="px-3.5 py-2 rounded-2xl font-bold transition border flex flex-col items-start gap-0.5 cursor-pointer tap-feedback active:scale-95 {{ $isVarSelected ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
                                 <span class="text-[11px] {{ $isVarSelected ? 'text-stone-300' : 'text-stone-600' }} {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                                    {{ $vLabel }}
+                                    {{ $vGradeLabel }}
                                 </span>
                                 <span class="text-sm font-black font-sans {{ $isVarSelected ? 'text-emerald-400' : 'text-emerald-800' }}">
                                     ₹{{ number_format($smp->modal_price, 0) }}
@@ -328,7 +358,7 @@
                         <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'market' => $am->name])) }}"
                            x-show="showAllRadius || {{ ($isWithin || $isMktSelected) ? 'true' : 'false' }}"
                            :style="activeSort === 'highest_price_first' ? 'order: {{ $am->price_rank ?? 999 }}' : 'order: {{ $am->distance_rank ?? 999 }}'"
-                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition border cursor-pointer {{ $isMktSelected ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
+                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition border cursor-pointer tap-feedback active:scale-95 {{ $isMktSelected ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
                             @if($isMktSelected)
                                 <span class="text-amber-300">★</span>
                             @endif
@@ -498,17 +528,22 @@
         
         <!-- Section Header with Green Bar -->
         <div class="flex items-center justify-between pb-3 border-b border-stone-100">
-            <div class="flex items-center gap-2.5">
+            <div class="flex flex-wrap items-center gap-2.5">
                 <span class="w-1.5 h-6 rounded-full bg-[#1C5A2C]"></span>
                 <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     {{ $activeLocale === 'en' ? "What's next" : 'ಮುಂದೇನು?' }}
                 </h2>
+                @if($activePriceItem && $activePriceItem->variety)
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-100 text-stone-800 border border-stone-200">
+                        🏷️ {{ $activePriceItem->getDisplayVarietyGrade($activeLocale) }}
+                    </span>
+                @endif
                 @if($activeLocale === 'en')
-                    <span class="text-xs font-bold text-stone-500 font-sans">
+                    <span class="text-xs font-bold text-stone-500 font-sans hidden sm:inline">
                         • Price Forecast & Projections
                     </span>
                 @else
-                    <span class="text-xs font-bold text-stone-500 font-kannada">
+                    <span class="text-xs font-bold text-stone-500 font-kannada hidden sm:inline">
                         • ದರ ಮುನ್ಸೂಚನೆ & ನಿರೀಕ್ಷಿತ ಶ್ರೇಣಿ
                     </span>
                 @endif
@@ -634,7 +669,6 @@
                     : ($forecast['disclaimer_kn'] ?? 'ಇದು ಕೇವಲ ಹಿಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳ ಪ್ರವೃತ್ತಿ ಆಧಾರಿತ ಗಣಿತೀಯ ಅಂದಾಜು. ನೈಜ ದರಗಳು ಹವಾಮಾನ ಪರಿಸ್ಥಿತಿ, ಮಾರುಕಟ್ಟೆಯ ಆವಕ ಪ್ರಮಾಣ ಮತ್ತು ಸರ್ಕಾರದ ನೀತಿಗಳಿಂದ ವ್ಯತ್ಯಾಸವಾಗಬಹುದು.') }}
             </span>
         </div>
-
     </div>
 
     <!-- 5. Mandi / Board Rates Comparison List (Ranked Highest to Lowest) -->

@@ -11,6 +11,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+    @php
+        $adminLogo = \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg');
+        $adminLogoExt = strtolower(pathinfo($adminLogo, PATHINFO_EXTENSION));
+        $adminLogoMime = match($adminLogoExt) {
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            default => 'image/svg+xml'
+        };
+        $adminLogoVersion = file_exists(public_path(ltrim($adminLogo, '/'))) ? filemtime(public_path(ltrim($adminLogo, '/'))) : '1';
+        $adminLogoUrl = asset($adminLogo) . '?v=' . $adminLogoVersion;
+    @endphp
+    <link rel="icon" type="{{ $adminLogoMime }}" href="{{ $adminLogoUrl }}">
+    <link rel="shortcut icon" href="{{ $adminLogoUrl }}">
+
     <style>
         body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
     </style>
@@ -22,8 +37,8 @@
     <div class="w-full max-w-md">
         <!-- Logo & Header -->
         <div class="text-center mb-8">
-            <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-xl border border-emerald-400/30">
-                <img src="{{ \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg') }}" alt="Krushi Baandhava" class="w-9 h-9 object-contain">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center shadow-xl border border-emerald-400/30 p-1.5 overflow-hidden">
+                <img src="{{ $adminLogoUrl }}" alt="Krushi Baandhava" class="w-full h-full object-contain">
             </div>
             <h1 class="text-2xl font-extrabold tracking-tight text-white">Krushi Baandhava Admin</h1>
             <p class="text-sm text-slate-400 mt-1">Authorized Management & Data Operations Portal</p>

@@ -154,6 +154,7 @@ class FarmerMarketDiscoveryAndSortingTest extends TestCase
         // Set a small radius (e.g. 100km from Bengaluru) so Tumakuru (~70km) is within and Mangaluru (~300km) is outside
         $this->crop->update([
             'market_radius_km' => 100,
+            'default_market_sort' => 'nearest_first',
         ]);
 
         $response = $this->withSession(['locale' => 'en', 'user_lat' => 12.9716, 'user_lng' => 77.5946])
@@ -174,6 +175,7 @@ class FarmerMarketDiscoveryAndSortingTest extends TestCase
             'allow_user_sort_toggle' => true,
             'enable_smart_badges' => true,
             'market_radius_km' => 100,
+            'default_market_sort' => 'nearest_first',
         ]);
 
         $response = $this->withSession(['locale' => 'kn', 'user_lat' => 12.9716, 'user_lng' => 77.5946])

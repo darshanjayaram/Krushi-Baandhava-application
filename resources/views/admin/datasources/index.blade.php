@@ -285,10 +285,25 @@
                             <td class="py-3.5 px-5">
                                 <div class="font-bold text-white text-sm">{{ $source->name }}</div>
                                 <div class="text-xs text-slate-400 font-mono mt-0.5">{{ $source->code }} · {{ $source->auth_type }}</div>
-                                @if(in_array($source->code, ['coffee_board', 'coconut_board']))
+                                @if($source->code === 'krama_karnataka')
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/80 mt-1 shadow-xs">
+                                        <span>🥇</span>
+                                        <span>Primary Live Karnataka Source (Daily APMC Feed)</span>
+                                    </span>
+                                @elseif($source->code === 'agmarknet_official')
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black bg-purple-950 text-purple-300 border border-purple-700/80 mt-1 shadow-xs">
+                                        <span>📜</span>
+                                        <span>Official AGMARKNET (Multi-Year Historical & Predictions)</span>
+                                    </span>
+                                @elseif(in_array($source->code, ['coffee_board', 'coconut_board']))
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-950/70 text-amber-300 border border-amber-800/60 mt-1">
                                         <span>🕷️</span>
                                         <span>Direct Web Scraper (HTML Parser)</span>
+                                    </span>
+                                @elseif($source->code === 'data_gov_mandi')
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-950/70 text-cyan-300 border border-cyan-800/60 mt-1">
+                                        <span>🔌</span>
+                                        <span>data.gov.in (National Fallback Feed)</span>
                                     </span>
                                 @else
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-950/70 text-cyan-300 border border-cyan-800/60 mt-1">
@@ -337,6 +352,17 @@
                             </td>
                             <td class="py-3.5 px-5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    @if($source->code === 'agmarknet_official')
+                                        <!-- Official Agmarknet Captcha Sync Modal Trigger -->
+                                        <button type="button" 
+                                                @click="openAgmarknetCaptchaModal()" 
+                                                class="px-2.5 py-1 text-xs font-black text-purple-300 bg-purple-950/90 border border-purple-700/80 hover:bg-purple-900 rounded-xl transition cursor-pointer flex items-center gap-1 shadow-xs" 
+                                                title="Official Agmarknet Captcha Historical Sync">
+                                            <span>🔑</span>
+                                            <span>Captcha Sync</span>
+                                        </button>
+                                    @endif
+
                                     <!-- Test Connection Button -->
                                     <button type="button" @click="testConnection('{{ route('admin.datasources.test-connection', $source) }}', '{{ addslashes($source->name) }}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition cursor-pointer" title="Test Connection">
                                         <span class="text-base">⚡</span>
@@ -928,11 +954,235 @@
         </div>
     </div>
 </div>
+
+    <!-- ========================================================================= -->
+    <!-- AGMARKNET OFFICIAL HISTORICAL SYNC & CAPTCHA MODAL                        -->
+    <!-- ========================================================================= -->
+    <div x-show="agmarknetCaptchaModalOpen" 
+         style="display: none;" 
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6" 
+         role="dialog" 
+         aria-modal="true"
+         @keydown.escape.window="agmarknetCaptchaModalOpen = false">
+        
+        <!-- Backdrop -->
+        <div x-show="agmarknetCaptchaModalOpen" 
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-black/80" 
+             @click="agmarknetCaptchaModalOpen = false"></div>
+
+        <!-- Dialog Box -->
+        <div x-show="agmarknetCaptchaModalOpen" 
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="relative z-10 bg-slate-900 border border-purple-500/40 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl space-y-0 text-left">
+            
+            <!-- Modal Header -->
+            <div class="p-5 sm:p-6 border-b border-slate-800 bg-gradient-to-r from-purple-950/80 to-slate-900 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-purple-900/60 border border-purple-600/40 flex items-center justify-center text-xl shadow-inner">
+                        📜
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-white">Official AGMARKNET Historical Sync</h3>
+                        <p class="text-xs text-purple-300/80 font-medium">Directorate of Marketing & Inspection (DMI / MoA&FW)</p>
+                    </div>
+                </div>
+                <button type="button" @click="agmarknetCaptchaModalOpen = false" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 sm:p-6 space-y-4 text-xs">
+                <!-- Info Notice -->
+                <div class="bg-purple-950/40 border border-purple-800/60 rounded-xl p-3 text-purple-200 text-xs leading-relaxed">
+                    💡 <strong>Multi-Year Training & Predictions:</strong> AGMARKNET provides verified multi-year historical trade data. To access the official government archive, complete the quick visual security verification below.
+                </div>
+
+                <!-- Date Range Filters -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">From Date</label>
+                        <input type="date" x-model="agmarknetFromDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">To Date</label>
+                        <input type="date" x-model="agmarknetToDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-purple-500">
+                    </div>
+                </div>
+
+                <!-- Optional Crop Filter -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Commodity / Crop (Optional)</label>
+                    <select x-model="agmarknetCropId" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-purple-500">
+                        <option value="">All Karnataka Crops</option>
+                        <template x-for="crop in canonicalCrops" :key="crop.id">
+                            <option :value="crop.id" x-text="crop.name + ' (' + (crop.name_kn || '') + ')'"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <!-- CAPTCHA Box -->
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <span>🛡️</span> Security Verification (Official API)
+                        </span>
+                        <button type="button" @click="refreshAgmarknetCaptcha()" class="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer">
+                            <span :class="agmarknetCaptchaLoading ? 'animate-spin inline-block' : ''">🔄</span>
+                            <span>Refresh Image</span>
+                        </button>
+                    </div>
+
+                    <!-- Image container -->
+                    <div class="h-16 bg-white/95 rounded-xl border border-slate-700/60 flex items-center justify-center p-2 overflow-hidden shadow-inner">
+                        <template x-if="agmarknetCaptchaLoading">
+                            <span class="text-slate-500 text-xs font-medium animate-pulse">Generating security CAPTCHA...</span>
+                        </template>
+                        <template x-if="!agmarknetCaptchaLoading && agmarknetCaptchaImage">
+                            <img :src="agmarknetCaptchaImage" alt="AGMARKNET Security CAPTCHA" class="h-12 object-contain select-none">
+                        </template>
+                    </div>
+
+                    <!-- Captcha Input -->
+                    <div>
+                        <input type="text" 
+                               x-model="agmarknetCaptchaCode" 
+                               maxlength="8" 
+                               placeholder="Type the 6 characters from image above..." 
+                               class="w-full bg-slate-900 border border-slate-700 text-center tracking-widest text-base font-mono font-black text-amber-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 uppercase placeholder:normal-case placeholder:text-slate-500 placeholder:text-xs placeholder:tracking-normal">
+                    </div>
+                </div>
+
+                <!-- Error & Success Messages -->
+                <template x-if="agmarknetSyncError">
+                    <div class="bg-rose-950/80 border border-rose-800 text-rose-300 rounded-xl p-3 text-xs flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span x-text="agmarknetSyncError"></span>
+                    </div>
+                </template>
+
+                <template x-if="agmarknetSyncStatus">
+                    <div class="bg-emerald-950/80 border border-emerald-800 text-emerald-300 rounded-xl p-3 text-xs flex items-center gap-2">
+                        <span>✓</span>
+                        <span x-text="agmarknetSyncStatus"></span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 sm:p-5 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+                <button type="button" @click="agmarknetCaptchaModalOpen = false" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" 
+                        @click="submitAgmarknetHistoricalSync()" 
+                        :disabled="agmarknetCaptchaSyncing || agmarknetCaptchaLoading"
+                        class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition flex items-center gap-2 cursor-pointer">
+                    <span x-show="agmarknetCaptchaSyncing" class="animate-spin inline-block">🔄</span>
+                    <span x-text="agmarknetCaptchaSyncing ? 'Ingesting Archives...' : 'Verify & Ingest Archives 🚀'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
 function dataSourceManager() {
     return {
+        // Agmarknet Captcha Modal State
+        agmarknetCaptchaModalOpen: false,
+        agmarknetCaptchaLoading: false,
+        agmarknetCaptchaSyncing: false,
+        agmarknetCaptchaKey: '',
+        agmarknetCaptchaImage: '',
+        agmarknetCaptchaCode: '',
+        agmarknetFromDate: '{{ now()->subYears(3)->format("Y-m-d") }}',
+        agmarknetToDate: '{{ now()->format("Y-m-d") }}',
+        agmarknetCropId: '',
+        agmarknetSyncStatus: null,
+        agmarknetSyncError: null,
+
+        async openAgmarknetCaptchaModal() {
+            this.agmarknetCaptchaModalOpen = true;
+            this.agmarknetCaptchaCode = '';
+            this.agmarknetSyncStatus = null;
+            this.agmarknetSyncError = null;
+            await this.refreshAgmarknetCaptcha();
+        },
+
+        async refreshAgmarknetCaptcha() {
+            this.agmarknetCaptchaLoading = true;
+            this.agmarknetCaptchaImage = '';
+            this.agmarknetSyncError = null;
+            try {
+                const res = await fetch('{{ route("admin.datasources.agmarknet.captcha") }}', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.agmarknetCaptchaKey = data.captcha_key;
+                    this.agmarknetCaptchaImage = data.captcha_image;
+                } else {
+                    this.agmarknetSyncError = data.error || 'Failed to generate CAPTCHA image.';
+                }
+            } catch (e) {
+                this.agmarknetSyncError = e.message;
+            } finally {
+                this.agmarknetCaptchaLoading = false;
+            }
+        },
+
+        async submitAgmarknetHistoricalSync() {
+            if (!this.agmarknetCaptchaCode || this.agmarknetCaptchaCode.length < 4) {
+                this.agmarknetSyncError = 'Please enter the 6-letter CAPTCHA shown in the image.';
+                return;
+            }
+
+            this.agmarknetCaptchaSyncing = true;
+            this.agmarknetSyncError = null;
+            this.agmarknetSyncStatus = null;
+
+            try {
+                const res = await fetch('{{ route("admin.datasources.agmarknet.sync-historical") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        captcha_key: this.agmarknetCaptchaKey,
+                        captcha_code: this.agmarknetCaptchaCode,
+                        from_date: this.agmarknetFromDate,
+                        to_date: this.agmarknetToDate,
+                        crop_id: this.agmarknetCropId ? parseInt(this.agmarknetCropId) : null,
+                    })
+                });
+
+                const data = await res.json();
+                if (data.ok) {
+                    this.agmarknetSyncStatus = data.message || 'Historical sync completed successfully!';
+                } else {
+                    this.agmarknetSyncError = data.error || 'Verification or sync failed. Please try again.';
+                    await this.refreshAgmarknetCaptcha();
+                }
+            } catch (e) {
+                this.agmarknetSyncError = e.message;
+                await this.refreshAgmarknetCaptcha();
+            } finally {
+                this.agmarknetCaptchaSyncing = false;
+            }
+        },
+
         // Diagnostic test state
         modalOpen: false,
         isLoading: false,

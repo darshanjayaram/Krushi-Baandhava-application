@@ -30,8 +30,8 @@ class TssSirsiDataProvider extends BaseMarketDataProvider
         ]);
 
         if (!$res['success'] || empty($res['body'])) {
-            Log::warning("TssSirsiDataProvider: Live fetch failed or empty response from {$url}. Using cached benchmark tender rates.");
-            return $this->getMockRecords();
+            Log::warning("TssSirsiDataProvider: Live fetch failed or empty response from {$url}.");
+            return [];
         }
 
         $records = [];
@@ -41,7 +41,7 @@ class TssSirsiDataProvider extends BaseMarketDataProvider
             $records = $res['body']['rates'];
         }
 
-        return !empty($records) ? $records : $this->getMockRecords();
+        return $records;
     }
 
     /**
@@ -249,6 +249,20 @@ class TssSirsiDataProvider extends BaseMarketDataProvider
      */
     public function testConnection(): array
     {
+        if ($this->isMockMode()) {
+            $mock = $this->getMockRecords();
+            return [
+                'status' => 'healthy',
+                'http_status' => 200,
+                'response_time_ms' => 120,
+                'auth_result' => 'passed (mock mode)',
+                'records_found' => count($mock),
+                'detected_fields' => array_keys($mock[0] ?? []),
+                'sample_payload' => $mock[0] ?? null,
+                'error_message' => null,
+            ];
+        }
+
         $start = microtime(true);
         $url = rtrim($this->dataSource->base_url, '/') . '/' . ltrim($this->dataSource->endpoint ?? '', '/');
 
@@ -260,32 +274,29 @@ class TssSirsiDataProvider extends BaseMarketDataProvider
         $durationMs = (int) round((microtime(true) - $start) * 1000);
 
         if ($res['success'] && !empty($res['body'])) {
-            $parsed = is_string($res['body']) ? $this->scrapeTssRatesFromHtml($res['body']) : [];
-            $records = !empty($parsed) ? $parsed : $this->getMockRecords();
+            $records = is_string($res['body']) ? $this->scrapeTssRatesFromHtml($res['body']) : [];
 
             return [
-                'status' => 'healthy',
+                'status' => !empty($records) ? 'healthy' : 'unhealthy',
                 'http_status' => $res['http_status'] ?? 200,
                 'response_time_ms' => $durationMs,
-                'auth_result' => 'passed',
+                'auth_result' => !empty($records) ? 'passed' : 'failed',
                 'records_found' => count($records),
-                'detected_fields' => ['Commodity', 'Variety', 'Market', 'District', 'State', 'Arrival_Date', 'Min_Price', 'Max_Price', 'Modal_Price', 'Arrival_Quantity', 'Unit'],
+                'detected_fields' => !empty($records) ? ['Commodity', 'Variety', 'Market', 'District', 'State', 'Arrival_Date', 'Min_Price', 'Max_Price', 'Modal_Price', 'Arrival_Quantity', 'Unit'] : [],
                 'sample_payload' => $records[0] ?? null,
-                'error_message' => null,
+                'error_message' => empty($records) ? 'No auction records found in response.' : null,
             ];
         }
 
-        // Return healthy simulation if endpoint returns standard HTML
-        $mock = $this->getMockRecords();
         return [
-            'status' => 'healthy',
-            'http_status' => $res['http_status'] ?: 200,
-            'response_time_ms' => $durationMs ?: 120,
-            'auth_result' => 'passed (public portal)',
-            'records_found' => count($mock),
-            'detected_fields' => array_keys($mock[0]),
-            'sample_payload' => $mock[0],
-            'error_message' => $res['error'] ?? null,
+            'status' => 'unhealthy',
+            'http_status' => $res['http_status'],
+            'response_time_ms' => $durationMs,
+            'auth_result' => 'failed',
+            'records_found' => 0,
+            'detected_fields' => [],
+            'sample_payload' => null,
+            'error_message' => $res['error'] ?? 'Connection failed.',
         ];
     }
 }

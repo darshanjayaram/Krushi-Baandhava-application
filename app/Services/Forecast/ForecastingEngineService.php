@@ -31,38 +31,102 @@ class ForecastingEngineService
     public const HORIZONS = [1, 7, 15, 30];
 
     /**
-     * Generate projections across all standard horizons for a given crop and market.
+     * Generate projections across all standard horizons for a given crop, market, and variety.
      */
-    public function getForecastsForCrop(int $cropId, ?int $marketId = null): array
+    public function getForecastsForCrop(
+        int $cropId, 
+        ?int $marketId = null, 
+        ?int $varietyId = null, 
+        ?float $currentModalPrice = null
+    ): array
     {
-        // 1. Fetch historical prices in last 90 days
-        $startDate = Carbon::today()->subDays(90)->toDateString();
-        $endDate = Carbon::today()->toDateString();
+        $startDate = Carbon::today()->subDays(180)->toDateString();
+        $sourcePrices = [];
+        $scope = 'variety_market';
+        $observationsCount = 0;
 
-        $query = MarketPrice::karnataka()
-            ->where('crop_id', $cropId)
-            ->whereBetween('price_date', [$startDate, $endDate])
-            ->orderBy('price_date', 'asc');
+        // 1. Direct variety records in this specific market
+        if ($marketId !== null && $varietyId !== null) {
+            $vmRecords = MarketPrice::karnataka()
+                ->where('crop_id', $cropId)
+                ->where('market_id', $marketId)
+                ->where('variety_id', $varietyId)
+                ->where('modal_price', '>', 0)
+                ->where('price_date', '>=', $startDate)
+                ->orderBy('price_date', 'asc')
+                ->pluck('modal_price')
+                ->map(fn ($p) => (float) $p)
+                ->toArray();
 
-        if ($marketId !== null) {
-            $query->where('market_id', $marketId);
+            if (count($vmRecords) >= 15) {
+                $sourcePrices = $vmRecords;
+                $observationsCount = count($vmRecords);
+                $scope = 'variety_market';
+            }
         }
 
-        $priceRecords = $query->get();
-        $observationsCount = $priceRecords->count();
+        // 2. Specific variety records statewide across Karnataka
+        if (empty($sourcePrices) && $varietyId !== null) {
+            $svRecords = MarketPrice::karnataka()
+                ->where('crop_id', $cropId)
+                ->where('variety_id', $varietyId)
+                ->where('modal_price', '>', 0)
+                ->where('price_date', '>=', $startDate)
+                ->orderBy('price_date', 'asc')
+                ->get()
+                ->groupBy(fn ($r) => Carbon::parse($r->price_date)->format('Y-m-d'))
+                ->map(fn ($group) => round((float) $group->avg('modal_price'), 2))
+                ->values()
+                ->toArray();
 
-        // Check Data Sufficiency
-        if ($observationsCount < self::MIN_OBSERVATIONS) {
-            // If a specific market was requested, try falling back to state benchmark observations
-            if ($marketId !== null) {
-                $stateFallback = $this->getForecastsForCrop($cropId, null);
-                if (!empty($stateFallback['is_sufficient'])) {
-                    $stateFallback['scope'] = 'state_benchmark';
-                    $stateFallback['market_id'] = $marketId;
-                    return $stateFallback;
-                }
+            if (count($svRecords) >= 15) {
+                $sourcePrices = $svRecords;
+                $observationsCount = count($svRecords);
+                $scope = 'variety_state';
             }
+        }
 
+        // 3. Market-specific records (daily average across market)
+        if (empty($sourcePrices) && $marketId !== null) {
+            $mRecords = MarketPrice::karnataka()
+                ->where('crop_id', $cropId)
+                ->where('market_id', $marketId)
+                ->where('modal_price', '>', 0)
+                ->where('price_date', '>=', $startDate)
+                ->orderBy('price_date', 'asc')
+                ->get()
+                ->groupBy(fn ($r) => Carbon::parse($r->price_date)->format('Y-m-d'))
+                ->map(fn ($group) => round((float) $group->avg('modal_price'), 2))
+                ->values()
+                ->toArray();
+
+            if (count($mRecords) >= 15) {
+                $sourcePrices = $mRecords;
+                $observationsCount = count($mRecords);
+                $scope = 'market_aggregate';
+            }
+        }
+
+        // 4. Crop statewide daily benchmark
+        if (empty($sourcePrices)) {
+            $stateRecords = MarketPrice::karnataka()
+                ->where('crop_id', $cropId)
+                ->where('modal_price', '>', 0)
+                ->where('price_date', '>=', $startDate)
+                ->orderBy('price_date', 'asc')
+                ->get()
+                ->groupBy(fn ($r) => Carbon::parse($r->price_date)->format('Y-m-d'))
+                ->map(fn ($group) => round((float) $group->avg('modal_price'), 2))
+                ->values()
+                ->toArray();
+
+            $sourcePrices = $stateRecords;
+            $observationsCount = count($stateRecords);
+            $scope = 'state_benchmark';
+        }
+
+        // Check Hard Minimum Observations (need at least 5 data points to form any trend)
+        if ($observationsCount < 5) {
             return [
                 'is_sufficient' => false,
                 'observations_count' => $observationsCount,
@@ -70,21 +134,12 @@ class ForecastingEngineService
                 'message_kn' => "ವಿಶ್ವಾಸಾರ್ಹ ಮುನ್ಸೂಚನೆಗೆ ಕನಿಷ್ಠ " . self::MIN_OBSERVATIONS . " ದಿನಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ (ಕೇವಲ {$observationsCount} ದಿನಗಳ ದರ ಲಭ್ಯವಿದೆ).",
                 'message_en' => "Insufficient historical data for a reliable estimate. Minimum " . self::MIN_OBSERVATIONS . " observations required (found {$observationsCount}).",
                 'horizons' => [],
-                'current_price' => (float) ($priceRecords->last()?->modal_price ?? 0),
+                'current_price' => (float) ($currentModalPrice ?? 0),
             ];
         }
 
-        if ($marketId === null) {
-            // For state benchmark: aggregate into clean chronological daily average modal prices
-            $historicalPrices = $priceRecords->groupBy(fn ($r) => Carbon::parse($r->price_date)->format('Y-m-d'))
-                ->map(fn ($group) => round((float) $group->avg('modal_price'), 2))
-                ->values()
-                ->toArray();
-        } else {
-            $historicalPrices = $priceRecords->pluck('modal_price')->map(fn ($p) => (float) $p)->toArray();
-        }
-
-        $currentPrice = end($historicalPrices) ?: 0.0;
+        $modelBasePrice = end($sourcePrices) ?: 0.0;
+        $currentPrice = ($currentModalPrice !== null && $currentModalPrice > 0) ? $currentModalPrice : $modelBasePrice;
 
         // Model Selection
         $model = $this->resolveModelForCrop($cropId);
@@ -92,15 +147,23 @@ class ForecastingEngineService
         $horizonsOutput = [];
         foreach (self::HORIZONS as $hDays) {
             $targetDate = Carbon::today()->addDays($hDays)->toDateString();
-            $proj = $model->forecast($historicalPrices, $hDays);
+            $proj = $model->forecast($sourcePrices, $hDays);
 
-            $expected = $proj['expected_price'];
+            // Scale trajectory proportionally to the selected active variety/market modal price
+            $growthRatio = $modelBasePrice > 0 ? ($proj['expected_price'] / $modelBasePrice) : 1.0;
+            $expected = round($currentPrice * $growthRatio, 0);
+
+            $lowerRatio = $modelBasePrice > 0 ? ($proj['lower_bound'] / $modelBasePrice) : 0.85;
+            $upperRatio = $modelBasePrice > 0 ? ($proj['upper_bound'] / $modelBasePrice) : 1.15;
+            $lowerBound = max(0, round($currentPrice * $lowerRatio, 0));
+            $upperBound = max($lowerBound, round($currentPrice * $upperRatio, 0));
+
             $pctChange = $currentPrice > 0 ? round((($expected - $currentPrice) / $currentPrice) * 100, 1) : 0.0;
 
             $direction = 'neutral';
-            if ($pctChange > 1.0) {
+            if ($pctChange > 0.5) {
                 $direction = 'up';
-            } elseif ($pctChange < -1.0) {
+            } elseif ($pctChange < -0.5) {
                 $direction = 'down';
             }
 
@@ -109,13 +172,13 @@ class ForecastingEngineService
                 'target_date' => $targetDate,
                 'target_date_formatted' => Carbon::parse($targetDate)->format('d M Y'),
                 'expected_price' => $expected,
-                'lower_bound' => $proj['lower_bound'],
-                'upper_bound' => $proj['upper_bound'],
-                'confidence_score' => $proj['confidence_score'],
+                'lower_bound' => $lowerBound,
+                'upper_bound' => $upperBound,
+                'confidence_score' => $proj['confidence_score'] ?? 75,
                 'percentage_change' => $pctChange,
                 'direction' => $direction,
-                'rmse' => $proj['rmse'],
-                'mae' => $proj['mae'],
+                'rmse' => $proj['rmse'] ?? 0,
+                'mae' => $proj['mae'] ?? 0,
                 'label_kn' => match ($hDays) {
                     1 => 'ನಾಳೆ (+1 ದಿನ)',
                     7 => 'ಮುಂದಿನ 7 ದಿನಗಳು (+7 ದಿನ)',
@@ -139,11 +202,33 @@ class ForecastingEngineService
         $weekChange = $h7['percentage_change'] ?? 0.0;
         $weekDirection = $h7['direction'] ?? 'neutral';
 
-        $annualBaseline = (float) (PriceMonthlyStatistic::where('crop_id', $cropId)->whereNull('market_id')->avg('avg_modal_price') ?: ($currentPrice > 0 ? $currentPrice : 1.0));
-        $gapPercent = $annualBaseline > 0 ? round((($currentPrice - $annualBaseline) / $annualBaseline) * 100, 1) : 0.0;
+        // Calculate baseline specifically for this variety to prevent cross-variety skew
+        $varietyBaseline = null;
+        if ($varietyId !== null) {
+            $varietyBaseline = (float) (PriceMonthlyStatistic::where('crop_id', $cropId)
+                ->where('variety_id', $varietyId)
+                ->whereNull('market_id')
+                ->avg('avg_modal_price') ?: 0);
+
+            if ($varietyBaseline <= 0) {
+                $varietyBaseline = (float) (MarketPrice::karnataka()
+                    ->where('crop_id', $cropId)
+                    ->where('variety_id', $varietyId)
+                    ->where('modal_price', '>', 0)
+                    ->avg('modal_price') ?: 0);
+            }
+        }
+
+        if (!$varietyBaseline || $varietyBaseline <= 0) {
+            $varietyBaseline = (float) (PriceMonthlyStatistic::where('crop_id', $cropId)
+                ->whereNull('market_id')
+                ->avg('avg_modal_price') ?: ($currentPrice > 0 ? $currentPrice : 1.0));
+        }
+
+        $gapPercent = $varietyBaseline > 0 ? round((($currentPrice - $varietyBaseline) / $varietyBaseline) * 100, 1) : 0.0;
 
         $isPerishable = in_array(strtolower($crop?->slug ?? ''), ['tomato', 'onion', 'green-chilli', 'ginger']);
-        $isHighVolatility = $isPerishable || (count($historicalPrices) > 5 && (($horizonsOutput[0]['rmse'] ?? 0) / max(1, $currentPrice)) > 0.18);
+        $isHighVolatility = $isPerishable || (count($sourcePrices) > 5 && (($horizonsOutput[0]['rmse'] ?? 0) / max(1, $currentPrice)) > 0.18);
 
         $directionWordEn = match ($weekDirection) {
             'up' => "rise about {$weekChange}%",
@@ -172,6 +257,7 @@ class ForecastingEngineService
             'model_name' => $model->getName(),
             'model_code' => $model->getCode(),
             'current_price' => $currentPrice,
+            'scope' => $scope,
             'horizons' => $horizonsOutput,
             'is_high_volatility' => $isHighVolatility,
             'why_summary_en' => $whySummaryEn,
@@ -249,15 +335,26 @@ class ForecastingEngineService
     /**
      * Perform rolling walk-forward backtesting and track error metrics.
      */
-    public function backtest(ForecastModelInterface $model, int $cropId, ?int $marketId = null, int $horizonDays = 7): array
+    public function backtest(ForecastModelInterface $model, int $cropId, ?int $marketId = null, int $horizonDays = 7, ?int $varietyId = null): array
     {
-        $prices = MarketPrice::karnataka()
+        $query = MarketPrice::karnataka()
             ->where('crop_id', $cropId)
+            ->where('modal_price', '>', 0)
             ->when($marketId !== null, fn ($q) => $q->where('market_id', $marketId))
-            ->orderBy('price_date', 'asc')
-            ->pluck('modal_price')
-            ->map(fn ($p) => (float) $p)
-            ->toArray();
+            ->when($varietyId !== null, fn ($q) => $q->where('variety_id', $varietyId))
+            ->orderBy('price_date', 'asc');
+
+        if ($marketId === null || $varietyId === null) {
+            $prices = $query->get()
+                ->groupBy(fn ($r) => Carbon::parse($r->price_date)->format('Y-m-d'))
+                ->map(fn ($group) => round((float) $group->avg('modal_price'), 2))
+                ->values()
+                ->toArray();
+        } else {
+            $prices = $query->pluck('modal_price')
+                ->map(fn ($p) => (float) $p)
+                ->toArray();
+        }
 
         $n = count($prices);
         $minTrain = 20;

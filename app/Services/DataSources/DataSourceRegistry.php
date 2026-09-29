@@ -3,11 +3,13 @@
 namespace App\Services\DataSources;
 
 use App\Models\DataSource;
+use App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider;
 use App\Services\DataSources\Ceda\CedaAgmarknetDataProvider;
 use App\Services\DataSources\CoconutBoard\CoconutBoardDataProvider;
 use App\Services\DataSources\CoffeeBoard\CoffeeBoardDataProvider;
 use App\Services\DataSources\Contracts\MarketDataProviderInterface;
 use App\Services\DataSources\DataGov\DataGovMarketDataProvider;
+use App\Services\DataSources\Krama\KramaMarketDataProvider;
 use App\Services\DataSources\TssSirsi\TssSirsiDataProvider;
 use InvalidArgumentException;
 
@@ -21,11 +23,13 @@ class DataSourceRegistry
     public static function getAvailableProviders(): array
     {
         return [
-            DataGovMarketDataProvider::class => 'data.gov.in Mandi Prices Provider (Official Open Data)',
-            CedaAgmarknetDataProvider::class => 'CEDA Agmarknet Provider (Ashoka University — Authenticated Mandi REST API & Historical Time-Series)',
+            KramaMarketDataProvider::class => 'KRAMA Karnataka State APMC Provider (Primary Daily Live Price Source — Real-Time Auctions)',
+            AgmarknetHistoricalDataProvider::class => 'Official AGMARKNET Provider (DMI / MoA&FW — Multi-Year Historical Deep Archives & AI Model Training)',
+            DataGovMarketDataProvider::class => 'data.gov.in Mandi Prices Provider (Official Open Data — Secondary/National Fallback)',
             CoffeeBoardDataProvider::class => 'Coffee Board of India (Direct Website Web Scraper — Arabica & Robusta Daily Rates)',
             CoconutBoardDataProvider::class => 'Coconut Development Board (Direct Website Web Scraper — Coconut & Copra Rates)',
             TssSirsiDataProvider::class => 'TSS Sirsi Cooperative Society (Arecanut Tender Auction Rates — Rashi, Chali, Bette, Bilegotu, Kempugotu)',
+            CedaAgmarknetDataProvider::class => 'CEDA Agmarknet Provider (Legacy Ashoka University API)',
         ];
     }
 

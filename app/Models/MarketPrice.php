@@ -24,6 +24,7 @@ class MarketPrice extends Model
         'modal_price',
         'arrival_quantity',
         'unit',
+        'grade',
         'data_source_id',
         'raw_record_id',
     ];
@@ -134,5 +135,42 @@ class MarketPrice extends Model
         return $query->whereHas('market.district.state', function ($s) {
             $s->where('code', 'KA')->orWhere('name', 'Karnataka');
         });
+    }
+
+    /**
+     * Format variety and grade in Negilu-style "{Variety} · {Grade}".
+     * Handles bilingual (English/Kannada) rendering and hides redundant/identical grade names.
+     */
+    public function getDisplayVarietyGrade(string $locale = 'en'): string
+    {
+        $varietyName = $this->variety ? $this->variety->displayName($locale) : ($locale === 'en' ? 'Standard' : 'ಸಾಮಾನ್ಯ');
+
+        $grade = trim((string)($this->grade ?? ''));
+
+        // If grade is empty, or identical to variety name, or is one of the self-contained varieties like Gorabalu/EDI
+        $varRaw = strtolower(trim((string)($this->variety?->name ?? '')));
+        if (empty($grade) || strcasecmp($grade, $this->variety?->name ?? '') === 0 || in_array($varRaw, ['gorabalu', 'edi'])) {
+            return $varietyName;
+        }
+
+        // Kannada translation map for standardized grades
+        $gradeKnMap = [
+            'average' => 'ಸರಾಸರಿ',
+            'faq' => 'ಎಫ್‌ಎಕ್ಯೂ',
+            'non faq' => 'ನಾನ್-ಎಫ್‌ಎಕ್ಯೂ',
+            'medium' => 'ಮಧ್ಯಮ',
+            'small' => 'ಸಣ್ಣ',
+            'large' => 'ದೊಡ್ಡ',
+            'ball' => 'ಉಂಡೆ',
+            'milling' => 'ಮಿಲ್ಲಿಂಗ್',
+            'desiccated' => 'ಡೆಸಿಕೇಟೆಡ್',
+            'dehusked' => 'ಸಿಪ್ಪೆ ಸುಲಿದ',
+        ];
+
+        $displayGrade = ($locale === 'kn')
+            ? ($gradeKnMap[strtolower($grade)] ?? $grade)
+            : $grade;
+
+        return $varietyName . ' · ' . $displayGrade;
     }
 }

@@ -7,6 +7,7 @@ use App\Models\CropCategory;
 use App\Models\District;
 use App\Models\Market;
 use App\Models\MarketPrice;
+use App\Models\CropVariety;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
@@ -344,4 +345,116 @@ class FarmerPriceDiscoveryTest extends TestCase
             $response->assertSee($nearestTwoGroups[1]->market->name);
         }
     }
+
+    public function test_crop_detail_displays_all_varieties_traded_in_recent_window_for_selected_market(): void
+    {
+        $crop = Crop::where('slug', 'arecanut')->firstOrFail();
+        $market = Market::where('name', 'like', '%Thirthahalli%')->firstOrFail();
+
+        $response = $this->get('/crop/' . $crop->id . '?market=' . urlencode($market->name));
+        $response->assertStatus(200);
+
+        $selectedMarketPrices = $response->viewData('selectedMarketPrices');
+        $this->assertNotNull($selectedMarketPrices);
+        // Expect multi-variety resolution (at least 2, up to 6 active varieties)
+        $this->assertGreaterThanOrEqual(2, $selectedMarketPrices->count());
+
+        $varietyNames = $selectedMarketPrices->map(fn($p) => $p->variety?->name)->filter()->all();
+        $this->assertContains('Rashi', $varietyNames);
+        $this->assertContains('Gorabalu', $varietyNames);
+    }
+
+    public function test_variety_wise_latest_dates_and_prices_in_rolling_window(): void
+    {
+        $crop = Crop::where('slug', 'arecanut')->firstOrFail();
+        $market = Market::firstOrCreate(
+            ['name' => 'Koppa Test APMC'],
+            [
+                'code' => 'KA_APMC_KOPPA_TEST',
+                'district_id' => District::first()->id,
+                'market_type' => 'apmc',
+                'latitude' => 13.5294,
+                'longitude' => 75.3619,
+                'is_active' => true,
+            ]
+        );
+
+        $varietyA = CropVariety::firstOrCreate(
+            ['crop_id' => $crop->id, 'name' => 'Rashi Test'],
+            ['slug' => 'rashi-test', 'is_active' => true]
+        );
+        $varietyB = CropVariety::firstOrCreate(
+            ['crop_id' => $crop->id, 'name' => 'Saraku Test'],
+            ['slug' => 'saraku-test', 'is_active' => true]
+        );
+
+        $dataSource = \App\Models\DataSource::first();
+
+        // Variety A traded on 22 Sep
+        MarketPrice::updateOrCreate(
+            [
+                'market_id' => $market->id,
+                'crop_id' => $crop->id,
+                'variety_id' => $varietyA->id,
+                'price_date' => '2026-09-22',
+            ],
+            [
+                'data_source_id' => $dataSource->id,
+                'min_price' => 45000,
+                'max_price' => 50000,
+                'modal_price' => 49074,
+                'grade' => 'Average',
+                'unit' => 'Quintal',
+            ]
+        );
+
+        // Variety B traded earlier on 19 Sep
+        MarketPrice::updateOrCreate(
+            [
+                'market_id' => $market->id,
+                'crop_id' => $crop->id,
+                'variety_id' => $varietyB->id,
+                'price_date' => '2026-09-19',
+            ],
+            [
+                'data_source_id' => $dataSource->id,
+                'min_price' => 52000,
+                'max_price' => 58000,
+                'modal_price' => 56685,
+                'grade' => 'Average',
+                'unit' => 'Quintal',
+            ]
+        );
+
+        // 1. Visit Koppa market without variety param -> both varieties should be resolved
+        $response = $this->get('/crop/' . $crop->id . '?market=' . urlencode($market->name));
+        $response->assertStatus(200);
+
+        $selectedMarketPrices = $response->viewData('selectedMarketPrices');
+        $this->assertNotNull($selectedMarketPrices);
+        $this->assertGreaterThanOrEqual(2, $selectedMarketPrices->count());
+
+        $resolvedVarietyIds = $selectedMarketPrices->pluck('variety_id')->all();
+        $this->assertContains($varietyA->id, $resolvedVarietyIds);
+        $this->assertContains($varietyB->id, $resolvedVarietyIds);
+
+        // 2. Select Variety B (traded on 19 Sep)
+        $responseVarB = $this->get('/crop/' . $crop->id . '?market=' . urlencode($market->name) . '&variety=' . $varietyB->id);
+        $responseVarB->assertStatus(200);
+        $activeItemB = $responseVarB->viewData('activePriceItem');
+        $this->assertEquals($varietyB->id, $activeItemB->variety_id);
+        $this->assertEquals('2026-09-19', \Carbon\Carbon::parse($activeItemB->price_date)->toDateString());
+        $responseVarB->assertSee('56,685');
+        $responseVarB->assertSee('19 Sep');
+
+        // 3. Select Variety A (traded on 22 Sep)
+        $responseVarA = $this->get('/crop/' . $crop->id . '?market=' . urlencode($market->name) . '&variety=' . $varietyA->id);
+        $responseVarA->assertStatus(200);
+        $activeItemA = $responseVarA->viewData('activePriceItem');
+        $this->assertEquals($varietyA->id, $activeItemA->variety_id);
+        $this->assertEquals('2026-09-22', \Carbon\Carbon::parse($activeItemA->price_date)->toDateString());
+        $responseVarA->assertSee('49,074');
+        $responseVarA->assertSee('22 Sep');
+    }
 }
+

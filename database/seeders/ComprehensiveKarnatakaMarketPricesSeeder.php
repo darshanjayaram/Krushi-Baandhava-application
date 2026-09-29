@@ -15,7 +15,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
 {
     public function run(): void
     {
-        $today = Carbon::today()->toDateString();
+        $today = '2026-09-26';
 
         $dataGovSource = DataSource::where('code', 'datagov')->first() ?? DataSource::first();
         $coffeeSource = DataSource::where('code', 'coffee_board')->first() ?? $dataGovSource;
@@ -298,7 +298,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 }
 
                 $daysOffset = $p[4] ?? 0;
-                $targetDate = Carbon::today()->subDays($daysOffset)->toDateString();
+                $targetDate = Carbon::parse($today)->subDays($daysOffset)->toDateString();
 
                 MarketPrice::updateOrCreate(
                     [
@@ -320,9 +320,9 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
 
                 // Seed 24 months of historical monthly records so every mandi has authentic seasonal depth
                 for ($mo = 1; $mo <= 24; $mo++) {
-                    $pastDate = Carbon::today()->subMonths($mo)->day(15);
+                    $pastDate = Carbon::parse($today)->subMonths($mo)->day(15);
                     $mNum = $pastDate->month;
-                    $yearDiff = Carbon::today()->year - $pastDate->year;
+                    $yearDiff = Carbon::parse($today)->year - $pastDate->year;
                     $inflationFactor = 1.0 - ($yearDiff * 0.04);
 
                     $seasonFactor = match ($mNum) {
