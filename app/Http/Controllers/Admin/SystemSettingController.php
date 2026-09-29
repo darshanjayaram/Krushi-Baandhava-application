@@ -162,28 +162,32 @@ class SystemSettingController extends Controller
     /**
      * Clear all application caches (framework optimize, views, routes, config, memory stores).
      */
-    public function clearCache(): RedirectResponse
+    public function clearCache(Request $request): RedirectResponse
     {
         Artisan::call('optimize:clear');
         Cache::flush();
 
         AuditLog::log('system.clear_cache', 'System', null, [], ['status' => 'cleared']);
 
-        return redirect()->route('admin.settings.index', ['tab' => 'maintenance'])
+        $tab = $request->input('tab', 'general');
+
+        return redirect()->route('admin.settings.index', ['tab' => $tab])
             ->with('success', 'All application caches (config, routes, views, memory cache) cleared successfully.');
     }
 
     /**
      * Safely run pending migrations and synchronize system seeders.
      */
-    public function updateDatabase(): RedirectResponse
+    public function updateDatabase(Request $request): RedirectResponse
     {
         Artisan::call('migrate', ['--force' => true]);
         Artisan::call('db:seed', ['--class' => 'SystemSettingSeeder', '--force' => true]);
 
         AuditLog::log('system.update_database', 'System', null, [], ['status' => 'migrated']);
 
-        return redirect()->route('admin.settings.index', ['tab' => 'maintenance'])
+        $tab = $request->input('tab', 'general');
+
+        return redirect()->route('admin.settings.index', ['tab' => $tab])
             ->with('success', 'Database schema migrated and master seeds updated successfully.');
     }
 

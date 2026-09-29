@@ -25,6 +25,81 @@
         </div>
     </div>
 
+    <!-- ============================================================== -->
+    <!-- IMMEDIATE SYSTEM OPERATIONS (Pixel-Perfect from Screenshot)     -->
+    <!-- ============================================================== -->
+    <div class="p-6 rounded-3xl bg-slate-950/90 border border-slate-800 shadow-xl space-y-4">
+        <!-- Header -->
+        <div class="flex items-center gap-3.5 border-b border-slate-800/80 pb-4">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-950/60 to-purple-950/40 border border-rose-500/30 flex items-center justify-center text-rose-400 font-mono text-sm font-black shadow-inner shrink-0">
+                &gt;_
+            </div>
+            <div>
+                <h3 class="text-sm sm:text-base font-bold text-white tracking-tight">Immediate System Operations</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Execute low-level system actions, framework cache clearing, and database updates.</p>
+            </div>
+        </div>
+
+        <!-- 2-Column Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <!-- Card 1: Application Caches -->
+            <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700/80 transition">
+                <div>
+                    <div class="flex items-center gap-2 text-white font-bold text-sm">
+                        <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Application Caches</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                        Clears view cache, compiled routes, config cache, and application memory stores.
+                    </p>
+                </div>
+                <form action="{{ route('admin.settings.clear-cache') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="tab" :value="currentTab">
+                    <button type="submit" 
+                            class="w-full py-2.5 px-4 bg-slate-800/90 hover:bg-slate-700/90 text-white font-bold text-xs rounded-xl border border-slate-700/80 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.99]">
+                        <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Clear All Caches</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Card 2: Database Schema -->
+            <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700/80 transition">
+                <div>
+                    <div class="flex items-center gap-2 text-white font-bold text-sm">
+                        <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
+                            <path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"></path>
+                            <path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"></path>
+                        </svg>
+                        <span>Database Schema</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                        Executes pending database migrations and seeds newly introduced tables/plans safely.
+                    </p>
+                </div>
+                <form action="{{ route('admin.settings.update-database') }}" method="POST" onsubmit="return confirm('Execute pending database migrations and update master seeds?');">
+                    @csrf
+                    <input type="hidden" name="tab" :value="currentTab">
+                    <button type="submit" 
+                            class="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+                        <svg class="w-4 h-4 text-slate-950 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                            <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
+                            <path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"></path>
+                            <path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"></path>
+                        </svg>
+                        <span>Update Database</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Navigation Tabs (Modern Enterprise Row) -->
     <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 no-scrollbar">
         @php
@@ -433,80 +508,36 @@
             @endif
 
             @if($groupName === 'maintenance')
-                <!-- ============================================================== -->
-                <!-- IMMEDIATE SYSTEM OPERATIONS (Astro Tatva Screenshot 2 Style)   -->
-                <!-- ============================================================== -->
+                <!-- DATA & LOG RETENTION MAINTENANCE -->
                 <div class="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 shadow-xl space-y-4">
                     <div class="flex items-center gap-3 border-b border-slate-800/80 pb-4">
-                        <div class="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-mono text-sm font-bold">
-                            &gt;_
+                        <div class="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 font-mono text-sm font-bold">
+                            🗑️
                         </div>
                         <div>
-                            <h3 class="text-sm font-bold text-white">Immediate System Operations</h3>
-                            <p class="text-xs text-slate-400">Execute low-level system actions, framework cache clearing, and database updates.</p>
+                            <h3 class="text-sm font-bold text-white">Data Retention & Storage Pruning</h3>
+                            <p class="text-xs text-slate-400">Manage database storage by purging expired sync logs, temporary weather caches, and stale raw payloads.</p>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                        <!-- Application Caches -->
-                        <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between space-y-4">
-                            <div>
-                                <div class="flex items-center gap-2 text-amber-400 font-bold text-xs">
-                                    <span>🔄</span>
-                                    <span>Application Caches</span>
-                                </div>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                                    Clears view cache, compiled routes, config cache, and application memory stores.
-                                </p>
+                    <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                                <span>🗑️</span>
+                                <span>Manual Feed & Log Pruning</span>
                             </div>
-                            <form action="{{ route('admin.settings.clear-cache') }}" method="POST">
-                                @csrf
-                                <button type="submit" class="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 font-bold text-xs rounded-xl border border-slate-700/80 transition flex items-center justify-center gap-2">
-                                    <span>🔄</span>
-                                    <span>Clear All Caches</span>
-                                </button>
-                            </form>
+                            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                                Immediately cleans up expired sync logs, temporary weather caches, and rejected payload archives older than 30 days.
+                            </p>
                         </div>
-
-                        <!-- Database Schema -->
-                        <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between space-y-4">
-                            <div>
-                                <div class="flex items-center gap-2 text-orange-400 font-bold text-xs">
-                                    <span>🗄️</span>
-                                    <span>Database Schema</span>
-                                </div>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                                    Executes pending database migrations and seeds newly introduced tables/plans safely.
-                                </p>
-                            </div>
-                            <form action="{{ route('admin.settings.update-database') }}" method="POST" onsubmit="return confirm('Execute pending database migrations and update master seeds?');">
-                                @csrf
-                                <button type="submit" class="w-full py-2.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
-                                    <span>🗄️</span>
-                                    <span>Update Database</span>
-                                </button>
-                            </form>
-                        </div>
-
-                        <!-- Manual Feed Pruning -->
-                        <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between space-y-4">
-                            <div>
-                                <div class="flex items-center gap-2 text-rose-400 font-bold text-xs">
-                                    <span>🗑️</span>
-                                    <span>Manual PDF & Feed Pruning</span>
-                                </div>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                                    Immediately cleans up expired sync logs, temporary weather caches, and rejected payload archives.
-                                </p>
-                            </div>
-                            <form action="{{ route('admin.settings.prune-data') }}" method="POST" onsubmit="return confirm('Prune expired historical sync logs and payload archives?');">
-                                @csrf
-                                <button type="submit" class="w-full py-2.5 px-3 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-900/50 transition flex items-center justify-center gap-2">
-                                    <span>🗑️</span>
-                                    <span>Prune Stale Data</span>
-                                </button>
-                            </form>
-                        </div>
+                        <form action="{{ route('admin.settings.prune-data') }}" method="POST" onsubmit="return confirm('Prune expired historical sync logs and payload archives older than 30 days?');" class="shrink-0">
+                            @csrf
+                            <input type="hidden" name="tab" value="maintenance">
+                            <button type="submit" class="py-2.5 px-4 bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 hover:text-white font-bold text-xs rounded-xl border border-rose-800/60 transition flex items-center gap-2 cursor-pointer shadow-sm">
+                                <span>🗑️</span>
+                                <span>Prune Stale Logs</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
             @endif

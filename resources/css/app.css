@@ -9,3 +9,236 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* ============================================================== */
+/* MODERN THIN SCROLLBARS (Frontend Theme)                         */
+/* ============================================================== */
+::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent !important;
+    border-radius: 9999px !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1c5a2c !important;
+    border-radius: 9999px !important;
+    transition: background-color 0.2s ease !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #144220 !important;
+}
+
+::-webkit-scrollbar-button,
+::-webkit-scrollbar-button:single-button,
+::-webkit-scrollbar-button:vertical:decrement,
+::-webkit-scrollbar-button:vertical:increment,
+::-webkit-scrollbar-button:horizontal:decrement,
+::-webkit-scrollbar-button:horizontal:increment {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent !important;
+}
+
+/* Firefox Only - Chromium uses ::-webkit-scrollbar without triggering Windows system arrow buttons */
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin !important;
+        scrollbar-color: #1c5a2c transparent !important;
+    }
+}
+
+/* Dark Theme / Admin Scoped Scrollbars */
+.dark ::-webkit-scrollbar-track,
+[data-theme="dark"] ::-webkit-scrollbar-track,
+.bg-slate-950 ::-webkit-scrollbar-track,
+.bg-slate-900 ::-webkit-scrollbar-track {
+    background: #020617;
+}
+
+.dark ::-webkit-scrollbar-thumb,
+[data-theme="dark"] ::-webkit-scrollbar-thumb,
+.bg-slate-950 ::-webkit-scrollbar-thumb,
+.bg-slate-900 ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border: 1px solid rgba(15, 23, 42, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
+.bg-slate-950 ::-webkit-scrollbar-thumb:hover,
+.bg-slate-900 ::-webkit-scrollbar-thumb:hover {
+    background: #10b981;
+}
+
+.dark *,
+[data-theme="dark"] *,
+.bg-slate-950 *,
+.bg-slate-900 * {
+    scrollbar-color: #334155 #020617;
+}
+
+/* Dedicated Admin Modal Scrollbars */
+.modal-thin-scrollbar::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.modal-thin-scrollbar::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #020617;
+    border-radius: 9999px;
+}
+
+.modal-thin-scrollbar::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #059669;
+    border-radius: 9999px;
+    border: 1px solid #064e3b;
+}
+
+.modal-thin-scrollbar::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #10b981;
+}
+
+.modal-thin-scrollbar,
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #059669 #020617;
+}
+
+/* ============================================================== */
+/* KANNADA OPTICAL TYPOGRAPHY & VERTICAL BASELINE ALIGNMENT SYSTEM */
+/* ============================================================== */
+html[lang="kn"],
+html[lang="kn"] body,
+html[lang="kn"] input,
+html[lang="kn"] button,
+html[lang="kn"] select,
+html[lang="kn"] textarea,
+.font-kannada {
+    font-family: 'Noto Sans Kannada', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+}
+
+/* 1. Base line-height relaxation for Kannada (prevents top clipping) */
+html[lang="kn"] .leading-none {
+    line-height: 1.25 !important;
+}
+html[lang="kn"] .leading-tight {
+    line-height: 1.35 !important;
+}
+
+/* 2. Top Navigation Links (Rates / ದರಗಳು, Schemes / ಯೋಜನೆಗಳು, etc.) */
+html[lang="kn"] #siteHeader nav a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-top: 10px !important;
+    padding-bottom: 6px !important;
+    line-height: 1.2 !important;
+}
+
+/* 3. Header Location Pill (📍 ಬೆಂಗಳೂರು ನಗರ) */
+html[lang="kn"] #siteHeader button {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding-top: 7px !important;
+    padding-bottom: 5px !important;
+}
+html[lang="kn"] #siteHeader button span:not(.text-rose-500) {
+    position: relative;
+    top: 1.5px;
+    line-height: 1.2;
+}
+
+/* 4. Header Language Switcher Toggle (EN | ಕನ್ನಡ) */
+html[lang="kn"] #siteHeader a.font-kannada {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-top: 5.5px !important;
+    padding-bottom: 2.5px !important;
+    line-height: 1 !important;
+}
+
+/* 5. Command Dock "Change ▾" / "ಬದಲಿಸಿ ▾" Button */
+html[lang="kn"] .btn-mandi-change,
+html[lang="kn"] button[type="button"].btn-mandi-change {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-top: 8.5px !important;
+    padding-bottom: 4.5px !important;
+    line-height: 1 !important;
+}
+
+/* 6. Command Dock Search Input Text & Placeholder */
+html[lang="kn"] .search-input-kn,
+html[lang="kn"] input.home-search-input,
+html[lang="kn"] input[type="text"] {
+    padding-top: 14px !important;
+    padding-bottom: 6px !important;
+    line-height: normal !important;
+}
+@media (min-width: 640px) {
+    html[lang="kn"] .search-input-kn,
+    html[lang="kn"] input.home-search-input,
+    html[lang="kn"] input[type="text"] {
+        padding-top: 17px !important;
+        padding-bottom: 7px !important;
+        line-height: normal !important;
+    }
+}
+html[lang="kn"] input::placeholder {
+    line-height: normal !important;
+    vertical-align: middle !important;
+}
+
+/* 7. Category Filter Pills (🌾 ಎಲ್ಲಾ, 🌿 ವಾಣಿಜ್ಯ ಮತ್ತು ಕ್ಷೇತ್ರ ಬೆಳೆಗಳು, etc.) */
+html[lang="kn"] .category-filter-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding-top: 10px !important;
+    padding-bottom: 6px !important;
+    line-height: 1.2 !important;
+}
+
+/* 8. Crop Card Reliability & Benchmark Badges (• ವಿಶ್ವಾಸಾರ್ಹ, • ಮೌಲ್ಯಾಂಕನ) */
+html[lang="kn"] .crop-article .rounded-full {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding-top: 3px !important;
+    padding-bottom: 2px !important;
+}
+html[lang="kn"] .crop-article .rounded-full span:last-child {
+    position: relative;
+    top: 1px;
+    line-height: 1;
+}
+
+/* 9. Section Titles with Emoji (🌟 ಇಂದಿನ ಪ್ರಮುಖ ದರಗಳು) */
+html[lang="kn"] h1,
+html[lang="kn"] h2,
+html[lang="kn"] h3 {
+    line-height: 1.35 !important;
+}
+
+/* 10. Mobile Bottom Navigation Bar (ಮುಖಪುಟ, ದರಗಳು, ಯೋಜನೆಗಳು, ಹವಾಮಾನ) */
+html[lang="kn"] #mobileBottomNav a span:last-child {
+    position: relative;
+    top: 1.5px;
+    line-height: 1.2;
+}
+
+

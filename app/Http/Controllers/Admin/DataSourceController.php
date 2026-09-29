@@ -8,8 +8,10 @@ use App\Models\ApiHealthLog;
 use App\Models\AuditLog;
 use App\Models\Crop;
 use App\Models\CropSourceMapping;
+use App\Models\CropCategory;
 use App\Models\DataSource;
 use App\Models\DataSourceCredential;
+use App\Models\DataSourceCropSync;
 use App\Models\SyncLog;
 use App\Models\SystemSetting;
 use App\Services\DataSources\DataSourceRegistry;
@@ -18,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DataSourceController extends Controller
@@ -25,7 +28,12 @@ class DataSourceController extends Controller
     public function index(): View
     {
         $dataSources = DataSource::with(['credential', 'mappings'])
-            ->withCount(['syncLogs', 'healthLogs'])
+            ->withCount([
+                'syncLogs',
+                'healthLogs',
+                'cropSyncs as total_configured_crops',
+                'cropSyncs as active_configured_crops' => fn ($q) => $q->where('is_enabled', true),
+            ])
             ->orderBy('id', 'asc')
             ->paginate(15);
 
@@ -617,6 +625,310 @@ class DataSourceController extends Controller
             ]);
         } catch (\Throwable $e) {
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get crop synchronization configuration for a data source.
+     */
+    public function getCropSyncConfig(DataSource $datasource): JsonResponse
+    {
+        $allCrops = Crop::with('category')
+            ->orderBy('category_id')
+            ->orderBy('name')
+            ->get();
+
+        $isCoffeeBoard = ($datasource->code === 'coffee_board');
+        $isCoconutBoard = ($datasource->code === 'coconut_board');
+        $isSpecialized = ($isCoffeeBoard || $isCoconutBoard);
+
+        // Filter crops for specialized single-commodity statutory boards
+        if ($isCoffeeBoard) {
+            $allCrops = $allCrops->filter(function ($c) {
+                return str_contains(strtolower($c->name), 'coffee');
+            })->values();
+        } elseif ($isCoconutBoard) {
+            $allCrops = $allCrops->filter(function ($c) {
+                $name = strtolower(trim($c->name));
+                return in_array($name, ['coconut', 'copra', 'tender coconut'], true);
+            })->values();
+        }
+
+        $syncMap = DataSourceCropSync::where('data_source_id', $datasource->id)
+            ->pluck('is_enabled', 'crop_id')
+            ->all();
+
+        // Get market records count per crop for this data source
+        $priceStats = DB::table('market_prices')
+            ->where('data_source_id', $datasource->id)
+            ->select('crop_id', DB::raw('count(*) as total_records'), DB::raw('count(distinct market_id) as total_mandis'))
+            ->groupBy('crop_id')
+            ->get()
+            ->keyBy('crop_id');
+
+        $nonCrops = [
+            'sheep', 'goat', 'she baffalo', 'he baffalo', 'bull', 'calf', 'ox', 'she goat',
+            'tur dal', 'bengal gramdal', 'black gramdal', 'green gramdal', 'avaredal', 'chennangidal',
+            'wood', 'coco brooms', 'honge seed', 'neem seed', 'soapnut', 'antawala', 'hippe seed',
+            'rose', 'crysanthamum', 'marygold', 'all flowers',
+            'linseed', 'niger seed', 't. v. cumbu', 'maragenasu', 'bullar', 'duster beans', 'gurellu', 'moath', 'barley', 'cumminseed'
+        ];
+        $nonCropsLookup = array_fill_keys($nonCrops, true);
+
+        $plantationLookup = array_fill_keys(['arecanut', 'coconut', 'copra', 'tender coconut', 'cotton', 'jaggery', 'cashewnut', 'coffee', 'betel leaves', 'betal leaves', 'lint', 'cotton seed'], true);
+        $cerealsPulsesLookup = array_fill_keys(['maize', 'paddy', 'rice', 'ragi', 'ragi (finger millet)', 'jowar', 'wheat', 'bajra', 'navane', 'same/savi', 'bengalgram', 'tur', 'greengram', 'blackgram', 'horse gram', 'cowpea', 'alasande gram', 'chapparada avare', 'mataki', 'sajje', 'redgram', 'foxtail millet', 'millets'], true);
+        $oilseedsLookup = array_fill_keys(['groundnut', 'sunflower', 'soyabeen', 'safflower', 'sesamum', 'mustard', 'gingelly', 'castor seed', 'groundnut seed'], true);
+        $spicesLookup = array_fill_keys(['ginger', 'black pepper', 'garlic', 'dry chillies', 'tamarind fruit', 'coriander seed', 'turmeric', 'methi seeds', 'chilly red', 'tamarind seed'], true);
+        $vegetablesLookup = array_fill_keys(['tomato', 'beans', 'green chilli', 'brinjal', 'onion', 'carrot', 'cucumbar', 'potato', 'ladies finger', 'ridgeguard', 'beetroot', 'cabbage', 'raddish', 'knool khol', 'cauliflower', 'bitter gourd', 'capsicum', 'thondekai', 'bottle gourd', 'drum stick', 'sweet pumpkin', 'seemebadanekai', 'sweet potato', 'snakeguard', 'green avare', 'suvarnagadde', 'bunch beans', 'ash gourd', 'white pumpkin', 'peas wet', 'alasandikai', 'thogarikai', 'leafy vegetables', 'chilly capsicum', 'green peas'], true);
+        $fruitsLookup = array_fill_keys(['banana', 'pineapple', 'pine apple', 'apple', 'papaya', 'lime', 'water melon', 'pomagranate', 'mango', 'chikoos', 'karbuja', 'orange', 'mousambi', 'grapes', 'banana green', 'guava', 'dry grapes', 'jack fruit', 'seethaphal', 'other fruits', 'sweet lime', 'pear'], true);
+
+        $coreCropIds = [];
+        $nonCropIds = [];
+        $plantationCropIds = [];
+        $vegetableCropIds = [];
+        $cerealPulseCropIds = [];
+        $oilseedCropIds = [];
+        $spiceCropIds = [];
+        $fruitCropIds = [];
+
+        $cropsList = [];
+        $activeCount = 0;
+
+        foreach ($allCrops as $c) {
+            $cNameLower = strtolower(trim($c->name));
+            $isNonCrop = isset($nonCropsLookup[$cNameLower]);
+
+            // Determine accurate group name and slug
+            $groupName = 'Other';
+            $groupSlug = 'other';
+
+            if ($isSpecialized) {
+                $groupName = $isCoffeeBoard ? 'Coffee' : 'Coconut & Copra';
+                $groupSlug = $isCoffeeBoard ? 'coffee' : 'coconut';
+            } elseif (isset($plantationLookup[$cNameLower])) {
+                $groupName = 'Plantation & Cash';
+                $groupSlug = 'plantation';
+                $plantationCropIds[] = $c->id;
+            } elseif (isset($vegetablesLookup[$cNameLower])) {
+                $groupName = 'Vegetables';
+                $groupSlug = 'vegetables';
+                $vegetableCropIds[] = $c->id;
+            } elseif (isset($cerealsPulsesLookup[$cNameLower])) {
+                $groupName = 'Cereals & Pulses';
+                $groupSlug = 'cereals-pulses';
+                $cerealPulseCropIds[] = $c->id;
+            } elseif (isset($oilseedsLookup[$cNameLower])) {
+                $groupName = 'Oilseeds';
+                $groupSlug = 'oilseeds';
+                $oilseedCropIds[] = $c->id;
+            } elseif (isset($spicesLookup[$cNameLower])) {
+                $groupName = 'Spices';
+                $groupSlug = 'spices';
+                $spiceCropIds[] = $c->id;
+            } elseif (isset($fruitsLookup[$cNameLower])) {
+                $groupName = 'Fruits';
+                $groupSlug = 'fruits';
+                $fruitCropIds[] = $c->id;
+            } elseif ($isNonCrop) {
+                $groupName = 'Non-Crop / Excluded';
+                $groupSlug = 'non-crops';
+            }
+
+            // In syncMap, default to enabled for specialized crops or non-excluded crops
+            $isEnabled = isset($syncMap[$c->id]) ? (bool) $syncMap[$c->id] : ($isSpecialized ? true : !$isNonCrop);
+            if ($isEnabled) {
+                $activeCount++;
+            }
+
+            if ($isNonCrop) {
+                $nonCropIds[] = $c->id;
+            } else {
+                $coreCropIds[] = $c->id;
+            }
+
+            $stats = $priceStats->get($c->id);
+
+            $cropsList[] = [
+                'id' => $c->id,
+                'name' => $c->name,
+                'name_kn' => $c->name_kn,
+                'category_name' => $groupName,
+                'category_slug' => $groupSlug,
+                'is_enabled' => $isEnabled,
+                'is_karnataka_core' => !$isNonCrop,
+                'is_non_crop' => $isNonCrop,
+                'photo_url' => $c->photo_url,
+                'records_count' => (int) ($stats->total_records ?? 0),
+                'mandis_count' => (int) ($stats->total_mandis ?? 0),
+            ];
+        }
+
+        if ($isSpecialized) {
+            $filterGroups = [
+                ['slug' => 'all', 'name' => ($isCoffeeBoard ? 'Coffee' : 'Coconut & Copra') . ' (' . count($cropsList) . ')'],
+            ];
+        } else {
+            $filterGroups = [
+                ['slug' => 'all', 'name' => 'All Items (' . count($cropsList) . ')'],
+                ['slug' => 'plantation', 'name' => 'Plantation & Cash (' . count($plantationCropIds) . ')'],
+                ['slug' => 'vegetables', 'name' => 'Vegetables (' . count($vegetableCropIds) . ')'],
+                ['slug' => 'cereals-pulses', 'name' => 'Cereals & Pulses (' . count($cerealPulseCropIds) . ')'],
+                ['slug' => 'spices', 'name' => 'Spices (' . count($spiceCropIds) . ')'],
+                ['slug' => 'oilseeds', 'name' => 'Oilseeds (' . count($oilseedCropIds) . ')'],
+                ['slug' => 'fruits', 'name' => 'Fruits (' . count($fruitCropIds) . ')'],
+                ['slug' => 'non-crops', 'name' => 'Non-Crops / Excluded (' . count($nonCropIds) . ')'],
+            ];
+        }
+
+        return response()->json([
+            'ok' => true,
+            'datasource' => [
+                'id' => $datasource->id,
+                'name' => $datasource->name,
+                'code' => $datasource->code,
+                'active_crops_count' => $activeCount,
+                'total_crops_count' => count($cropsList),
+                'is_specialized' => $isSpecialized,
+                'specialization_title' => match ($datasource->code) {
+                    'coffee_board' => 'Statutory Single-Commodity Board (Coffee)',
+                    'coconut_board' => 'Specialized Commodity Board (Coconut & Copra)',
+                    default => null,
+                },
+                'specialization_note' => match ($datasource->code) {
+                    'coffee_board' => 'Coffee Board of India exclusively publishes domestic farm-gate prices for Coffee (Arabica & Robusta varieties) across key growing hubs: Chikkamagaluru, Madikeri, and Sakleshpur.',
+                    'coconut_board' => 'Coconut Development Board exclusively tracks Coconut, Copra (Ball & Milling), and Tender Coconut across Karnataka producing hubs (Tiptur, Arsikere, Mangaluru).',
+                    default => null,
+                },
+            ],
+            'filter_groups' => $filterGroups,
+            'crops' => array_values($cropsList),
+            'presets' => [
+                'core_crop_ids' => $coreCropIds,
+                'non_crop_ids' => $nonCropIds,
+                'plantation_crop_ids' => $plantationCropIds,
+                'vegetable_crop_ids' => $vegetableCropIds,
+                'cereal_pulse_crop_ids' => $cerealPulseCropIds,
+                'oilseed_crop_ids' => $oilseedCropIds,
+                'spice_crop_ids' => $spiceCropIds,
+                'fruit_crop_ids' => $fruitCropIds,
+            ],
+        ]);
+    }
+
+    /**
+     * Save updated crop synchronization settings for a data source.
+     */
+    public function updateCropSyncConfig(Request $request, DataSource $datasource): JsonResponse
+    {
+        $validated = $request->validate([
+            'crop_ids' => 'present|array',
+            'crop_ids.*' => 'integer|exists:crops,id',
+        ]);
+
+        $selectedCropIds = array_map('intval', $validated['crop_ids']);
+        $selectedLookup = array_fill_keys($selectedCropIds, true);
+
+        $isCoffeeBoard = ($datasource->code === 'coffee_board');
+        $isCoconutBoard = ($datasource->code === 'coconut_board');
+        $isSpecialized = ($isCoffeeBoard || $isCoconutBoard);
+
+        if ($isCoffeeBoard) {
+            $relevantCropIds = Crop::where('name', 'like', '%coffee%')->pluck('id')->all();
+        } elseif ($isCoconutBoard) {
+            $relevantCropIds = Crop::whereIn(DB::raw('LOWER(name)'), ['coconut', 'copra', 'tender coconut'])->pluck('id')->all();
+        } else {
+            $relevantCropIds = Crop::pluck('id')->all();
+        }
+
+        $allCropIds = Crop::pluck('id')->all();
+        $now = now();
+
+        $upsertData = [];
+        foreach ($allCropIds as $cid) {
+            // For specialized providers, non-relevant crops must be disabled
+            $isEnabled = isset($selectedLookup[$cid]);
+            if ($isSpecialized && !in_array($cid, $relevantCropIds, true)) {
+                $isEnabled = false;
+            }
+
+            $upsertData[] = [
+                'data_source_id' => $datasource->id,
+                'crop_id' => $cid,
+                'is_enabled' => $isEnabled,
+                'sync_priority' => 'standard',
+                'updated_at' => $now,
+                'created_at' => $now,
+            ];
+        }
+
+        DB::table('data_source_crop_sync')->upsert(
+            $upsertData,
+            ['data_source_id', 'crop_id'],
+            ['is_enabled', 'updated_at']
+        );
+
+        // Synchronize public visibility (is_active on crops table):
+        // A crop is active in the public app if it is enabled in at least one active data source
+        $activeCropIdsAcrossSources = DB::table('data_source_crop_sync')
+            ->join('data_sources', 'data_source_crop_sync.data_source_id', '=', 'data_sources.id')
+            ->where('data_sources.is_active', true)
+            ->where('data_source_crop_sync.is_enabled', true)
+            ->distinct()
+            ->pluck('data_source_crop_sync.crop_id')
+            ->all();
+
+        if (!empty($activeCropIdsAcrossSources)) {
+            Crop::whereIn('id', $activeCropIdsAcrossSources)->update(['is_active' => true]);
+            Crop::whereNotIn('id', $activeCropIdsAcrossSources)->update(['is_active' => false]);
+        }
+
+        AuditLog::log(
+            'update_crop_sync',
+            'DataSource',
+            $datasource->id,
+            null,
+            ['active_crops_count' => count($selectedCropIds)]
+        );
+
+        $totalCount = $isSpecialized ? count($relevantCropIds) : count($allCropIds);
+
+        return response()->json([
+            'ok' => true,
+            'message' => "Crop sync settings saved for {$datasource->name}: " . count($selectedCropIds) . " of {$totalCount} crops configured to sync.",
+            'active_crops_count' => count($selectedCropIds),
+            'total_crops_count' => $totalCount,
+        ]);
+    }
+
+    /**
+     * Instantly synchronize a single crop for a data source.
+     */
+    public function syncSingleCrop(Request $request, DataSource $datasource, Crop $crop, MarketPriceIngestionService $ingestionService): JsonResponse
+    {
+        @set_time_limit(180);
+        @ini_set('max_execution_time', '180');
+
+        try {
+            $result = $ingestionService->ingest($datasource, [
+                'crop_id' => $crop->id,
+                'force' => true,
+            ]);
+
+            return response()->json([
+                'ok' => true,
+                'crop' => [
+                    'id' => $crop->id,
+                    'name' => $crop->name,
+                    'name_kn' => $crop->name_kn,
+                ],
+                'result' => $result,
+                'message' => "Successfully synced {$crop->name} for {$datasource->name} in {$result['duration_ms']}ms: {$result['inserted']} new records, {$result['updated']} updated.",
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => "Sync failed for {$crop->name}: " . $e->getMessage(),
+            ], 500);
         }
     }
 

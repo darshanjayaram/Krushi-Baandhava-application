@@ -35,7 +35,7 @@
 <div class="space-y-6" x-data="farmerHome()">
 
     <!-- ==================== 1. HERO BANNER (Negilu Krushi Clean Master Standard) ==================== -->
-    <section class="rounded-3xl relative shadow-lg border-2 border-[#D9CEB8] min-h-[300px] sm:min-h-[340px] flex flex-col justify-between z-30 w-full max-w-full min-w-0 overflow-hidden"
+    <section class="rounded-3xl relative shadow-lg border-2 border-[#D9CEB8] min-h-[300px] sm:min-h-[340px] flex flex-col justify-between z-30 w-full max-w-full min-w-0"
              style="background: linear-gradient(147deg, rgba(16, 54, 28, 0.94) 0%, rgb(12 42 22 / 65%) 50%, rgba(6, 22, 11, 0.88) 100%), url('{{ asset('images/hero_farmer.jpg') }}') center right / cover no-repeat;">
         
         <!-- Hero Content -->
@@ -90,11 +90,16 @@
                      results: [],
                      allCrops: window.kbSearchableCrops || [],
                      
-                     performSearch() {
+                     performSearch(isFromFocus = false) {
                          const q = this.searchQuery.toLowerCase().trim();
                          if (!q) {
-                             this.results = this.allCrops.slice(0, 6);
-                             this.isSearchOpen = true;
+                             if (isFromFocus) {
+                                 this.results = this.allCrops.slice(0, 6);
+                                 this.isSearchOpen = true;
+                             } else {
+                                 this.results = [];
+                                 this.closeSearch(false);
+                             }
                              return;
                          }
                          this.results = this.allCrops.filter(c => 
@@ -109,33 +114,50 @@
                          ).slice(0, 8);
                          this.isSearchOpen = true;
                      },
+                     closeSearch(shouldBlur = true) {
+                         this.isSearchOpen = false;
+                         if (shouldBlur && this.$refs.searchInput) {
+                             this.$refs.searchInput.blur();
+                         }
+                     },
                      clearSearch() {
                          this.searchQuery = '';
-                         this.results = this.allCrops.slice(0, 6);
-                         this.isSearchOpen = false;
+                         this.results = [];
+                         this.closeSearch(true);
+                     },
+                     toggleSearch() {
+                         if (this.isSearchOpen) {
+                             this.closeSearch(true);
+                         } else {
+                             if (this.$refs.searchInput) {
+                                 this.$refs.searchInput.focus();
+                             }
+                             this.performSearch(true);
+                         }
                      }
                  }"
-                 @click.away="isSearchOpen = false">
+                 @keydown.escape.window="closeSearch(true)"
+                 @scroll.window="closeSearch(true)">
                 
                 <!-- Mandi Hub (Row 1 on Mobile, Left Column on Desktop) -->
-                <div class="flex items-center justify-between md:justify-start gap-2 sm:gap-3 md:shrink-0">
+                <div class="flex items-center justify-between md:justify-start gap-2 sm:gap-3 md:shrink-0" @click="closeSearch(true)">
                     <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
                         <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center text-sm sm:text-base font-black shrink-0 border border-emerald-200">
                             📍
                         </div>
-                        <div class="min-w-0">
-                            <span class="text-[9px] sm:text-[10px] text-amber-300 font-bold uppercase tracking-wider block leading-none">
+                        <div class="min-w-0 flex flex-col justify-center">
+                            <span class="text-[9px] sm:text-[10px] text-amber-300 font-bold uppercase tracking-wider block {{ $activeLocale === 'kn' ? 'font-kannada leading-tight' : 'leading-none' }}">
                                 {{ $activeLocale === 'en' ? 'Your Mandi Center' : 'ನಿಮ್ಮ ಮಂಡಿ ಕೇಂದ್ರ' }}
                             </span>
-                            <span class="font-black text-xs sm:text-sm text-white block truncate leading-tight mt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            <span class="font-black text-xs sm:text-sm text-white block truncate {{ $activeLocale === 'kn' ? 'font-kannada leading-normal pt-1 pb-0.5' : 'font-sans leading-tight mt-0.5' }}">
                                 {{ $activeLocale === 'en' ? (($activeDistrict->name ?? 'Karnataka') . ' (APMC)') : (($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') . ' (ಎಪಿಎಂಸಿ)') }}
                             </span>
                         </div>
                     </div>
 
                     <button type="button"
-                            @click="$dispatch('open-location-modal')"
-                            class="bg-[#EAF4EC] hover:bg-[#1C5A2C] text-[#1C5A2C] hover:text-white px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-xl text-[11px] font-black border border-[#B8DEC0] transition cursor-pointer shrink-0 md:ml-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            @click="$dispatch('open-location-modal'); closeSearch(true);"
+                            class="btn-mandi-change bg-[#EAF4EC] hover:bg-[#1C5A2C] text-[#1C5A2C] hover:text-white px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-xl text-[11px] font-black border border-[#B8DEC0] transition cursor-pointer shrink-0 md:ml-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                         {{ $activeLocale === 'en' ? 'Change ▾' : 'ಬದಲಿಸಿ ▾' }}
                     </button>
                 </div>
@@ -145,26 +167,31 @@
                 <div class="hidden md:block w-px h-8 bg-[#D9CEB8] shrink-0"></div>
 
                 <!-- Search Bar (Row 2 on Mobile, Expanded Right Column on Desktop) -->
-                <div class="relative flex-1 min-w-0">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs transition-colors duration-200"></i>
+                <div class="relative flex-1 min-w-0" @click.away="closeSearch(true)">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#1C5A2C] text-xs transition-colors duration-200 cursor-pointer"
+                       @click="toggleSearch()"
+                       title="{{ $activeLocale === 'en' ? 'Toggle search' : 'ಹುಡುಕಾಟ' }}"></i>
                     
                     <input type="text"
+                           x-ref="searchInput"
                            x-model="searchQuery"
-                           @input.debounce.150ms="performSearch()"
-                           @focus="performSearch()"
+                           @input.debounce.150ms="performSearch(false)"
+                           @focus="performSearch(true)"
+                           @keydown.escape.stop="clearSearch()"
                            placeholder="{{ $activeLocale === 'en' ? 'Search any crop or mandi (e.g. Arecanut, Pepper, Tomato)...' : 'ಯಾವುದೇ ಬೆಳೆ ಅಥವಾ ಮಂಡಿ ಹುಡುಕಿ... (ಅಡಿಕೆ, ಕಾಳುಮೆಣಸು, ಟೊಮೆಟೊ)' }}"
-                           class="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-white border border-[#D9CEB8] text-xs sm:text-sm font-semibold text-amber-300 placeholder-stone-400 focus:outline-none focus:border-[#1C5A2C] focus:ring-2 focus:ring-[#1C5A2C]/20 focus:bg-emerald-50/10 shadow-inner transition-all duration-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                           class="home-search-input w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-white border border-[#D9CEB8] text-xs sm:text-sm font-semibold text-amber-300 placeholder-stone-400 focus:outline-none focus:border-[#1C5A2C] focus:ring-2 focus:ring-[#1C5A2C]/20 focus:bg-emerald-50/10 shadow-inner transition-all duration-200 {{ $activeLocale === 'kn' ? 'font-kannada search-input-kn' : 'font-sans' }}">
 
-                    <!-- Clear ✕ Button with smooth scale/fade transition -->
+                    <!-- Clear / Close ✕ Button with smooth scale/fade transition -->
                     <button type="button"
-                            x-show="searchQuery.length > 0"
+                            x-show="searchQuery.length > 0 || isSearchOpen"
                             x-transition:enter="transition ease-out duration-150 transform"
                             x-transition:enter-start="opacity-0 scale-75"
                             x-transition:enter-end="opacity-100 scale-100"
                             x-transition:leave="transition ease-in duration-100 transform"
                             x-transition:leave-start="opacity-100 scale-100"
                             x-transition:leave-end="opacity-0 scale-75"
-                            @click="clearSearch()"
+                            @click.stop="clearSearch()"
+                            title="{{ $activeLocale === 'en' ? 'Close search' : 'ಹುಡುಕಾಟ ಮುಚ್ಚಿ' }}"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs cursor-pointer p-1" style="display: none;">
                         <i class="fa-solid fa-circle-xmark"></i>
                     </button>
@@ -178,12 +205,21 @@
                          x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                          x-transition:leave-end="opacity-0 -translate-y-2 scale-[0.98]"
                          style="display: none;"
-                         class="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_45px_-15px_rgba(28,90,44,0.15),0_10px_20px_-5px_rgba(0,0,0,0.08)] border-2 border-[#1C5A2C] overflow-hidden z-50 divide-y divide-stone-100 max-h-80 overflow-y-auto scroll-smooth">
+                         class="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_20px_45px_-15px_rgba(28,90,44,0.15),0_10px_20px_-5px_rgba(0,0,0,0.08)] border-2 border-[#1C5A2C] overflow-hidden z-50 divide-y divide-stone-100 max-h-52 md:max-h-59 overflow-y-auto scroll-smooth">
                         
-                        <!-- Header counter -->
+                        <!-- Header counter & explicit Close ✕ button -->
                         <div class="px-3.5 py-1.5 bg-[#FAF8F5] text-[10px] font-bold text-stone-500 flex items-center justify-between border-b border-stone-100">
                             <span x-text="searchQuery.trim().length === 0 ? '{{ $activeLocale === 'en' ? 'Popular Karnataka Crops' : 'ಪ್ರಮುಖ ಬೆಳೆಗಳು' }}' : (results.length > 0 ? (results.length + ' {{ $activeLocale === 'en' ? 'crops found' : 'ಬೆಳೆಗಳು ಲಭ್ಯ' }}') : '{{ $activeLocale === 'en' ? 'Search Results' : 'ಫಲಿತಾಂಶ' }}')"></span>
-                            <span class="text-[9px] text-[#1C5A2C] font-black uppercase">LIVE APMC</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[9px] text-[#1C5A2C] font-black uppercase">LIVE APMC</span>
+                                <button type="button"
+                                        @click.stop="closeSearch(true)"
+                                        class="text-stone-400 hover:text-stone-800 text-[11px] font-black px-1.5 py-0.5 rounded hover:bg-stone-200 transition cursor-pointer flex items-center gap-0.5"
+                                        title="{{ $activeLocale === 'en' ? 'Close' : 'ಮುಚ್ಚಿ' }}">
+                                    <span>✕</span>
+                                    <span class="text-[9px] font-semibold">{{ $activeLocale === 'en' ? 'Close' : 'ಮುಚ್ಚಿ' }}</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Results List -->
@@ -249,13 +285,14 @@
             <div class="flex items-center justify-between pb-1 border-b border-[#E5DECE]">
                 <div class="flex items-center gap-2">
                     <h2 class="text-sm sm:text-base font-black text-[#1C5A2C] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1.5">
-                        <span>🌟</span>
-                        <span>{{ $activeLocale === 'en' ? "Today's Key Market Rates" : 'ಇಂದಿನ ಪ್ರಮುಖ ದರಗಳು' }}</span>
-                        <span class="text-xs text-stone-500 font-semibold hidden sm:inline">({{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }})</span>
+                        <span class="shrink-0">🌟</span>
+                        <span class="{{ $activeLocale === 'kn' ? 'relative top-[1.5px]' : '' }}">{{ $activeLocale === 'en' ? "Today's Key Market Rates" : 'ಇಂದಿನ ಪ್ರಮುಖ ದರಗಳು' }}</span>
+                        <span class="text-xs text-stone-500 font-semibold hidden sm:inline {{ $activeLocale === 'kn' ? 'relative top-[1.5px]' : '' }}">({{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }})</span>
                     </h2>
                 </div>
                 <a href="#allCropsSection" class="text-xs font-bold text-[#1C5A2C] hover:underline {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
-                    {{ $activeLocale === 'en' ? 'View All Crops ›' : 'ಎಲ್ಲಾ ಬೆಳೆಗಳು ನೋಡಿ ›' }}
+                    <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'View All Crops' : 'ಎಲ್ಲಾ ಬೆಳೆಗಳು ನೋಡಿ' }}</span>
+                    <span class="shrink-0">›</span>
                 </a>
             </div>
 
@@ -279,15 +316,18 @@
                                 
                                 @if(($mover->daily_price_change ?? 0) > 0)
                                     <span class="bg-emerald-600/90 text-white text-[9px] sm:text-[11px] font-black px-1.5 sm:px-2 py-0.5 rounded-full shrink-0 flex items-center gap-0.5 shadow-sm">
-                                        ↑ {{ $activeLocale === 'en' ? 'Rise' : 'ಏರಿಕೆ' }}
+                                        <span class="shrink-0 text-[10px]">↑</span>
+                                        <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Rise' : 'ಏರಿಕೆ' }}</span>
                                     </span>
                                 @elseif(($mover->daily_price_change ?? 0) < 0)
                                     <span class="bg-red-500/90 text-white text-[9px] sm:text-[11px] font-black px-1.5 sm:px-2 py-0.5 rounded-full shrink-0 flex items-center gap-0.5 shadow-sm">
-                                        ↓ {{ $activeLocale === 'en' ? 'Drop' : 'ಇಳಿಕೆ' }}
+                                        <span class="shrink-0 text-[10px]">↓</span>
+                                        <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Drop' : 'ಇಳಿಕೆ' }}</span>
                                     </span>
                                 @else
                                     <span class="bg-blue-600/90 text-white text-[9px] sm:text-[11px] font-black px-1.5 sm:px-2 py-0.5 rounded-full shrink-0 flex items-center gap-0.5 shadow-sm">
-                                        → {{ $activeLocale === 'en' ? 'Stable' : 'ಸ್ಥಿರ' }}
+                                        <span class="shrink-0 text-[10px]">→</span>
+                                        <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Stable' : 'ಸ್ಥಿರ' }}</span>
                                     </span>
                                 @endif
                             </div>
@@ -315,8 +355,9 @@
                                         @endif
                                     </span>
                                 </span>
-                                <span class="text-[10px] sm:text-[11px] text-[#1C5A2C] font-extrabold shrink-0 mt-0.5">
-                                    {{ $activeLocale === 'en' ? 'Details ›' : 'ವಿವರ ›' }}
+                                <span class="text-[10px] sm:text-[11px] text-[#1C5A2C] font-extrabold shrink-0 mt-0.5 flex items-center gap-0.5">
+                                    <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Details' : 'ವಿವರ' }}</span>
+                                    <span class="shrink-0">›</span>
                                 </span>
                             </div>
                         </div>
@@ -403,8 +444,8 @@
             <!-- Agricultural Spray & Field Advisory -->
             <div class="pt-2 border-t border-white/15 z-10 relative flex flex-col gap-1">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold text-amber-300 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <span>🌾</span>
-                    <span>{{ $activeLocale === 'en' ? 'Farm Advisory' : 'ಕೃಷಿ ಸಲಹೆ' }}</span>
+                    <span class="shrink-0">🌾</span>
+                    <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Farm Advisory' : 'ಕೃಷಿ ಸಲಹೆ' }}</span>
                 </div>
                 <p class="text-[11px] sm:text-xs text-white/95 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} leading-relaxed">
                     {{ $todayWeather 
@@ -514,7 +555,7 @@
                             <circle cx="8" cy="11.5" r="1.5"/>
                             <circle cx="13" cy="11.5" r="1.5"/>
                         </svg>
-                        <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Cards' : 'ಕಾರ್ಡ್' }}</span>
+                        <span class="{{ $activeLocale === 'kn' ? 'font-kannada relative top-[1px]' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Cards' : 'ಕಾರ್ಡ್' }}</span>
                     </button>
                     <button type="button" 
                             @click="currentView = 'list'" 
@@ -528,7 +569,7 @@
                             <circle cx="2.5" cy="12.5" r="1.2"/>
                             <rect x="5.5" y="11.5" width="9" height="2" rx="1"/>
                         </svg>
-                        <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'List' : 'ಪಟ್ಟಿ' }}</span>
+                        <span class="{{ $activeLocale === 'kn' ? 'font-kannada relative top-[1px]' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'List' : 'ಪಟ್ಟಿ' }}</span>
                     </button>
                 </div>
 
@@ -539,7 +580,7 @@
                            x-model="searchQuery" 
                            @input.debounce.150ms="filterCrops()"
                            placeholder="{{ $activeLocale === 'en' ? 'Search crop or mandi...' : 'ಬೆಳೆ ಅಥವಾ ಮಾರುಕಟ್ಟೆ ಹುಡುಕಿ...' }}" 
-                           class="w-full pl-9 pr-8 py-2 bg-white border-2 border-[#D9CEB8] focus:border-[#1C5A2C] focus:ring-2 focus:ring-[#1C5A2C]/20 focus:bg-emerald-50/10 rounded-xl text-xs font-semibold text-stone-800 outline-none transition-all duration-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} shadow-sm">
+                           class="w-full pl-9 pr-8 py-2 bg-white border-2 border-[#D9CEB8] focus:border-[#1C5A2C] focus:ring-2 focus:ring-[#1C5A2C]/20 focus:bg-emerald-50/10 rounded-xl text-xs font-semibold text-stone-800 outline-none transition-all duration-200 {{ $activeLocale === 'kn' ? 'font-kannada search-input-kn' : 'font-sans' }} shadow-sm">
                     <button type="button" 
                             x-show="searchQuery.length > 0" 
                             x-transition:enter="transition ease-out duration-150 transform"
@@ -558,19 +599,20 @@
         </div>
 
         <!-- Category Filter Pills (Matches Negilu Krushi Clean Categories) -->
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2.5 text-xs font-bold text-stone-700 w-full min-w-0 max-w-full" style="contain: paint;">
+        <div class="flex items-center gap-2 overflow-x-auto pb-2.5 text-xs font-bold text-stone-700 w-full min-w-0 max-w-full" style="contain: paint;">
             <button type="button" 
                     @click="setCategory('all')" 
                     :class="selectedCat === 'all' ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm' : 'bg-white text-stone-700 border-[#D9CEB8] hover:border-[#1C5A2C]'"
-                    class="flex-none px-4 py-2 rounded-xl border-2 transition-all cursor-pointer {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                🌾 {{ $activeLocale === 'en' ? 'All' : 'ಎಲ್ಲಾ' }}
+                    class="category-filter-btn flex-none px-4 py-2 rounded-xl border-2 transition-all cursor-pointer inline-flex items-center gap-1.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <span class="shrink-0">🌾</span>
+                <span class="{{ $activeLocale === 'kn' ? 'relative top-[1.5px]' : '' }}">{{ $activeLocale === 'en' ? 'All' : 'ಎಲ್ಲಾ' }}</span>
             </button>
             
             @foreach($categories as $cat)
                 <button type="button" 
                         @click="setCategory('{{ $cat->slug }}')" 
                         :class="selectedCat === '{{ $cat->slug }}' ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm' : 'bg-white text-stone-700 border-[#D9CEB8] hover:border-[#1C5A2C]'"
-                        class="flex-none px-4 py-2 rounded-xl border-2 transition-all cursor-pointer {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        class="category-filter-btn flex-none px-4 py-2 rounded-xl border-2 transition-all cursor-pointer inline-flex items-center gap-1.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     @php
                         $catEmoji = match(strtolower($cat->slug)) {
                             'plantation', 'commercial' => '🌴',
@@ -582,7 +624,8 @@
                             default => '🌿'
                         };
                     @endphp
-                    {{ $catEmoji }} {{ $activeLocale === 'en' ? $cat->name : ($cat->name_kn ?? $cat->name) }}
+                    <span class="shrink-0">{{ $catEmoji }}</span>
+                    <span class="{{ $activeLocale === 'kn' ? 'relative top-[1.5px]' : '' }}">{{ $activeLocale === 'en' ? $cat->name : ($cat->name_kn ?? $cat->name) }}</span>
                     <span class="sr-only">{{ $cat->name }}</span>
                 </button>
             @endforeach
@@ -591,7 +634,7 @@
         <!-- Quick Hint Nudge -->
         <div class="flex items-start sm:items-center gap-2 bg-[#EAF4EC] border border-[#B8DEC0] px-3 py-1.5 rounded-xl sm:rounded-full text-[11px] sm:text-xs text-[#1C5A2C] font-semibold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} w-full max-w-full">
             <span class="shrink-0 mt-0.5 sm:mt-0">👆</span> 
-            <span class="leading-snug">{{ $activeLocale === 'en' ? 'Tap any crop to view prices across different markets and seasonal trends' : 'ಯಾವುದೇ ಬೆಳೆಯ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ — ವಿವಿಧ ಮಾರುಕಟ್ಟೆಗಳ ದರ ಮತ್ತು ಸೀಸನಲ್ ಮುನ್ಸೂಚನೆ ನೋಡಿ' }}</span>
+            <span class="leading-snug {{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Tap any crop to view prices across different markets and seasonal trends' : 'ಯಾವುದೇ ಬೆಳೆಯ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ — ವಿವಿಧ ಮಾರುಕಟ್ಟೆಗಳ ದರ ಮತ್ತು ಸೀಸನಲ್ ಮುನ್ಸೂಚನೆ ನೋಡಿ' }}</span>
         </div>
 
         <!-- ==================== VIEW 1: CLEAN FULL-BLEED CARDS GRID (Negilu Krushi Clean Master) ==================== -->
@@ -612,16 +655,16 @@
                         
                         @if($price->reliability_badge === 'Reliable')
                             <div class="absolute top-1.5 right-1.5">
-                                <span class="bg-emerald-600/95 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm flex items-center gap-0.5">
-                                    <span class="w-1 h-1 rounded-full bg-white animate-pulse"></span>
-                                    <span>{{ $activeLocale === 'en' ? 'Reliable' : 'ವಿಶ್ವಾಸಾರ್ಹ' }}</span>
+                                <span class="bg-emerald-600/95 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm inline-flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0"></span>
+                                    <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }} leading-none">{{ $activeLocale === 'en' ? 'Reliable' : 'ವಿಶ್ವಾಸಾರ್ಹ' }}</span>
                                 </span>
                             </div>
                         @else
                             <div class="absolute top-1.5 right-1.5">
-                                <span class="bg-amber-500/90 text-stone-950 text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm flex items-center gap-0.5" title="{{ $activeLocale === 'en' ? 'State benchmark rate' : 'ರಾಜ್ಯ ಸರಾಸರಿ / ಸಮೀಪದ ಮಂಡಿ ದರ' }}">
-                                    <span class="w-1 h-1 rounded-full bg-amber-800"></span>
-                                    <span>{{ $activeLocale === 'en' ? 'Benchmark' : 'ಮೌಲ್ಯಾಂಕನ' }}</span>
+                                <span class="bg-amber-500/90 text-stone-950 text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm inline-flex items-center gap-1" title="{{ $activeLocale === 'en' ? 'State benchmark rate' : 'ರಾಜ್ಯ ಸರಾಸರಿ / ಸಮೀಪದ ಮಂಡಿ ದರ' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-800 shrink-0"></span>
+                                    <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }} leading-none">{{ $activeLocale === 'en' ? 'Benchmark' : 'ಮೌಲ್ಯಾಂಕನ' }}</span>
                                 </span>
                             </div>
                         @endif
@@ -644,16 +687,19 @@
                                     <span class="text-[9px] sm:text-xs font-semibold text-stone-500">/ {{ $price->crop->primary_unit ?? ($activeLocale === 'en' ? 'Qtl' : 'ಕ್ವಿಂಟಾಲ್') }}</span>
                                 </div>
                                 @if(($price->daily_price_change ?? 0) > 0)
-                                    <span class="text-[9px] sm:text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded shrink-0">
-                                        ↑ {{ $activeLocale === 'en' ? 'Rise' : 'ಏರಿಕೆ' }}
+                                    <span class="text-[9px] sm:text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5">
+                                        <span class="shrink-0 text-[9px]">↑</span>
+                                        <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Rise' : 'ಏರಿಕೆ' }}</span>
                                     </span>
                                 @elseif(($price->daily_price_change ?? 0) < 0)
-                                    <span class="text-[9px] sm:text-[10px] font-extrabold text-red-700 bg-red-50 px-1.5 py-0.2 rounded shrink-0">
-                                        ↓ {{ $activeLocale === 'en' ? 'Drop' : 'ಇಳಿಕೆ' }}
+                                    <span class="text-[9px] sm:text-[10px] font-extrabold text-red-700 bg-red-50 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5">
+                                        <span class="shrink-0 text-[9px]">↓</span>
+                                        <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Drop' : 'ಇಳಿಕೆ' }}</span>
                                     </span>
                                 @else
-                                    <span class="text-[9px] sm:text-[10px] font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded shrink-0">
-                                        → {{ $activeLocale === 'en' ? 'Stable' : 'ಸ್ಥಿರ' }}
+                                    <span class="text-[9px] sm:text-[10px] font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5">
+                                        <span class="shrink-0 text-[9px]">→</span>
+                                        <span class="{{ $activeLocale === 'kn' ? 'relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Stable' : 'ಸ್ಥಿರ' }}</span>
                                     </span>
                                 @endif
                             </div>

@@ -28,6 +28,91 @@
 
     <style>
         body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+
+        /* ============================================================== */
+        /* MODERN THIN SCROLLBAR SYSTEM (Industry Standard UX)             */
+        /* ============================================================== */
+        /* Chromium, Chrome, Edge, Safari, Opera */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #020617;
+            border-radius: 9999px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+            border: 1px solid rgba(15, 23, 42, 0.5);
+            transition: background 0.2s ease;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981; /* Emerald-500 hover accent */
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-button,
+        ::-webkit-scrollbar-button:single-button,
+        ::-webkit-scrollbar-button:vertical:decrement,
+        ::-webkit-scrollbar-button:vertical:increment,
+        ::-webkit-scrollbar-button:horizontal:decrement,
+        ::-webkit-scrollbar-button:horizontal:increment {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+        }
+
+        /* Firefox Only */
+        @supports not selector(::-webkit-scrollbar) {
+            * {
+                scrollbar-width: thin;
+                scrollbar-color: #334155 #020617;
+            }
+        }
+
+        /* Dedicated Modal & Content Thin Scrollbars */
+        .modal-thin-scrollbar::-webkit-scrollbar,
+        .custom-scrollbar::-webkit-scrollbar,
+        .thin-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .modal-thin-scrollbar::-webkit-scrollbar-track,
+        .custom-scrollbar::-webkit-scrollbar-track,
+        .thin-scrollbar::-webkit-scrollbar-track {
+            background: #020617;
+            border-radius: 9999px;
+        }
+
+        .modal-thin-scrollbar::-webkit-scrollbar-thumb,
+        .custom-scrollbar::-webkit-scrollbar-thumb,
+        .thin-scrollbar::-webkit-scrollbar-thumb {
+            background: #059669; /* Emerald-600 */
+            border-radius: 9999px;
+            border: 1px solid #064e3b;
+        }
+
+        .modal-thin-scrollbar::-webkit-scrollbar-thumb:hover,
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+        .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #10b981; /* Emerald-500 */
+        }
+
+        .modal-thin-scrollbar,
+        .custom-scrollbar,
+        .thin-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #059669 #020617;
+        }
     </style>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])

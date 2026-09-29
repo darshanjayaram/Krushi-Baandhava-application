@@ -94,7 +94,7 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
 
                 $kramaDate = $cursor->format('d/m/Y');
                 try {
-                    $dayRecords = $this->fetchSingleDate($kramaDate, $mainRepUrl, $commadityUrl, $timeout);
+                    $dayRecords = $this->fetchSingleDate($kramaDate, $mainRepUrl, $commadityUrl, $timeout, $filters);
                     foreach ($dayRecords as $rec) {
                         $allRecords[] = $rec;
                     }
@@ -113,13 +113,13 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
             ? Carbon::parse($filters['date'])->format('d/m/Y')
             : (isset($filters['to_date']) ? Carbon::parse($filters['to_date'])->format('d/m/Y') : Carbon::today()->format('d/m/Y'));
 
-        return $this->fetchSingleDate($dateStr, $mainRepUrl, $commadityUrl, $timeout);
+        return $this->fetchSingleDate($dateStr, $mainRepUrl, $commadityUrl, $timeout, $filters);
     }
 
     /**
      * Fetch APMC records for a single specific auction date from KRAMA.
      */
-    public function fetchSingleDate(string $dateStr, string $mainRepUrl, string $commadityUrl, int $timeout = 45): array
+    public function fetchSingleDate(string $dateStr, string $mainRepUrl, string $commadityUrl, int $timeout = 45, array $filters = []): array
     {
         $cookieJar = new CookieJar();
         $verifySsl = config('services.http.verify_ssl', false);
@@ -184,11 +184,22 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
             $vsg2 = $xp2->query('//input[@id="__VIEWSTATEGENERATOR"]')->item(0)?->getAttribute('value') ?? '';
             $ev2 = $xp2->query('//input[@id="__EVENTVALIDATION"]')->item(0)?->getAttribute('value') ?? '';
 
-            // Step 3: Select all commodity checkboxes
+            // Step 3: Select commodity checkboxes (respect enabled crops filter if provided)
             $checkboxes = $xp2->query('//input[@type="checkbox"]');
             if ($checkboxes->length === 0) {
                 Log::warning("KramaMarketDataProvider: No commodity checkboxes found on {$commadityUrl} for {$dateStr}");
                 return [];
+            }
+
+            $allowedCommodities = null;
+            if (!empty($filters['enabled_crop_names']) && is_array($filters['enabled_crop_names'])) {
+                $allowedCommodities = [];
+                foreach ($filters['enabled_crop_names'] as $name) {
+                    $clean = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $name)));
+                    if (!empty($clean)) {
+                        $allowedCommodities[$clean] = true;
+                    }
+                }
             }
 
             $step2Data = [
@@ -203,10 +214,52 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
                 '_ctl0:MainContent:BtnRep' => 'View Report',
             ];
 
+            $matchedCount = 0;
             foreach ($checkboxes as $cb) {
                 $name = $cb->getAttribute('name');
-                if ($name) {
-                    $step2Data[$name] = 'on';
+                if (!$name) {
+                    continue;
+                }
+
+                if ($allowedCommodities !== null) {
+                    $id = $cb->getAttribute('id');
+                    $label = '';
+                    if ($id) {
+                        $lblNodes = $xp2->query("//label[@for='{$id}']");
+                        if ($lblNodes->length > 0) {
+                            $label = trim($lblNodes->item(0)->textContent);
+                        }
+                    }
+                    if (empty($label)) {
+                        $label = trim($cb->parentNode?->textContent ?? '');
+                    }
+
+                    $cleanLabel = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $label)));
+                    if (!empty($cleanLabel) && !isset($allowedCommodities[$cleanLabel])) {
+                        $isMatch = false;
+                        foreach (array_keys($allowedCommodities) as $allowedKey) {
+                            if (str_contains($cleanLabel, $allowedKey) || str_contains($allowedKey, $cleanLabel)) {
+                                $isMatch = true;
+                                break;
+                            }
+                        }
+                        if (!$isMatch) {
+                            continue; // Skip unconfigured commodity
+                        }
+                    }
+                }
+
+                $step2Data[$name] = 'on';
+                $matchedCount++;
+            }
+
+            // Fallback: If no checkbox matched (e.g. dynamic layout changes), select all as safe fallback
+            if ($matchedCount === 0) {
+                foreach ($checkboxes as $cb) {
+                    $name = $cb->getAttribute('name');
+                    if ($name) {
+                        $step2Data[$name] = 'on';
+                    }
                 }
             }
 
@@ -217,7 +270,7 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
                 return [];
             }
 
-            return $this->parseReportHtml($res2->body(), $dateStr);
+            return $this->parseReportHtml($res2->body(), $dateStr, $allowedCommodities);
         } catch (\Throwable $e) {
             Log::error("KramaMarketDataProvider: Fetch exception for {$dateStr} - " . $e->getMessage());
             return [];
@@ -227,7 +280,7 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
     /**
      * Parse KRAMA HTML report containing commodity headings and tables.
      */
-    public function parseReportHtml(string $html, string $dateStr): array
+    public function parseReportHtml(string $html, string $dateStr, ?array $allowedCommodities = null): array
     {
         $records = [];
         $carbonDate = Carbon::createFromFormat('d/m/Y', $dateStr)->format('Y-m-d');
@@ -244,6 +297,22 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
             $rawCrop = trim(str_ireplace('COMMODITY:', '', $span->textContent));
             if (empty($rawCrop)) {
                 continue;
+            }
+
+            if ($allowedCommodities !== null) {
+                $cleanCrop = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $rawCrop)));
+                if (!isset($allowedCommodities[$cleanCrop])) {
+                    $isMatch = false;
+                    foreach (array_keys($allowedCommodities) as $allowedKey) {
+                        if (str_contains($cleanCrop, $allowedKey) || str_contains($allowedKey, $cleanCrop)) {
+                            $isMatch = true;
+                            break;
+                        }
+                    }
+                    if (!$isMatch) {
+                        continue; // Skip unconfigured commodity section
+                    }
+                }
             }
 
             // Find the sibling or nested table

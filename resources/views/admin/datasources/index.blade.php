@@ -3,6 +3,42 @@
 @section('title', 'Data Sources & Adapters')
 
 @section('content')
+<style>
+    /* Modern 6px Thin Scrollbars for Modals and Data Grids */
+    .modal-thin-scrollbar::-webkit-scrollbar,
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px !important;
+        height: 6px !important;
+    }
+    .modal-thin-scrollbar::-webkit-scrollbar-track,
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #020617 !important;
+        border-radius: 9999px !important;
+    }
+    .modal-thin-scrollbar::-webkit-scrollbar-thumb,
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #059669 !important;
+        border-radius: 9999px !important;
+        border: 1px solid #064e3b !important;
+    }
+    .modal-thin-scrollbar::-webkit-scrollbar-thumb:hover,
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #10b981 !important;
+    }
+    .modal-thin-scrollbar::-webkit-scrollbar-button,
+    .custom-scrollbar::-webkit-scrollbar-button {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+    @supports not selector(::-webkit-scrollbar) {
+        .modal-thin-scrollbar,
+        .custom-scrollbar {
+            scrollbar-width: thin !important;
+            scrollbar-color: #059669 #020617 !important;
+        }
+    }
+</style>
 <div class="space-y-6" x-data="dataSourceManager()">
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -281,6 +317,7 @@
                     <tr>
                         <th class="py-3.5 px-5">Source Name & Code</th>
                         <th class="py-3.5 px-4">Provider Adapter</th>
+                        <th class="py-3.5 px-4">Configured Crops</th>
                         <th class="py-3.5 px-4">Sync Frequency</th>
                         <th class="py-3.5 px-4">Last Sync</th>
                         <th class="py-3.5 px-4 text-center">Status</th>
@@ -324,6 +361,25 @@
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800/60">
                                     {{ class_basename($source->provider_class) }}
                                 </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                @if(isset($source->total_configured_crops) && $source->total_configured_crops > 0)
+                                    <button type="button" 
+                                            @click="openCropSyncModal({{ $source->id }}, '{{ addslashes($source->name) }}')"
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer {{ $source->active_configured_crops > 0 ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80 hover:bg-emerald-900' : 'bg-slate-800 text-slate-400 border-slate-700' }}"
+                                            title="Configure which crops get synced for {{ $source->name }}">
+                                        <span>🌾</span>
+                                        <span id="crop-sync-count-{{ $source->id }}">{{ $source->active_configured_crops }} / {{ $source->total_configured_crops }} Active</span>
+                                    </button>
+                                @else
+                                    <button type="button" 
+                                            @click="openCropSyncModal({{ $source->id }}, '{{ addslashes($source->name) }}')"
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-950/80 border border-amber-800/80 hover:bg-amber-900 transition cursor-pointer"
+                                            title="Configure which crops get synced for {{ $source->name }}">
+                                        <span>🌾</span>
+                                        <span>Configure Crops</span>
+                                    </button>
+                                @endif
                             </td>
                             <td class="py-3.5 px-4">
                                 <span class="text-xs font-bold text-slate-200 uppercase block">
@@ -371,6 +427,14 @@
                                         </button>
                                     @endif
 
+                                    <!-- Configure Crops Modal Trigger -->
+                                    <button type="button" 
+                                            @click="openCropSyncModal({{ $source->id }}, '{{ addslashes($source->name) }}')" 
+                                            class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition cursor-pointer" 
+                                            title="Configure Sync Crops (Whitelist & Presets)">
+                                        <span class="text-base">🌾</span>
+                                    </button>
+
                                     <!-- Test Connection Button -->
                                     <button type="button" @click="testConnection('{{ route('admin.datasources.test-connection', $source) }}', '{{ addslashes($source->name) }}')" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition cursor-pointer" title="Test Connection">
                                         <span class="text-base">⚡</span>
@@ -381,7 +445,7 @@
                                             @click="runSync('{{ route('admin.datasources.trigger-sync', $source) }}', '{{ addslashes($source->name) }}', {{ $source->id }})" 
                                             class="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded-xl transition cursor-pointer" 
                                             :class="syncLoading && activeSyncSourceId === {{ $source->id }} ? 'text-cyan-400 bg-slate-800 ring-1 ring-cyan-500/50' : ''"
-                                            title="Run Ingestion Sync">
+                                            title="Run Ingestion Sync (Selected Crops Only)">
                                         <span class="text-base inline-block" :class="syncLoading && activeSyncSourceId === {{ $source->id }} ? 'animate-spin' : ''">🔄</span>
                                     </button>
 
@@ -408,7 +472,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-5 py-12 text-center text-slate-500">
+                            <td colspan="7" class="px-5 py-12 text-center text-slate-500">
                                 <div class="text-3xl mb-2">🔌</div>
                                 <div class="text-base font-bold text-white">No data sources configured</div>
                                 <p class="text-xs text-slate-400 mt-1">Register an external mandi API or scraper adapter to start ingesting prices.</p>
@@ -615,7 +679,7 @@
             </div>
 
             <!-- Modal Body (Scrollable) -->
-            <div class="overflow-y-auto p-5 sm:p-6 space-y-5 flex-1">
+            <div class="overflow-y-auto modal-thin-scrollbar p-5 sm:p-6 space-y-5 flex-1">
                 <!-- 1. Sync In Progress State -->
                 <div x-show="syncLoading" class="py-10 text-center space-y-6">
                     <div class="relative inline-flex items-center justify-center">
@@ -1101,11 +1165,498 @@
             </div>
         </div>
     </div>
+
+    <!-- Crop Synchronization Configuration Modal (1-Click Presets & Individual Selection) -->
+    <div x-show="cropSyncModalOpen" 
+         style="display: none;" 
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         role="dialog" 
+         aria-modal="true"
+         @keydown.escape.window="if (!cropSyncSaving) cropSyncModalOpen = false">
+        
+        <!-- Dark Dimming Backdrop -->
+        <div x-show="cropSyncModalOpen" 
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-black/80 backdrop-blur-sm" 
+             @click="if (!cropSyncSaving) cropSyncModalOpen = false"></div>
+
+        <!-- Centering & Safe Padding Wrapper (Never cuts off top header) -->
+        <div class="flex min-h-full items-start sm:items-center justify-center p-2 sm:p-4 text-center">
+            
+            <!-- Crisp Modal Dialog Box -->
+            <div x-show="cropSyncModalOpen" 
+                 x-transition:enter="ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="relative z-10 bg-slate-900 border-2 border-emerald-600/80 rounded-2xl text-left overflow-hidden shadow-2xl max-w-5xl w-full text-white my-auto flex flex-col"
+                 style="max-height: 85vh; height: 85vh;">
+                
+            <!-- 1. FIXED HEADER (Always pinned at top, shrink: 0) -->
+            <div style="flex-shrink: 0 !important; background: #020617; border-bottom: 1px solid #1e293b; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="text-2xl p-2 rounded-2xl bg-emerald-950 text-emerald-400 border border-emerald-800/80 shrink-0">🌾</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="text-sm sm:text-base font-black text-white truncate" x-text="'Configure Sync Crops — ' + cropSyncSourceName"></h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono" 
+                                  x-text="selectedCropIds.size + ' / ' + (cropSyncData?.crops?.length || 0) + ' Crops Active'">
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5 hidden sm:block">
+                            Select which commodities will be fetched & ingested from this provider. Unselected items (livestock, wood, dals) are skipped to save server memory and ensure clean data.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" 
+                        @click="cropSyncModalOpen = false" 
+                        :disabled="cropSyncSaving"
+                        style="padding: 6px 12px; color: #94a3b8; border-radius: 8px; background: transparent; border: none; cursor: pointer; font-size: 1.25rem; line-height: 1; flex-shrink: 0; margin-left: 8px;"
+                        class="hover:text-white hover:bg-slate-800 transition">✕</button>
+            </div>
+
+            <!-- 2. MODAL LOADING STATE (Centered, flex-1) -->
+            <div x-show="cropSyncLoading" 
+                 style="flex: 1 1 0% !important; min-height: 0 !important; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; text-align: center;">
+                <span class="text-3xl animate-spin">🔄</span>
+                <div class="text-sm font-bold text-white mt-3">Loading crops catalog & sync settings...</div>
+                <div class="text-xs text-slate-400 mt-1">Inspecting database and source configurations...</div>
+            </div>
+
+            <!-- 3. SCROLLABLE BODY (Only this scrolls! flex: 1, min-height: 0, overflow-y: auto) -->
+            <div x-show="!cropSyncLoading && cropSyncData" 
+                 class="space-y-4 modal-thin-scrollbar"
+                 style="flex: 1 1 0% !important; min-height: 0 !important; overflow-y: auto !important; padding: 16px 20px; -webkit-overflow-scrolling: touch; box-sizing: border-box;">
+                    
+                    <!-- Specialized Single/Dedicated Commodity Board Notice -->
+                    <div x-show="cropSyncData?.datasource?.is_specialized" 
+                         class="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-slate-950 border border-emerald-500/50 rounded-2xl p-4 flex items-start gap-3.5 shadow-md">
+                        <span class="text-2xl p-2 rounded-xl bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 shrink-0">🏛️</span>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-black uppercase tracking-wider text-emerald-300" x-text="cropSyncData?.datasource?.specialization_title"></span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-900/90 text-emerald-200 border border-emerald-600/60 tracking-wider">Statutory Board</span>
+                            </div>
+                            <p class="text-xs text-slate-300 mt-1.5 leading-relaxed" x-text="cropSyncData?.datasource?.specialization_note"></p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action Presets (1-Click) Section (Only for Multi-Commodity Portals like KRAMA & Agmarknet) -->
+                    <div x-show="!cropSyncData?.datasource?.is_specialized" class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-2.5">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <span class="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                                <span>⚡</span> Quick Action Presets (1-Click Auto-Select)
+                            </span>
+                            <div class="flex items-center gap-2 text-xs">
+                                <button type="button" @click="selectAllVisible()" class="text-slate-400 hover:text-cyan-300 transition font-bold cursor-pointer underline">
+                                    Select All Filtered
+                                </button>
+                                <span class="text-slate-600">·</span>
+                                <button type="button" @click="deselectAllVisible()" class="text-slate-400 hover:text-rose-400 transition font-bold cursor-pointer underline">
+                                    Deselect All Filtered
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 flex-wrap pt-1">
+                            <!-- Preset 1: Recommended Karnataka Core -->
+                            <button type="button" 
+                                    @click="applyPresetKarnatakaCore()" 
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition cursor-pointer border border-emerald-500"
+                                    title="Select the ~60 recommended essential Karnataka crops and uncheck all non-crops">
+                                <span>🌟</span>
+                                <span>Recommended Karnataka Core (~60 Clean Crops)</span>
+                            </button>
+
+                            <!-- Preset 2: Deselect Non-Crops -->
+                            <button type="button" 
+                                    @click="applyPresetDeselectNonCrops()" 
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80 transition cursor-pointer"
+                                    title="Uncheck livestock (sheep/bull), mill-processed dals, wood, and cut flowers">
+                                <span>❌</span>
+                                <span>Deselect Non-Crops & Byproducts</span>
+                            </button>
+
+                            <!-- Preset 3: Plantation & Cash -->
+                            <button type="button" 
+                                    @click="applyPresetPlantation()" 
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-800/80 transition cursor-pointer"
+                                    title="Toggle Arecanut, Coconut, Copra, Cotton, Jaggery, Cashewnut, Coffee">
+                                <span>🌴</span>
+                                <span>Plantation & Cash Crops</span>
+                            </button>
+
+                            <!-- Preset 4: Vegetables Only -->
+                            <button type="button" 
+                                    @click="applyPresetVegetables()" 
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-950/80 hover:bg-teal-900 text-teal-300 border border-teal-800/80 transition cursor-pointer"
+                                    title="Toggle Tomato, Onion, Potato, Beans, Chilli, Brinjal, Carrot, etc.">
+                                <span>🥗</span>
+                                <span>Vegetables</span>
+                            </button>
+
+                            <!-- Preset 5: Cereals & Pulses -->
+                            <button type="button" 
+                                    @click="applyPresetCerealsPulses()" 
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-800/80 transition cursor-pointer"
+                                    title="Toggle Maize, Paddy, Rice, Ragi, Jowar, Wheat, Bengalgram, Tur, etc.">
+                                <span>🌾</span>
+                                <span>Cereals & Pulses</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sticky Search & Category Filter Pills -->
+                    <div class="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-xs py-1.5 -my-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <!-- Category Filter Pills -->
+                        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none flex-wrap">
+                            <template x-for="grp in cropSyncData?.filter_groups || []" :key="grp.slug">
+                                <button type="button" 
+                                        @click="cropSyncSelectedGroup = grp.slug" 
+                                        class="px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer border shrink-0"
+                                        :class="cropSyncSelectedGroup === grp.slug ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm' : 'bg-slate-950/80 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800'"
+                                        x-text="grp.name">
+                                </button>
+                            </template>
+                        </div>
+
+                        <!-- Search Input -->
+                        <div class="relative w-full sm:w-64 shrink-0">
+                            <input type="text" 
+                                   x-model="cropSyncSearchQuery" 
+                                   placeholder="Search crop or ಕನ್ನಡ..." 
+                                   class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <span class="absolute left-2.5 top-2 text-xs text-slate-400">🔍</span>
+                            <button x-show="cropSyncSearchQuery" 
+                                    @click="cropSyncSearchQuery = ''" 
+                                    class="absolute right-2.5 top-1.5 text-xs text-slate-400 hover:text-white">✕</button>
+                        </div>
+                    </div>
+
+                    <!-- Individual Crops Selection Grid (Scrolls smoothly in body) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <template x-for="crop in getVisibleCropSyncList()" :key="crop.id">
+                            <div class="relative flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none"
+                                 :class="selectedCropIds.has(crop.id) 
+                                    ? 'bg-emerald-950/40 border-emerald-600/80 shadow-xs' 
+                                    : 'bg-slate-950/50 border-slate-800/80 hover:border-slate-700 opacity-70 hover:opacity-100'"
+                                 @click="toggleCropSync(crop.id)">
+                                
+                                <div class="flex items-center gap-3 min-w-0 pr-2">
+                                    <!-- Checkbox -->
+                                    <input type="checkbox" 
+                                           :checked="selectedCropIds.has(crop.id)" 
+                                           @click.stop="toggleCropSync(crop.id)"
+                                           class="w-4 h-4 rounded text-emerald-600 bg-slate-900 border-slate-700 focus:ring-emerald-500 focus:ring-offset-slate-950 shrink-0 cursor-pointer">
+
+                                    <!-- Crop Details -->
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="font-bold text-xs text-white truncate" x-text="crop.name"></span>
+                                            <span x-show="crop.name_kn" class="text-[11px] text-slate-400 font-medium" x-text="'(' + crop.name_kn + ')'"></span>
+                                        </div>
+                                        <div class="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                                            <span class="px-1.5 py-0.2 rounded font-semibold"
+                                                  :class="{
+                                                      'bg-emerald-950 text-emerald-300': crop.category_slug === 'plantation',
+                                                      'bg-amber-950 text-amber-300': crop.category_slug === 'vegetables',
+                                                      'bg-purple-950 text-purple-300': crop.category_slug === 'cereals-pulses',
+                                                      'bg-rose-950 text-rose-300': crop.category_slug === 'non-crops',
+                                                      'bg-cyan-950 text-cyan-300': crop.category_slug === 'spices',
+                                                      'bg-yellow-950 text-yellow-300': crop.category_slug === 'oilseeds',
+                                                      'bg-blue-950 text-blue-300': crop.category_slug === 'fruits',
+                                                  }"
+                                                  x-text="crop.category_name">
+                                            </span>
+                                            <span x-show="crop.records_count > 0" x-text="crop.records_count.toLocaleString() + ' records (' + crop.mandis_count + ' mandis)'"></span>
+                                            <span x-show="crop.records_count === 0" class="italic text-slate-500">0 records</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Single Crop Instant Sync Button [⚡ Sync Now] -->
+                                <div class="shrink-0 flex items-center" @click.stop>
+                                    <button type="button" 
+                                            @click="syncSingleCropNow(crop)" 
+                                            :disabled="syncingSingleCropId !== null"
+                                            class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-700 hover:border-amber-500 transition shadow-xs flex items-center gap-1 cursor-pointer"
+                                            :title="'Instantly fetch & sync only ' + crop.name + ' right now'">
+                                        <span :class="syncingSingleCropId === crop.id ? 'animate-spin' : ''">⚡</span>
+                                        <span x-text="syncingSingleCropId === crop.id ? 'Syncing...' : 'Sync Now'"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+            <!-- 4. FIXED FOOTER (Always pinned at bottom, shrink: 0, easily accessible) -->
+            <div style="flex-shrink: 0 !important; background: #020617; border-top: 1px solid #1e293b; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-sizing: border-box;">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-slate-300">
+                        <span>Configured:</span> 
+                        <b class="text-emerald-400" x-text="selectedCropIds.size"></b> 
+                        <span class="text-slate-500">/ <span x-text="cropSyncData?.crops?.length || 0"></span> crops</span>
+                    </span>
+                    <span x-show="cropSyncSaveMessage" x-transition class="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                        <span>✓</span>
+                        <span x-text="cropSyncSaveMessage"></span>
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2.5 flex-wrap justify-end">
+                    <!-- Cancel Button -->
+                    <button type="button" 
+                            @click="cropSyncModalOpen = false" 
+                            :disabled="cropSyncSaving"
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 transition shadow-sm cursor-pointer disabled:opacity-50">
+                        Cancel
+                    </button>
+                    
+                    <!-- Save Configuration Button -->
+                    <button type="button" 
+                            @click="saveCropSyncConfig(false)" 
+                            :disabled="cropSyncSaving"
+                            class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:scale-98 border border-emerald-500 hover:border-emerald-400 shadow-md shadow-emerald-950/50 transition inline-flex items-center gap-2 cursor-pointer disabled:opacity-50">
+                        <span x-show="cropSyncSaving" class="animate-spin text-sm">🔄</span>
+                        <span x-show="!cropSyncSaving" class="text-sm">💾</span>
+                        <span>Save Configuration</span>
+                    </button>
+
+                    <!-- Save & Run Ingestion Sync Button -->
+                    <button type="button" 
+                            @click="saveCropSyncConfig(true)" 
+                            :disabled="cropSyncSaving"
+                            class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black text-white bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-600 hover:from-cyan-500 hover:via-sky-500 hover:to-blue-500 active:scale-98 border border-cyan-400/50 shadow-lg shadow-cyan-950/60 hover:shadow-cyan-900/80 transition inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                            title="Save the selected crop whitelist and immediately run live price ingestion for today">
+                        <span class="text-sm">⚡</span>
+                        <span>Save & Run Ingestion Sync</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </div>
 
 <script>
 function dataSourceManager() {
     return {
+        // Crop Sync Configuration Manager state
+        cropSyncModalOpen: false,
+        cropSyncLoading: false,
+        cropSyncSaving: false,
+        cropSyncSourceId: null,
+        cropSyncSourceName: '',
+        cropSyncSourceCode: '',
+        cropSyncData: null,
+        cropSyncSearchQuery: '',
+        cropSyncSelectedGroup: 'all',
+        selectedCropIds: new Set(),
+        syncingSingleCropId: null,
+        cropSyncSaveMessage: '',
+
+        async openCropSyncModal(sourceId, sourceName) {
+            this.cropSyncSourceId = sourceId;
+            this.cropSyncSourceName = sourceName;
+            this.cropSyncModalOpen = true;
+            this.cropSyncLoading = true;
+            this.cropSyncData = null;
+            this.cropSyncSearchQuery = '';
+            this.cropSyncSelectedGroup = 'all';
+            this.cropSyncSaveMessage = '';
+
+            try {
+                const res = await fetch(`{{ url('admin/datasources') }}/${sourceId}/crop-sync`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                this.cropSyncLoading = false;
+                if (data.ok) {
+                    this.cropSyncData = data;
+                    this.cropSyncSourceCode = data.datasource.code;
+                    this.selectedCropIds = new Set(
+                        data.crops.filter(c => c.is_enabled).map(c => c.id)
+                    );
+                } else {
+                    alert('Failed to load crop sync configuration: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                this.cropSyncLoading = false;
+                alert('Error loading crop sync configuration: ' + err.message);
+            }
+        },
+
+        applyPresetKarnatakaCore() {
+            if (!this.cropSyncData?.presets?.core_crop_ids) return;
+            this.selectedCropIds = new Set(this.cropSyncData.presets.core_crop_ids);
+        },
+
+        applyPresetDeselectNonCrops() {
+            if (!this.cropSyncData?.presets?.non_crop_ids) return;
+            const nonCropSet = new Set(this.cropSyncData.presets.non_crop_ids);
+            const next = new Set();
+            this.selectedCropIds.forEach(id => {
+                if (!nonCropSet.has(id)) {
+                    next.add(id);
+                }
+            });
+            this.selectedCropIds = next;
+        },
+
+        applyPresetPlantation() {
+            if (!this.cropSyncData?.presets?.plantation_crop_ids) return;
+            const targetIds = this.cropSyncData.presets.plantation_crop_ids;
+            const allSelected = targetIds.every(id => this.selectedCropIds.has(id));
+            if (allSelected) {
+                targetIds.forEach(id => this.selectedCropIds.delete(id));
+            } else {
+                targetIds.forEach(id => this.selectedCropIds.add(id));
+            }
+            this.selectedCropIds = new Set(this.selectedCropIds);
+        },
+
+        applyPresetVegetables() {
+            if (!this.cropSyncData?.presets?.vegetable_crop_ids) return;
+            const targetIds = this.cropSyncData.presets.vegetable_crop_ids;
+            const allSelected = targetIds.every(id => this.selectedCropIds.has(id));
+            if (allSelected) {
+                targetIds.forEach(id => this.selectedCropIds.delete(id));
+            } else {
+                targetIds.forEach(id => this.selectedCropIds.add(id));
+            }
+            this.selectedCropIds = new Set(this.selectedCropIds);
+        },
+
+        applyPresetCerealsPulses() {
+            if (!this.cropSyncData?.presets?.cereal_pulse_crop_ids) return;
+            const targetIds = this.cropSyncData.presets.cereal_pulse_crop_ids;
+            const allSelected = targetIds.every(id => this.selectedCropIds.has(id));
+            if (allSelected) {
+                targetIds.forEach(id => this.selectedCropIds.delete(id));
+            } else {
+                targetIds.forEach(id => this.selectedCropIds.add(id));
+            }
+            this.selectedCropIds = new Set(this.selectedCropIds);
+        },
+
+        selectAllVisible() {
+            this.getVisibleCropSyncList().forEach(c => this.selectedCropIds.add(c.id));
+            this.selectedCropIds = new Set(this.selectedCropIds);
+        },
+
+        deselectAllVisible() {
+            this.getVisibleCropSyncList().forEach(c => this.selectedCropIds.delete(c.id));
+            this.selectedCropIds = new Set(this.selectedCropIds);
+        },
+
+        toggleCropSync(cropId) {
+            if (this.selectedCropIds.has(cropId)) {
+                this.selectedCropIds.delete(cropId);
+            } else {
+                this.selectedCropIds.add(cropId);
+            }
+            this.selectedCropIds = new Set(this.selectedCropIds);
+        },
+
+        getVisibleCropSyncList() {
+            if (!this.cropSyncData?.crops) return [];
+            let list = this.cropSyncData.crops;
+
+            if (this.cropSyncSelectedGroup !== 'all') {
+                list = list.filter(c => c.category_slug === this.cropSyncSelectedGroup);
+            }
+
+            if (this.cropSyncSearchQuery.trim()) {
+                const q = this.cropSyncSearchQuery.toLowerCase().trim();
+                list = list.filter(c => 
+                    c.name.toLowerCase().includes(q) || 
+                    (c.name_kn && c.name_kn.toLowerCase().includes(q))
+                );
+            }
+
+            return list;
+        },
+
+        async saveCropSyncConfig(andRunSync = false) {
+            this.cropSyncSaving = true;
+            this.cropSyncSaveMessage = '';
+
+            try {
+                const res = await fetch(`{{ url('admin/datasources') }}/${this.cropSyncSourceId}/crop-sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        crop_ids: Array.from(this.selectedCropIds)
+                    })
+                });
+
+                const data = await res.json();
+                this.cropSyncSaving = false;
+
+                if (data.ok) {
+                    this.cropSyncSaveMessage = data.message;
+                    const countBadge = document.getElementById(`crop-sync-count-${this.cropSyncSourceId}`);
+                    if (countBadge) {
+                        countBadge.innerText = `${data.active_crops_count} / ${data.total_crops_count} Active`;
+                    }
+
+                    if (andRunSync) {
+                        this.cropSyncModalOpen = false;
+                        const syncUrl = `{{ url('admin/datasources') }}/${this.cropSyncSourceId}/trigger-sync`;
+                        this.runSync(syncUrl, this.cropSyncSourceName, this.cropSyncSourceId);
+                    } else {
+                        setTimeout(() => this.cropSyncSaveMessage = '', 3500);
+                    }
+                } else {
+                    alert('Error saving configuration: ' + (data.message || data.error || 'Validation error'));
+                }
+            } catch (err) {
+                this.cropSyncSaving = false;
+                alert('Save failed: ' + err.message);
+            }
+        },
+
+        async syncSingleCropNow(crop) {
+            this.syncingSingleCropId = crop.id;
+            try {
+                const res = await fetch(`{{ url('admin/datasources') }}/${this.cropSyncSourceId}/sync-crop/${crop.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                });
+
+                const data = await res.json();
+                this.syncingSingleCropId = null;
+
+                if (data.ok) {
+                    alert(`✅ ${data.message}`);
+                    if (data.result && data.result.inserted !== undefined) {
+                        crop.records_count = (crop.records_count || 0) + (data.result.inserted || 0) + (data.result.updated || 0);
+                    }
+                } else {
+                    alert(`❌ Sync failed for ${crop.name}: ` + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                this.syncingSingleCropId = null;
+                alert(`Error syncing ${crop.name}: ` + err.message);
+            }
+        },
+
         // Agmarknet Captcha Modal State
         agmarknetCaptchaModalOpen: false,
         agmarknetCaptchaLoading: false,

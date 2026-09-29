@@ -133,6 +133,51 @@
         flex: 1 1 0%;
         overflow-y: auto;
     }
+    /* Clean, Elegant Light Theme Scrollbars for Location Modal */
+    .kb-district-scroll-list::-webkit-scrollbar,
+    .kb-modal-body::-webkit-scrollbar {
+        width: 5px !important;
+        height: 5px !important;
+    }
+    .kb-district-scroll-list::-webkit-scrollbar-track,
+    .kb-modal-body::-webkit-scrollbar-track {
+        background: transparent !important;
+        border-radius: 9999px !important;
+    }
+    .kb-district-scroll-list::-webkit-scrollbar-thumb,
+    .kb-modal-body::-webkit-scrollbar-thumb {
+        background: #1c5a2c !important;
+        border-radius: 9999px !important;
+        transition: background-color 0.2s ease !important;
+    }
+    .kb-district-scroll-list::-webkit-scrollbar-thumb:hover,
+    .kb-modal-body::-webkit-scrollbar-thumb:hover {
+        background: #144220 !important;
+    }
+    .kb-district-scroll-list::-webkit-scrollbar-button,
+    .kb-modal-body::-webkit-scrollbar-button,
+    .kb-district-scroll-list::-webkit-scrollbar-button:single-button,
+    .kb-modal-body::-webkit-scrollbar-button:single-button,
+    .kb-district-scroll-list::-webkit-scrollbar-button:vertical:decrement,
+    .kb-modal-body::-webkit-scrollbar-button:vertical:decrement,
+    .kb-district-scroll-list::-webkit-scrollbar-button:vertical:increment,
+    .kb-modal-body::-webkit-scrollbar-button:vertical:increment,
+    .kb-district-scroll-list::-webkit-scrollbar-button:horizontal:decrement,
+    .kb-modal-body::-webkit-scrollbar-button:horizontal:decrement,
+    .kb-district-scroll-list::-webkit-scrollbar-button:horizontal:increment,
+    .kb-modal-body::-webkit-scrollbar-button:horizontal:increment {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        background: transparent !important;
+    }
+    @supports not selector(::-webkit-scrollbar) {
+        .kb-district-scroll-list,
+        .kb-modal-body {
+            scrollbar-width: thin !important;
+            scrollbar-color: #1c5a2c transparent !important;
+        }
+    }
     .kb-modal-footer {
         background-color: #FAF8F5;
         padding: 16px 24px !important;

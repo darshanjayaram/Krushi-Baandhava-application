@@ -72,6 +72,11 @@ class Crop extends Model
         return $this->hasMany(CropSourceMapping::class);
     }
 
+    public function cropSyncs(): HasMany
+    {
+        return $this->hasMany(DataSourceCropSync::class);
+    }
+
     /**
      * Get real photo URL for this commodity.
      */

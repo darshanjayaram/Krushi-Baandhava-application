@@ -181,6 +181,11 @@ Route::prefix('admin')->group(function () {
         Route::post('/datasources/{datasource}/retry-crop', [DataSourceController::class, 'retryCrop'])->name('admin.datasources.retry-crop');
         Route::post('/datasources/{datasource}/retry-all', [DataSourceController::class, 'retryAll'])->name('admin.datasources.retry-all');
 
+        // Crop Synchronization Whitelist & Single-Crop Sync
+        Route::get('/datasources/{datasource}/crop-sync', [DataSourceController::class, 'getCropSyncConfig'])->name('admin.datasources.crop-sync.get');
+        Route::post('/datasources/{datasource}/crop-sync', [DataSourceController::class, 'updateCropSyncConfig'])->name('admin.datasources.crop-sync.update');
+        Route::post('/datasources/{datasource}/sync-crop/{crop}', [DataSourceController::class, 'syncSingleCrop'])->name('admin.datasources.sync-crop');
+
         Route::get('/datasources/{datasource}/mappings', [DataSourceMappingController::class, 'index'])->name('admin.datasources.mappings.index');
         Route::post('/datasources/{datasource}/mappings/fields', [DataSourceMappingController::class, 'storeFieldMapping'])->name('admin.datasources.mappings.fields.store');
         Route::delete('/datasources/mappings/fields/{mapping}', [DataSourceMappingController::class, 'destroyFieldMapping'])->name('admin.datasources.mappings.fields.destroy');

@@ -78,6 +78,11 @@ class DataSource extends Model
         return $this->hasMany(MarketSourceMapping::class);
     }
 
+    public function cropSyncs(): HasMany
+    {
+        return $this->hasMany(DataSourceCropSync::class);
+    }
+
     /**
      * Determine if this data source is due for synchronization based on its schedule.
      */

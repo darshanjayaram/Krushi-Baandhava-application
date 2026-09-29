@@ -93,8 +93,55 @@ class MarketPriceIngestionService
             'updated' => 0,
             'duplicate' => 0,
             'rejected' => 0,
+            'skipped' => 0,
         ];
         $errors = [];
+
+        // Check configured crop sync whitelist for this provider
+        $configuredCropCount = \App\Models\DataSourceCropSync::where('data_source_id', $dataSource->id)->count();
+        $enabledCropIds = null;
+        $enabledCropNames = [];
+
+        if (!empty($filters['crop_id'])) {
+            // Single-crop sync requested (e.g. instant [⚡ Sync Now])
+            $singleCrop = Crop::find($filters['crop_id']);
+            if ($singleCrop) {
+                $enabledCropIds = [(int) $singleCrop->id];
+                $enabledCropNames = [$singleCrop->name];
+                $aliases = CropSourceMapping::where('data_source_id', $dataSource->id)
+                    ->where('crop_id', $singleCrop->id)
+                    ->pluck('source_crop_name')
+                    ->all();
+                $enabledCropNames = array_merge($enabledCropNames, $aliases);
+            }
+        } elseif ($configuredCropCount > 0) {
+            // Load whitelist of active crops for this data source
+            $syncRows = \App\Models\DataSourceCropSync::where('data_source_id', $dataSource->id)
+                ->where('is_enabled', true)
+                ->with('crop')
+                ->get();
+
+            $enabledCropIds = $syncRows->pluck('crop_id')->map(fn($id) => (int)$id)->all();
+
+            $names = [];
+            foreach ($syncRows as $row) {
+                if ($row->crop) {
+                    $names[] = $row->crop->name;
+                }
+            }
+            $aliases = CropSourceMapping::where('data_source_id', $dataSource->id)
+                ->whereIn('crop_id', $enabledCropIds)
+                ->pluck('source_crop_name')
+                ->all();
+            $enabledCropNames = array_unique(array_merge($names, $aliases));
+        }
+
+        if (!empty($enabledCropNames)) {
+            $filters['enabled_crop_names'] = $enabledCropNames;
+        }
+        if (!empty($enabledCropIds)) {
+            $filters['enabled_crop_ids'] = $enabledCropIds;
+        }
 
         $syncLog = null;
         if (!$dryRun) {
@@ -257,7 +304,19 @@ class MarketPriceIngestionService
                     continue;
                 }
 
-                // 3.1 Enforce Authority Source Isolation:
+                // 3.1 Enforce Provider-Specific Crop Whitelist (Admin Configured Sync Crops)
+                if ($enabledCropIds !== null && !in_array((int)$crop->id, $enabledCropIds, true)) {
+                    $rawModel->update([
+                        'processing_status' => 'skipped',
+                        'processed_at' => Carbon::now(),
+                        'error_message' => "Skipped: '{$crop->name}' is disabled in Crop Sync Settings for {$dataSource->name}.",
+                    ]);
+                    $counts['skipped']++;
+                    $cropStats[$cropEntryKey]['skipped']++;
+                    continue;
+                }
+
+                // 3.2 Enforce Authority Source Isolation:
                 // Coffee is strictly governed by Coffee Board of India (exclude APMC feeds)
                 if ($crop->isCoffeeBoard() && $dataSource->code !== 'coffee_board') {
                     $rawModel->update([

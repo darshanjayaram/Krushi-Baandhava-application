@@ -78,8 +78,128 @@
             width: 100%;
             max-width: 100vw;
         }
+
+        /* ============================================================== */
+        /* KANNADA OPTICAL TYPOGRAPHY & VERTICAL BASELINE ALIGNMENT SYSTEM */
+        /* ============================================================== */
+        html[lang="kn"],
+        html[lang="kn"] body,
+        html[lang="kn"] input,
+        html[lang="kn"] button,
+        html[lang="kn"] select,
+        html[lang="kn"] textarea,
         .font-kannada {
-            font-family: 'Noto Sans Kannada', system-ui, -apple-system, sans-serif;
+            font-family: 'Noto Sans Kannada', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+        }
+
+        /* 1. Base line-height relaxation for Kannada (prevents top clipping) */
+        html[lang="kn"] .leading-none {
+            line-height: 1.25 !important;
+        }
+        html[lang="kn"] .leading-tight {
+            line-height: 1.35 !important;
+        }
+
+        /* 2. Top Navigation Links (Rates / ದರಗಳು, Schemes / ಯೋಜನೆಗಳು, etc.) */
+        html[lang="kn"] #siteHeader nav a {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding-top: 10px !important;
+            padding-bottom: 6px !important;
+            line-height: 1.2 !important;
+        }
+
+        /* 3. Header Location Pill (📍 ಬೆಂಗಳೂರು ನಗರ) */
+        html[lang="kn"] #siteHeader button {
+            display: inline-flex !important;
+            align-items: center !important;
+            padding-top: 7px !important;
+            padding-bottom: 5px !important;
+        }
+        html[lang="kn"] #siteHeader button span:not(.text-rose-500) {
+            position: relative;
+            top: 1.5px;
+            line-height: 1.2;
+        }
+
+        /* 4. Header Language Switcher Toggle (EN | ಕನ್ನಡ) */
+        html[lang="kn"] #siteHeader a.font-kannada {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding-top: 5.5px !important;
+            padding-bottom: 2.5px !important;
+            line-height: 1 !important;
+        }
+
+        /* 5. Command Dock "Change ▾" / "ಬದಲಿಸಿ ▾" Button */
+        html[lang="kn"] .btn-mandi-change,
+        html[lang="kn"] button[type="button"].btn-mandi-change {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding-top: 8.5px !important;
+            padding-bottom: 4.5px !important;
+            line-height: 1 !important;
+        }
+
+        /* 6. Command Dock Search Input Text & Placeholder */
+        html[lang="kn"] .search-input-kn,
+        html[lang="kn"] input.home-search-input,
+        html[lang="kn"] input[type="text"] {
+            padding-top: 14px !important;
+            padding-bottom: 6px !important;
+            line-height: normal !important;
+        }
+        @media (min-width: 640px) {
+            html[lang="kn"] .search-input-kn,
+            html[lang="kn"] input.home-search-input,
+            html[lang="kn"] input[type="text"] {
+                padding-top: 17px !important;
+                padding-bottom: 7px !important;
+                line-height: normal !important;
+            }
+        }
+        html[lang="kn"] input::placeholder {
+            line-height: normal !important;
+            vertical-align: middle !important;
+        }
+
+        /* 7. Category Filter Pills (🌾 ಎಲ್ಲಾ, 🌿 ವಾಣಿಜ್ಯ ಮತ್ತು ಕ್ಷೇತ್ರ ಬೆಳೆಗಳು, etc.) */
+        html[lang="kn"] .category-filter-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            padding-top: 10px !important;
+            padding-bottom: 6px !important;
+            line-height: 1.2 !important;
+        }
+
+        /* 8. Crop Card Reliability & Benchmark Badges (• ವಿಶ್ವಾಸಾರ್ಹ, • ಮೌಲ್ಯಾಂಕನ) */
+        html[lang="kn"] .crop-article .rounded-full {
+            display: inline-flex !important;
+            align-items: center !important;
+            padding-top: 3px !important;
+            padding-bottom: 2px !important;
+        }
+        html[lang="kn"] .crop-article .rounded-full span:last-child {
+            position: relative;
+            top: 1px;
+            line-height: 1;
+        }
+
+        /* 9. Section Titles with Emoji (🌟 ಇಂದಿನ ಪ್ರಮುಖ ದರಗಳು) */
+        html[lang="kn"] h1,
+        html[lang="kn"] h2,
+        html[lang="kn"] h3 {
+            line-height: 1.35 !important;
+        }
+
+        /* 8. Mobile Bottom Navigation Bar (ಮುಖಪುಟ, ದರಗಳು, ಯೋಜನೆಗಳು, ಹವಾಮಾನ) */
+        html[lang="kn"] #mobileBottomNav a span:last-child {
+            position: relative;
+            top: 1.5px;
+            line-height: 1.2;
         }
         .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -87,6 +207,50 @@
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
+        }
+
+        /* Modern Thin Frontend Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px !important;
+            height: 5px !important;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent !important;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1c5a2c !important;
+            border-radius: 9999px !important;
+            transition: background-color 0.2s ease !important;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #144220 !important;
+        }
+
+        ::-webkit-scrollbar-button,
+        ::-webkit-scrollbar-button:single-button,
+        ::-webkit-scrollbar-button:vertical:decrement,
+        ::-webkit-scrollbar-button:vertical:increment,
+        ::-webkit-scrollbar-button:horizontal:decrement,
+        ::-webkit-scrollbar-button:horizontal:increment {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: transparent !important;
+        }
+
+        /* Firefox Only - Chromium uses ::-webkit-scrollbar without triggering Windows system arrow buttons */
+        @supports not selector(::-webkit-scrollbar) {
+            * {
+                scrollbar-width: thin !important;
+                scrollbar-color: #1c5a2c transparent !important;
+            }
         }
 
         /* Explicit Viewport Pinning for Mobile Navbar & Bottom Menu Dock */
@@ -223,7 +387,7 @@
                                     : \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava') }}
                             </span>
                         </div>
-                        <p class="text-[11px] text-stone-500 font-medium font-kannada leading-none mt-0.5">
+                        <p class="text-[11px] text-stone-500 font-medium font-kannada {{ $activeLocale === 'kn' ? 'leading-snug pt-0.5' : 'leading-none mt-0.5' }}">
                             {{ $activeLocale === 'en' 
                                 ? \App\Models\SystemSetting::get('navbar_subtitle_en', 'Direct APMC Market Rates & Forecast') 
                                 : \App\Models\SystemSetting::get('navbar_subtitle_kn', 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ') }}
@@ -236,19 +400,19 @@
                 <!-- Decluttered Clean Desktop Navigation: Exactly 4 Main Links -->
                 <nav class="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-bold">
                     <a href="{{ route('home') }}" 
-                       class="px-4 py-2 rounded-xl transition {{ request()->routeIs('home') || request()->routeIs('farmer.crops.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
+                       class="px-4 py-2 rounded-xl transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ request()->routeIs('home') || request()->routeIs('farmer.crops.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
                         {{ $activeLocale === 'en' ? 'Rates' : 'ದರಗಳು' }}
                     </a>
                     <a href="{{ route('farmer.schemes.index') }}" 
-                       class="px-4 py-2 rounded-xl transition {{ request()->routeIs('farmer.schemes.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
+                       class="px-4 py-2 rounded-xl transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ request()->routeIs('farmer.schemes.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
                         {{ $activeLocale === 'en' ? 'Schemes' : 'ಯೋಜನೆಗಳು' }}
                     </a>
                     <a href="{{ route('farmer.videos.index') }}" 
-                       class="px-4 py-2 rounded-xl transition {{ request()->routeIs('farmer.videos.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
+                       class="px-4 py-2 rounded-xl transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ request()->routeIs('farmer.videos.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
                         {{ $activeLocale === 'en' ? 'Videos' : 'ವಿಡಿಯೋಗಳು' }}
                     </a>
                     <a href="{{ route('farmer.news.index') }}" 
-                       class="px-4 py-2 rounded-xl transition {{ request()->routeIs('farmer.news.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
+                       class="px-4 py-2 rounded-xl transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ request()->routeIs('farmer.news.*') ? 'bg-[#E5DDC9] text-stone-900 font-black shadow-2xs' : 'text-stone-600 hover:text-stone-900 hover:bg-black/5' }}">
                         {{ $activeLocale === 'en' ? 'News' : 'ಸುದ್ದಿಗಳು' }}
                     </a>
                 </nav>
@@ -262,7 +426,7 @@
                             class="hidden sm:flex items-center gap-1.5 bg-[#FAF8F5] border border-[#DDD2BE] rounded-full px-3 py-1.5 text-xs font-bold text-stone-800 transition hover:bg-stone-100 active:scale-95 cursor-pointer shadow-2xs"
                             title="{{ $activeLocale === 'en' ? 'Click to change location' : 'ಸ್ಥಳ ಬದಲಾಯಿಸಲು ಕ್ಲಿಕ್ ಮಾಡಿ' }}">
                         <span class="text-rose-500 text-xs">📍</span>
-                        <span class="max-w-[100px] truncate {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
+                        <span class="max-w-[100px] truncate {{ $activeLocale === 'kn' ? 'font-kannada pt-0.5 leading-normal' : '' }}">
                             {{ $activeLocale === 'en' ? ($activeDistrict->name ?? $activeDistrict->name_kn ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
                         </span>
                     </button>
@@ -297,25 +461,25 @@
             <!-- Home -->
             <a href="{{ route('home') }}" class="flex flex-col items-center justify-center gap-0.5 {{ request()->routeIs('home') ? 'text-[#1C5A2C] font-extrabold' : 'text-stone-500 hover:text-[#1C5A2C]' }} transition active:scale-95">
                 <span class="text-lg">🌾</span>
-                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold leading-none">{{ $activeLocale === 'en' ? 'Home' : 'ಮುಖಪುಟ' }}</span>
+                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada leading-tight pt-0.5' : 'font-sans leading-none' }} font-bold">{{ $activeLocale === 'en' ? 'Home' : 'ಮುಖಪುಟ' }}</span>
             </a>
 
             <!-- Crops / Rates -->
             <a href="{{ route('farmer.crops.index') }}" class="flex flex-col items-center justify-center gap-0.5 {{ request()->routeIs('farmer.crops.*') ? 'text-[#1C5A2C] font-extrabold' : 'text-stone-500 hover:text-[#1C5A2C]' }} transition active:scale-95">
                 <span class="text-lg">📊</span>
-                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold leading-none">{{ $activeLocale === 'en' ? 'Rates' : 'ದರಗಳು' }}</span>
+                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada leading-tight pt-0.5' : 'font-sans leading-none' }} font-bold">{{ $activeLocale === 'en' ? 'Rates' : 'ದರಗಳು' }}</span>
             </a>
 
             <!-- Schemes -->
             <a href="{{ route('farmer.schemes.index') }}" class="flex flex-col items-center justify-center gap-0.5 {{ request()->routeIs('farmer.schemes.*') ? 'text-[#1C5A2C] font-extrabold' : 'text-stone-500 hover:text-[#1C5A2C]' }} transition active:scale-95">
                 <span class="text-lg">🏛️</span>
-                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold leading-none">{{ $activeLocale === 'en' ? 'Schemes' : 'ಯೋಜನೆಗಳು' }}</span>
+                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada leading-tight pt-0.5' : 'font-sans leading-none' }} font-bold">{{ $activeLocale === 'en' ? 'Schemes' : 'ಯೋಜನೆಗಳು' }}</span>
             </a>
 
             <!-- Weather -->
             <a href="{{ route('farmer.weather.index') }}" class="flex flex-col items-center justify-center gap-0.5 {{ request()->routeIs('farmer.weather.*') ? 'text-[#1C5A2C] font-extrabold' : 'text-stone-500 hover:text-[#1C5A2C]' }} transition active:scale-95">
                 <span class="text-lg">🌤️</span>
-                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold leading-none">{{ $activeLocale === 'en' ? 'Weather' : 'ಹವಾಮಾನ' }}</span>
+                <span class="text-[10px] {{ $activeLocale === 'kn' ? 'font-kannada leading-tight pt-0.5' : 'font-sans leading-none' }} font-bold">{{ $activeLocale === 'en' ? 'Weather' : 'ಹವಾಮಾನ' }}</span>
             </a>
         </div>
     </nav>
@@ -351,8 +515,8 @@
        target="_blank" 
        rel="noopener noreferrer"
        class="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-4 sm:right-7 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#1C5A2C] hover:bg-[#154622] text-white font-bold text-xs shadow-lg transition active:scale-95 cursor-pointer">
-        <span class="text-sm">💬</span>
-        <span>{{ $activeLocale === 'en' ? 'Feedback' : 'ಪ್ರತಿಕ್ರಿಯೆ' }}</span>
+        <span class="text-sm shrink-0">💬</span>
+        <span class="{{ $activeLocale === 'kn' ? 'font-kannada relative top-[1px]' : '' }}">{{ $activeLocale === 'en' ? 'Feedback' : 'ಪ್ರತಿಕ್ರಿಯೆ' }}</span>
     </a>
 
     <!-- Location Picker Modal Component -->
