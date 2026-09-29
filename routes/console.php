@@ -23,8 +23,8 @@ Schedule::call(function () {
 
 // Admin-configured dynamic cron schedule (Admin > Data Sources > Configure Cron Timings)
 $morningTime = \App\Models\SystemSetting::get('cron_market_morning_time', '06:00');
-$eveningTime = \App\Models\SystemSetting::get('cron_market_evening_time', '18:00');
-$afternoonTime = \App\Models\SystemSetting::get('cron_market_afternoon_time', null);
+$eveningTime = \App\Models\SystemSetting::get('cron_market_evening_time', '19:30');
+$afternoonTime = \App\Models\SystemSetting::get('cron_market_afternoon_time', '12:30');
 $enableHourly = \App\Models\SystemSetting::get('cron_market_enable_hourly', true);
 
 if (!empty($morningTime)) {

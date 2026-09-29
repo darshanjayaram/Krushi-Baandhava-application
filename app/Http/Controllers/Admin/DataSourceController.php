@@ -50,8 +50,8 @@ class DataSourceController extends Controller
             'last_heartbeat' => $lastHeartbeat,
             'is_active' => $isCronActive,
             'morning_time' => SystemSetting::get('cron_market_morning_time', '06:00'),
-            'evening_time' => SystemSetting::get('cron_market_evening_time', '18:00'),
-            'afternoon_time' => SystemSetting::get('cron_market_afternoon_time', ''),
+            'evening_time' => SystemSetting::get('cron_market_evening_time', '19:30'),
+            'afternoon_time' => SystemSetting::get('cron_market_afternoon_time', '12:30'),
             'enable_hourly' => (bool) SystemSetting::get('cron_market_enable_hourly', true),
             'operating_days' => SystemSetting::get('cron_market_operating_days', 'mon_sat'),
         ];

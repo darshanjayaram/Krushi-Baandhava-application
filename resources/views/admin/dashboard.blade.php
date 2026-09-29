@@ -1,7 +1,288 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="space-y-8" x-data="{ showMandiDrawer: false, mandiTab: 'all', mandiSearch: '' }">
+<div class="space-y-8" x-data="{ showMandiDrawer: false, mandiTab: 'all', mandiSearch: '', showCronDrawer: false, copiedCron: false, copiedCronAlt: false }">
+
+    <!-- ========================================== -->
+    <!-- cPanel Cron Job Status & Scheduler Monitor -->
+    <!-- ========================================== -->
+    <div class="rounded-2xl border {{ $cronStatus['is_active'] ? 'border-emerald-600/50 bg-slate-900/95 shadow-lg shadow-emerald-950/20' : 'border-amber-600/60 bg-slate-900/95 shadow-lg shadow-amber-950/20' }} p-4 sm:p-5 transition-all">
+        <!-- Main Bar: Status Indicator, Last Heartbeat & Quick Actions -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-start sm:items-center gap-3.5">
+                <!-- Status Icon with Pulse Ring -->
+                <div class="relative flex items-center justify-center w-11 h-11 rounded-2xl shrink-0 {{ $cronStatus['is_active'] ? 'bg-emerald-950/80 border border-emerald-700/60 text-emerald-400' : 'bg-amber-950/80 border border-amber-700/60 text-amber-400' }}">
+                    @if($cronStatus['is_active'])
+                        <span class="absolute inline-flex h-full w-full rounded-2xl bg-emerald-400 opacity-20 animate-ping"></span>
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    @else
+                        <span class="absolute inline-flex h-full w-full rounded-2xl bg-amber-400 opacity-20 animate-ping"></span>
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    @endif
+                </div>
+
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h2 class="text-base font-black text-white tracking-wide">
+                            cPanel Cron Job & Automated Scheduler
+                        </h2>
+                        @if($cronStatus['is_active'])
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-950 text-emerald-300 border border-emerald-700 shadow-sm">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>CRON RUNNING & ACTIVE</span>
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-950 text-amber-300 border border-amber-700 shadow-sm">
+                                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                <span>CRON NOT RUNNING / SETUP REQUIRED</span>
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="mt-1 flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+                        <span class="flex items-center gap-1">
+                            <span class="font-semibold {{ $cronStatus['is_active'] ? 'text-emerald-400' : 'text-amber-400' }}">
+                                Last Heartbeat:
+                            </span>
+                            <span class="text-white font-medium">{{ $cronStatus['last_heartbeat_human'] }}</span>
+                            @if($cronStatus['last_heartbeat'])
+                                <span class="text-slate-500">({{ $cronStatus['last_heartbeat_formatted'] }})</span>
+                            @endif
+                        </span>
+                        <span class="text-slate-600 hidden sm:inline">•</span>
+                        <span class="text-slate-300 hidden sm:inline">
+                            Runs every minute in cPanel & triggers Market Ingestion, Weather, AI Forecasts & Retention
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 flex-wrap shrink-0">
+                <!-- Toggle Setup & Details Drawer -->
+                <button type="button" 
+                        @click="showCronDrawer = !showCronDrawer" 
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer {{ $cronStatus['is_active'] ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500 shadow-sm' }}">
+                    <span>⚙️</span>
+                    <span x-text="showCronDrawer ? 'Hide Cron Details ▲' : 'View cPanel Setup & Tasks ▼'"></span>
+                </button>
+
+                <!-- One-click Copy cPanel Command -->
+                <button type="button" 
+                        @click="navigator.clipboard.writeText('{{ addslashes($cronStatus['cpanel_command']) }}'); copiedCron = true; setTimeout(() => copiedCron = false, 2500)" 
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer"
+                        :class="copiedCron ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'">
+                    <span x-show="!copiedCron">📋 Copy cPanel Command</span>
+                    <span x-show="copiedCron" x-cloak>✓ Command Copied!</span>
+                </button>
+
+                <!-- Manual Scheduler Test Tick -->
+                <form action="{{ route('admin.scheduler.test') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" 
+                            title="Manually trigger a scheduler tick to test and verify cron heartbeat immediately" 
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/90 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 border border-slate-700 transition cursor-pointer">
+                        <span>⚡</span>
+                        <span>Test Scheduler Tick</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Collapsible Expandable cPanel Setup & Scheduled Tasks Drawer -->
+        <div x-show="showCronDrawer" x-cloak x-transition class="mt-4 pt-4 border-t border-slate-800 space-y-4">
+            
+            <!-- Quick Info Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Heartbeat Status</span>
+                    <div class="mt-1 flex items-center gap-2">
+                        @if($cronStatus['is_active'])
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span class="font-bold text-emerald-400">Active (Running)</span>
+                        @else
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                            <span class="font-bold text-rose-400">Not Running</span>
+                        @endif
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-0.5 block">{{ $cronStatus['last_heartbeat_human'] }}</span>
+                </div>
+
+                <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Configured Price Sync</span>
+                    <div class="mt-1 font-mono font-bold text-white flex items-center gap-1.5 flex-wrap">
+                        <span>🌅 {{ $cronStatus['morning_time'] ?: '06:00' }}</span>
+                        @if(!empty($cronStatus['afternoon_time']))
+                            <span>•</span>
+                            <span>☀️ {{ $cronStatus['afternoon_time'] }}</span>
+                        @endif
+                        <span>•</span>
+                        <span>🌇 {{ $cronStatus['evening_time'] ?: '19:30' }}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-0.5 block">
+                        {{ $cronStatus['enable_hourly'] ? 'Hourly sync active during trading' : 'Hourly sync disabled' }}
+                    </span>
+                </div>
+
+                <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Operating Days</span>
+                    <span class="mt-1 font-bold text-white block">
+                        {{ $cronStatus['operating_days'] === 'mon_sat' ? '🗓️ Mon – Sat (APMC Trading Days)' : '🗓️ All 7 Days' }}
+                    </span>
+                    <span class="text-[10px] text-slate-400 mt-0.5 block">Skips Sundays when APMCs are shut</span>
+                </div>
+
+                <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Server Base Path</span>
+                    <span class="mt-1 font-mono text-[11px] text-emerald-400 truncate block" title="{{ $cronStatus['base_path'] }}">
+                        {{ $cronStatus['base_path'] }}
+                    </span>
+                    <span class="text-[10px] text-slate-500 mt-0.5 block">PHP: {{ basename($cronStatus['php_binary']) }}</span>
+                </div>
+            </div>
+
+            <!-- Ready-to-use cPanel Cron Commands -->
+            <div class="space-y-3 bg-slate-950/90 border border-slate-800 rounded-xl p-3 sm:p-4">
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span class="text-emerald-400">📌</span> Primary cPanel Cron Command (Recommended)
+                        </label>
+                        <span class="text-[11px] text-slate-400 font-mono">Runs every minute (* * * * *)</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-2">
+                        <code class="flex-1 font-mono text-xs text-amber-300 select-all overflow-x-auto whitespace-nowrap px-1">
+                            {{ $cronStatus['cpanel_command'] }}
+                        </code>
+                        <button type="button" 
+                                @click="navigator.clipboard.writeText('{{ addslashes($cronStatus['cpanel_command']) }}'); copiedCron = true; setTimeout(() => copiedCron = false, 2500)"
+                                class="shrink-0 px-2.5 py-1 text-xs font-bold rounded-lg transition border cursor-pointer"
+                                :class="copiedCron ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'">
+                            <span x-show="!copiedCron">📋 Copy</span>
+                            <span x-show="copiedCron" x-cloak>✓ Copied</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                            <span>Alternative:</span> Direct PHP Binary Command (If `php` is not in standard PATH)
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-lg p-2">
+                        <code class="flex-1 font-mono text-xs text-slate-300 select-all overflow-x-auto whitespace-nowrap px-1">
+                            {{ $cronStatus['cpanel_binary_command'] }}
+                        </code>
+                        <button type="button" 
+                                @click="navigator.clipboard.writeText('{{ addslashes($cronStatus['cpanel_binary_command']) }}'); copiedCronAlt = true; setTimeout(() => copiedCronAlt = false, 2500)"
+                                class="shrink-0 px-2.5 py-1 text-xs font-bold rounded-lg transition border cursor-pointer"
+                                :class="copiedCronAlt ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'">
+                            <span x-show="!copiedCronAlt">📋 Copy</span>
+                            <span x-show="copiedCronAlt" x-cloak>✓ Copied</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4-Step cPanel Configuration Walkthrough -->
+            <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 sm:p-4">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <span>📖</span> How to Add this in cPanel (Takes only 30 seconds):
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs text-slate-300">
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-2.5">
+                        <div class="font-bold text-emerald-400 mb-0.5">Step 1: Open Cron Jobs</div>
+                        <p class="text-slate-400 text-[11px]">Log in to your cPanel hosting. In the search bar, type <strong class="text-white">"Cron Jobs"</strong> (under Advanced section).</p>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-2.5">
+                        <div class="font-bold text-emerald-400 mb-0.5">Step 2: Select Frequency</div>
+                        <p class="text-slate-400 text-[11px]">Under <strong class="text-white">Common Settings</strong>, select dropdown option: <strong class="text-amber-300">"Once Per Minute (* * * * *)"</strong>.</p>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-2.5">
+                        <div class="font-bold text-emerald-400 mb-0.5">Step 3: Paste Command</div>
+                        <p class="text-slate-400 text-[11px]">Paste the copyable command from above into the <strong class="text-white">Command</strong> text input box.</p>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-2.5">
+                        <div class="font-bold text-emerald-400 mb-0.5">Step 4: Save & Verify</div>
+                        <p class="text-slate-400 text-[11px]">Click <strong class="text-emerald-400">Add New Cron Job</strong>. Return here and refresh: the badge will turn green!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scheduled Background Tasks Breakdown Table -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🤖</span> Tasks Handled Automatically by this Cron:
+                    </h3>
+                    <a href="{{ route('admin.datasources.index') }}" class="text-xs font-bold text-emerald-400 hover:underline">
+                        Change Ingestion Schedule &rarr;
+                    </a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 font-semibold">
+                                <th class="py-1.5 px-2">Scheduled Task</th>
+                                <th class="py-1.5 px-2">Frequency / Timing</th>
+                                <th class="py-1.5 px-2">Purpose</th>
+                                <th class="py-1.5 px-2">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60 text-slate-300">
+                            <tr>
+                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
+                                    <span>🌾</span> <span>Mandi Market Prices Ingestion</span>
+                                </td>
+                                <td class="py-2 px-2 font-mono text-amber-300">
+                                    {{ $cronStatus['morning_time'] ?: '06:00' }}@if(!empty($cronStatus['afternoon_time'])), {{ $cronStatus['afternoon_time'] }}@endif & {{ $cronStatus['evening_time'] ?: '19:30' }} IST
+                                </td>
+                                <td class="py-2 px-2 text-slate-400">Syncs KRAMA Karnataka Mandis, Official Agmarknet, Coffee Board & Coconut Board</td>
+                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
+                                    <span>🌦️</span> <span>Hyperlocal Weather Advisories</span>
+                                </td>
+                                <td class="py-2 px-2 font-mono text-cyan-300">05:30 & 14:30 IST Daily</td>
+                                <td class="py-2 px-2 text-slate-400">Updates 7-day agricultural forecasts via Open-Meteo</td>
+                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
+                                    <span>📊</span> <span>Historical Analytics & Seasonality</span>
+                                </td>
+                                <td class="py-2 px-2 font-mono text-purple-300">01:00 IST Nightly</td>
+                                <td class="py-2 px-2 text-slate-400">Computes 12-month seasonal indices & modal averages</td>
+                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
+                                    <span>🔮</span> <span>Price Forecasting Engine</span>
+                                </td>
+                                <td class="py-2 px-2 font-mono text-indigo-300">02:00 IST Nightly</td>
+                                <td class="py-2 px-2 text-slate-400">Generates 1D, 7D, 15D, 30D Holt's Linear projections</td>
+                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
+                                    <span>🧹</span> <span>1-Year Rolling Retention Pruner</span>
+                                </td>
+                                <td class="py-2 px-2 font-mono text-slate-400">23:00 IST Nightly</td>
+                                <td class="py-2 px-2 text-slate-400">Prunes records >365 days; keeps database fast (~35MB)</td>
+                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- KPI Metric Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

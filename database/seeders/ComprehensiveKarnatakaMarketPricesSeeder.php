@@ -17,13 +17,13 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
     {
         $today = '2026-09-26';
 
-        $dataGovSource = DataSource::where('code', 'datagov')->first() ?? DataSource::first();
-        $coffeeSource = DataSource::where('code', 'coffee_board')->first() ?? $dataGovSource;
-        $coconutSource = DataSource::where('code', 'coconut_board')->first() ?? $dataGovSource;
+        $kramaSource = DataSource::where('code', 'krama_karnataka')->first() ?? DataSource::where('code', 'agmarknet_official')->first() ?? DataSource::first();
+        $coffeeSource = DataSource::where('code', 'coffee_board')->first() ?? $kramaSource;
+        $coconutSource = DataSource::where('code', 'coconut_board')->first() ?? $kramaSource;
 
         $matrix = [
             'arecanut' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Rashi',
                 'variety_kn' => 'ರಾಶಿ',
                 'prices' => [
@@ -40,7 +40,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'paddy' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Sona Masuri',
                 'variety_kn' => 'ಸೋನಾ ಮಸೂರಿ',
                 'prices' => [
@@ -54,7 +54,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'onion' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Medium',
                 'variety_kn' => 'ಮಧ್ಯಮ',
                 'prices' => [
@@ -68,7 +68,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'tomato' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Hybrid',
                 'variety_kn' => 'ಹೈಬ್ರಿಡ್',
                 'prices' => [
@@ -82,7 +82,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'maize' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Yellow',
                 'variety_kn' => 'ಹಳದಿ',
                 'prices' => [
@@ -96,7 +96,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'ragi' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Indaf',
                 'variety_kn' => 'ಇಂದಾಫ್',
                 'prices' => [
@@ -110,7 +110,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'tur' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Red',
                 'variety_kn' => 'ಕೆಂಪು',
                 'prices' => [
@@ -121,7 +121,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'green-chilli' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Guntur/Byadgi',
                 'variety_kn' => 'ಬ್ಯಾಡಗಿ',
                 'prices' => [
@@ -166,7 +166,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'black-pepper' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Garbled',
                 'variety_kn' => 'ಗಾರ್ಬಲ್ಡ್',
                 'prices' => [
@@ -180,7 +180,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'ginger' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Fresh Green',
                 'variety_kn' => 'ಹಸಿ ಶುಂಠಿ',
                 'prices' => [
@@ -190,7 +190,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'banana' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Yellaki',
                 'variety_kn' => 'ಏಲಕ್ಕಿ',
                 'prices' => [
@@ -203,7 +203,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'groundnut' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Pods',
                 'variety_kn' => 'ಕಡಲೆಕಾಯಿ',
                 'prices' => [
@@ -213,7 +213,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'jowar' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'White',
                 'variety_kn' => 'ಬಿಳಿ',
                 'prices' => [
@@ -223,7 +223,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                 ]
             ],
             'sunflower' => [
-                'source' => $dataGovSource,
+                'source' => $kramaSource,
                 'variety' => 'Standard',
                 'variety_kn' => 'ಸಾಮಾನ್ಯ',
                 'prices' => [
@@ -392,7 +392,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                         'price_date' => $today,
                     ],
                     [
-                        'data_source_id' => $dataGovSource->id,
+                        'data_source_id' => $kramaSource->id,
                         'district_id' => $sirsiMarket->district_id,
                         'min_price' => $min,
                         'max_price' => $max,
@@ -418,7 +418,7 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                         'price_date' => $today,
                     ],
                     [
-                        'data_source_id' => $dataGovSource->id,
+                        'data_source_id' => $kramaSource->id,
                         'district_id' => $tumakuruMarket->district_id,
                         'min_price' => 37000,
                         'max_price' => 39500,

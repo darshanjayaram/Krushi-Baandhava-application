@@ -11,7 +11,6 @@ use App\Models\Market;
 use App\Models\MarketPrice;
 use App\Models\MarketPriceRaw;
 use App\Services\Analytics\HistoricalAnalyticsService;
-use App\Services\DataSources\Ceda\CedaAgmarknetDataProvider;
 use App\Services\Forecast\ForecastingEngineService;
 use App\Services\Ingestion\MarketPriceIngestionService;
 use Carbon\Carbon;
@@ -343,69 +342,25 @@ class MarketPriceController extends Controller
             $srcInserted = 0;
             $srcUpdated = 0;
             $srcDuplicates = 0;
-            $srcRejected = 0;
+            $targetCommodity = $cropId ? $crops->first()?->name : null;
+            $res = $this->ingestionService->ingest($source, [
+                'force' => $force,
+                'filters' => array_filter([
+                    'from_date' => $fromDate,
+                    'to_date' => $toDate,
+                    'crop_id' => $cropId,
+                    'commodity' => $targetCommodity,
+                    'captcha_key' => $validated['captcha_key'] ?? null,
+                    'captcha_value' => $validated['captcha_code'] ?? null,
+                    'captcha_code' => $validated['captcha_code'] ?? null,
+                ], fn ($val) => $val !== null && $val !== ''),
+            ]);
 
-            // For CEDA Agmarknet, map crops to commodity IDs
-            if ($source->code === 'ceda_agmarknet') {
-                foreach ($crops as $crop) {
-                    $mappedCedaIds = $crop->sourceMappings()
-                        ->where('data_source_id', $source->id)
-                        ->pluck('source_crop_name')
-                        ->filter(fn ($val) => is_numeric($val))
-                        ->map(fn ($val) => (int) $val)
-                        ->unique()
-                        ->values()
-                        ->all();
-
-                    if (empty($mappedCedaIds)) {
-                        $mappedCedaIds = array_keys(array_filter(
-                            CedaAgmarknetDataProvider::CEDA_COMMODITIES,
-                            fn ($name) => strcasecmp($name, $crop->name) === 0 || stripos($crop->name, $name) !== false
-                        ));
-                    }
-
-                    if (empty($mappedCedaIds)) {
-                        $mappedCedaIds = [2]; // Default commodity
-                    }
-
-                    foreach ($mappedCedaIds as $cedaId) {
-                        $res = $this->ingestionService->ingest($source, [
-                            'force' => $force,
-                            'filters' => [
-                                'commodity_id' => $cedaId,
-                                'from_date' => $fromDate,
-                                'to_date' => $toDate,
-                            ],
-                        ]);
-
-                        $srcReceived += (int) ($res['received'] ?? 0);
-                        $srcInserted += (int) ($res['inserted'] ?? 0);
-                        $srcUpdated += (int) ($res['updated'] ?? 0);
-                        $srcDuplicates += (int) ($res['duplicate'] ?? 0);
-                        $srcRejected += (int) ($res['rejected'] ?? 0);
-                    }
-                }
-            } else {
-                $targetCommodity = $cropId ? $crops->first()?->name : null;
-                $res = $this->ingestionService->ingest($source, [
-                    'force' => $force,
-                    'filters' => array_filter([
-                        'from_date' => $fromDate,
-                        'to_date' => $toDate,
-                        'crop_id' => $cropId,
-                        'commodity' => $targetCommodity,
-                        'captcha_key' => $validated['captcha_key'] ?? null,
-                        'captcha_value' => $validated['captcha_code'] ?? null,
-                        'captcha_code' => $validated['captcha_code'] ?? null,
-                    ], fn ($val) => $val !== null && $val !== ''),
-                ]);
-
-                $srcReceived += (int) ($res['received'] ?? 0);
-                $srcInserted += (int) ($res['inserted'] ?? 0);
-                $srcUpdated += (int) ($res['updated'] ?? 0);
-                $srcDuplicates += (int) ($res['duplicate'] ?? 0);
-                $srcRejected += (int) ($res['rejected'] ?? 0);
-            }
+            $srcReceived = (int) ($res['received'] ?? 0);
+            $srcInserted = (int) ($res['inserted'] ?? 0);
+            $srcUpdated = (int) ($res['updated'] ?? 0);
+            $srcDuplicates = (int) ($res['duplicate'] ?? 0);
+            $srcRejected = (int) ($res['rejected'] ?? 0);
 
             $totalReceived += $srcReceived;
             $totalInserted += $srcInserted;

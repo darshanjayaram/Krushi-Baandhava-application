@@ -40,15 +40,30 @@ class SyncMarketPricesCommand extends Command
     {
         $sourceCode = $this->argument('source');
         $dateParam = $this->option('date');
-        $targetDate = $dateParam ? Carbon::parse($dateParam) : Carbon::today();
         $isForced = (bool) $this->option('force');
         $isDryRun = (bool) $this->option('dry-run');
+
+        // Determine target date(s): In morning cron (<11:00 AM), reconcile previous trading day + today
+        $targetDates = [];
+        if ($dateParam) {
+            $targetDates = [Carbon::parse($dateParam)->toDateString()];
+        } else {
+            $now = Carbon::now();
+            if ($now->hour < 11) {
+                $prevTradingDay = Carbon::yesterday()->isSunday()
+                    ? Carbon::today()->subDays(2)
+                    : Carbon::yesterday();
+                $targetDates = [$prevTradingDay->toDateString(), Carbon::today()->toDateString()];
+            } else {
+                $targetDates = [Carbon::today()->toDateString()];
+            }
+        }
 
         $this->info("============================================================");
         $this->info("   KRUSHI BAANDHAVA (ಕೃಷಿ ಬಾಂಧವ) - Market Price Ingestion   ");
         $this->info("============================================================");
-        $this->line("Target Date: <comment>{$targetDate->toDateString()}</comment>");
-        $this->line("Mode:        " . ($isDryRun ? '<fg=yellow;options=bold>DRY RUN (No Canonical Writes)</>' : '<fg=green;options=bold>LIVE SYNC</>'));
+        $this->line("Target Date(s): <comment>" . implode(', ', $targetDates) . "</comment>");
+        $this->line("Mode:           " . ($isDryRun ? '<fg=yellow;options=bold>DRY RUN (No Canonical Writes)</>' : '<fg=green;options=bold>LIVE SYNC</>'));
 
         $query = DataSource::query();
 
@@ -86,35 +101,44 @@ class SyncMarketPricesCommand extends Command
 
             $this->info("▶ Ingesting from: <fg=cyan>{$source->name}</> [{$source->code}]");
 
-            $result = $this->ingestionService->ingest($source, [
-                'force' => $isForced,
-                'dry_run' => $isDryRun,
-                'filters' => [
-                    'date' => $targetDate->toDateString(),
-                ],
-            ]);
-
-            $statusColor = match ($result['status']) {
-                'success' => 'green',
-                'partial' => 'yellow',
-                default => 'red',
-            };
-
-            $this->line("  Status:        <fg={$statusColor};options=bold>" . strtoupper($result['status']) . "</>");
-            $this->line("  Received:      {$result['received']}");
-            $this->line("  New Inserted:  {$result['inserted']}");
-            $this->line("  Updated:       {$result['updated']}");
-            $this->line("  Duplicates:    {$result['duplicate']}");
-            $this->line("  Rejected:      {$result['rejected']}");
-            $this->line("  Duration:      {$result['duration_ms']} ms");
-
-            if (! empty($result['errors'])) {
-                $this->warn("  Errors / Warnings:");
-                foreach (array_slice($result['errors'], 0, 5) as $err) {
-                    $this->line("    • {$err}");
+            foreach ($targetDates as $targetDateStr) {
+                if (count($targetDates) > 1) {
+                    $this->line("  ↳ Date: <comment>{$targetDateStr}</comment>");
                 }
-                if (count($result['errors']) > 5) {
-                    $this->line("    • ... and " . (count($result['errors']) - 5) . " more.");
+
+                $result = $this->ingestionService->ingest($source, [
+                    'force' => $isForced,
+                    'dry_run' => $isDryRun,
+                    'filters' => [
+                        'date' => $targetDateStr,
+                    ],
+                ]);
+
+                $statusColor = match ($result['status']) {
+                    'success' => 'green',
+                    'partial' => 'yellow',
+                    default => 'red',
+                };
+
+                $this->line("    Status:        <fg={$statusColor};options=bold>" . strtoupper($result['status']) . "</>");
+                $this->line("    Received:      {$result['received']}");
+                $this->line("    New Inserted:  {$result['inserted']}");
+                $this->line("    Updated:       {$result['updated']}");
+                $this->line("    Duplicates:    {$result['duplicate']}");
+                $this->line("    Rejected:      {$result['rejected']}");
+                $this->line("    Duration:      {$result['duration_ms']} ms");
+
+                $overallReceived += (int) ($result['received'] ?? 0);
+                $overallInserted += (int) ($result['inserted'] ?? 0);
+                $overallUpdated += (int) ($result['updated'] ?? 0);
+                $overallDuplicates += (int) ($result['duplicate'] ?? 0);
+                $overallRejected += (int) ($result['rejected'] ?? 0);
+
+                if (! empty($result['errors'])) {
+                    $this->warn("    Errors / Warnings:");
+                    foreach (array_slice($result['errors'], 0, 5) as $err) {
+                        $this->line("      • {$err}");
+                    }
                 }
             }
 

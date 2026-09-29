@@ -150,6 +150,7 @@ Route::prefix('admin')->group(function () {
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/', fn () => redirect()->route('admin.dashboard'));
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+        Route::post('/scheduler/test', [DashboardController::class, 'runSchedulerTest'])->name('admin.scheduler.test');
 
         // Master Data: Districts & Taluks
         Route::patch('/districts/{district}/toggle', [DistrictController::class, 'toggleStatus'])->name('admin.districts.toggle');

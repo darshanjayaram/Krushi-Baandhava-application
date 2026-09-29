@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             SystemSettingSeeder::class,
             DataSourceSeeder::class,
             KramaAndAgmarknetSeeder::class,
-            TssSirsiDataSourceSeeder::class,
             AgriculturalCmsSeeder::class,
             ComprehensiveKarnatakaMarketPricesSeeder::class,
             AddMissedKarnatakaCropsSeeder::class,

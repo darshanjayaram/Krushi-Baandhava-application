@@ -205,7 +205,7 @@ class CropController extends Controller
         $variety = $crop->varieties()->where('id', $validated['crop_variety_id'])->firstOrFail();
         $dataSourceId = !empty($validated['data_source_id'])
             ? (int) $validated['data_source_id']
-            : (DataSource::where('code', 'data_gov_mandi')->value('id') ?? DataSource::first()->id);
+            : (DataSource::where('code', 'krama_karnataka')->value('id') ?? DataSource::where('code', 'agmarknet_official')->value('id') ?? DataSource::first()->id);
 
         $mapping = CropSourceMapping::updateOrCreate(
             [
@@ -288,9 +288,9 @@ class CropController extends Controller
             } elseif ($crop->isCoconutBoard()) {
                 $dataSource = DataSource::where('code', 'coconut_board')->first();
             } else {
-                $dataSource = DataSource::where('code', 'tss_sirsi')->where('is_active', true)->first()
-                    ?? DataSource::where('code', 'ceda_agmarknet')->where('is_active', true)->first()
-                    ?? DataSource::where('code', 'data_gov_mandi')->first()
+                $dataSource = DataSource::where('code', 'krama_karnataka')->where('is_active', true)->first()
+                    ?? DataSource::where('code', 'agmarknet_official')->where('is_active', true)->first()
+                    ?? DataSource::where('is_active', true)->first()
                     ?? DataSource::first();
             }
         }

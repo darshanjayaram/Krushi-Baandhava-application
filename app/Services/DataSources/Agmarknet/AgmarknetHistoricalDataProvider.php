@@ -215,21 +215,6 @@ class AgmarknetHistoricalDataProvider extends BaseMarketDataProvider
             Log::warning("AgmarknetHistoricalDataProvider: KRAMA fallback exception: " . $e->getMessage());
         }
 
-        // 3. Try official data.gov.in Mandi Prices provider (API-key authenticated)
-        try {
-            $dataGovSource = \App\Models\DataSource::where('code', 'data_gov_mandi')->first();
-            if ($dataGovSource) {
-                Log::info("AgmarknetHistoricalDataProvider: Cascading fallback to data.gov.in.");
-                $dataGovProvider = \App\Services\DataSources\DataSourceRegistry::make($dataGovSource);
-                $records = iterator_to_array($dataGovProvider->fetch($filters));
-                if (!empty($records)) {
-                    return $records;
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::warning("AgmarknetHistoricalDataProvider: data.gov.in fallback exception: " . $e->getMessage());
-        }
-
         return [];
     }
 

@@ -78,16 +78,24 @@
                 </button>
 
                 @if($cronInfo['is_active'])
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-emerald-950 text-emerald-300 border border-emerald-800/80">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-emerald-950 text-emerald-300 border border-emerald-800/80 shadow-sm">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                         <span>Cron Active (Tick {{ $cronInfo['last_heartbeat'] ? $cronInfo['last_heartbeat']->diffForHumans() : 'Just now' }})</span>
                     </span>
                 @else
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-amber-950 text-amber-300 border border-amber-800/80" title="Add cron command in cPanel to activate">
-                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-rose-950 text-rose-300 border border-rose-800/80 shadow-sm" title="Add cron command in cPanel to activate">
+                        <span class="w-2 h-2 rounded-full bg-rose-400"></span>
                         <span>{{ $cronInfo['last_heartbeat'] ? 'Cron Idle (' . $cronInfo['last_heartbeat']->diffForHumans() . ')' : 'Cron Not Running / Not Set' }}</span>
                     </span>
                 @endif
+
+                <form action="{{ route('admin.scheduler.test') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 border border-slate-700 transition cursor-pointer" title="Manually tick the scheduler to test heartbeat">
+                        <span>⚡</span>
+                        <span>Test Scheduler Tick</span>
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -101,7 +109,7 @@
                     🌅 Morning: {{ $cronInfo['morning_time'] ?: '06:00' }}
                 </span>
                 <span class="px-2.5 py-0.5 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono font-bold" title="Evening closing auction rates sync">
-                    🌇 Evening: {{ $cronInfo['evening_time'] ?: '18:00' }}
+                    🌇 Evening: {{ $cronInfo['evening_time'] ?: '19:30' }}
                 </span>
                 @if($cronInfo['afternoon_time'])
                     <span class="px-2.5 py-0.5 rounded-lg bg-amber-950 text-amber-300 border border-amber-800 font-mono font-bold" title="Mid-day rate update">

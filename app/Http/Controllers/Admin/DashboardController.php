@@ -16,7 +16,11 @@ use App\Models\MarketPrice;
 use App\Models\MarketPriceRaw;
 use App\Models\PriceForecast;
 use App\Models\SyncLog;
+use App\Models\SystemSetting;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -28,6 +32,29 @@ class DashboardController extends Controller
     {
         $today = Carbon::today()->toDateString();
         $latestPriceDate = MarketPrice::max('price_date') ?? $today;
+
+        // Scheduler / cPanel Cron Health Detection
+        $rawHeartbeat = Cache::get('scheduler_last_heartbeat') 
+            ?? DataSource::max('last_heartbeat_at');
+        $lastHeartbeat = $rawHeartbeat ? Carbon::parse($rawHeartbeat) : null;
+        $isCronActive = $lastHeartbeat && $lastHeartbeat->diffInMinutes(now()) <= 15;
+
+        $cronStatus = [
+            'is_active' => $isCronActive,
+            'last_heartbeat' => $lastHeartbeat,
+            'last_heartbeat_human' => $lastHeartbeat ? $lastHeartbeat->diffForHumans() : 'Never',
+            'last_heartbeat_formatted' => $lastHeartbeat ? $lastHeartbeat->format('d M Y, h:i A') : 'No heartbeat recorded yet',
+            'minutes_ago' => $lastHeartbeat ? (int) $lastHeartbeat->diffInMinutes(now()) : null,
+            'cpanel_command' => "* * * * * cd " . base_path() . " && php artisan schedule:run >> /dev/null 2>&1",
+            'cpanel_binary_command' => "* * * * * /usr/local/bin/php " . base_path('artisan') . " schedule:run >/dev/null 2>&1",
+            'base_path' => base_path(),
+            'php_binary' => PHP_BINARY,
+            'morning_time' => SystemSetting::get('cron_market_morning_time', '06:00'),
+            'evening_time' => SystemSetting::get('cron_market_evening_time', '19:30'),
+            'afternoon_time' => SystemSetting::get('cron_market_afternoon_time', '12:30'),
+            'enable_hourly' => (bool) SystemSetting::get('cron_market_enable_hourly', true),
+            'operating_days' => SystemSetting::get('cron_market_operating_days', 'mon_sat'),
+        ];
 
         $totalMarkets = Market::karnataka()->count();
         $reportingMarketsCount = MarketPrice::where('price_date', $latestPriceDate)
@@ -173,7 +200,23 @@ class DashboardController extends Controller
             'recentAuditLogs',
             'recentRejected',
             'featureFlags',
-            'mandiNetworkStats'
+            'mandiNetworkStats',
+            'cronStatus'
         ));
+    }
+
+    /**
+     * Test or manually tick the Laravel scheduler and update the heartbeat.
+     */
+    public function runSchedulerTest(): RedirectResponse
+    {
+        try {
+            Artisan::call('schedule:run');
+            Cache::forever('scheduler_last_heartbeat', now());
+
+            return redirect()->back()->with('success', 'Scheduler tick completed successfully! Heartbeat recorded at ' . now()->format('h:i:s A') . '.');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Scheduler test encountered an issue: ' . $e->getMessage());
+        }
     }
 }
