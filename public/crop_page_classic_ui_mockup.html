@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-[#F5EFE6]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Pepper — Two Box Aligned Architecture | Krushi Baandhava</title>
+    <!-- Tailwind CSS v3 Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans & Noto Sans Kannada -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                        kannada: ['"Noto Sans Kannada"', '"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            600: '#1C5A2C',
+                            700: '#154622',
+                            800: '#0F3318',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #F5EFE6;
+            color: #111827;
+        }
+        [x-cloak] { display: none !important; }
+        
+        /* Optical centering for Kannada */
+        .kn-text {
+            font-family: 'Noto Sans Kannada', sans-serif;
+            position: relative;
+            top: 0.5px;
+        }
+
+        /* Solid 2px Classic Border matching Current App */
+        .classic-card {
+            background-color: #FFFFFF;
+            border: 2px solid #D9CEB8;
+        }
+
+        /* Solid Active State */
+        .active-green {
+            background-color: #1C5A2C !important;
+            color: #FFFFFF !important;
+            border-color: #1C5A2C !important;
+        }
+
+        /* Clean Mandi Scrollbar */
+        .custom-mandi-scroll::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .custom-mandi-scroll::-webkit-scrollbar-track {
+            background: #F5EFE6;
+            border-radius: 4px;
+        }
+        .custom-mandi-scroll::-webkit-scrollbar-thumb {
+            background: #1C5A2C;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="py-4 px-2 sm:px-6 lg:px-8" x-data="{
+    lang: 'en',
+    placementMode: 'below_image', // 'below_image' (Box 2 below image, aligned with right box) or 'full_width_below'
+    marketRadiusKm: 200,
+    showAllRadius: false,
+    showAllGrades: false,
+    activeSort: 'nearest_first',
+    selectedMandi: 'thirthahalli',
+    selectedGrade: 'garbled_avg',
+
+    grades: [
+        { id: 'garbled_avg', name: 'Garbled · Average', nameKn: 'ಗಾರ್ಬಲ್ಡ್ · ಸರಾಸರಿ', mult: 1.0, isPrimary: true },
+        { id: 'ungarbled_faq', name: 'Ungarbled · FAQ', nameKn: 'ಅನ್‌ಗಾರ್ಬಲ್ಡ್ · FAQ', mult: 0.9327, isPrimary: true },
+        { id: 'white_special', name: 'White Pepper · Special', nameKn: 'ಬಿಳಿ ಮೆಣಸು · ಸ್ಪೆಷಲ್', mult: 1.48, isPrimary: true },
+        { id: 'tgseb_bold', name: 'TGSEB · Extra Bold', nameKn: 'ಟಿ.ಜಿ.ಎಸ್.ಇ.ಬಿ · ಬೋಲ್ಡ್', mult: 1.18, isPrimary: true },
+        { id: 'malabar_g1', name: 'Malabar · Grade 1', nameKn: 'ಮಲಬಾರ್ · ಗ್ರೇಡ್ ೧', mult: 1.08, isPrimary: false },
+        { id: 'pinhead_ind', name: 'Pinhead · Industrial', nameKn: 'ಪಿನ್‌ಹೆಡ್ · ಕೈಗಾರಿಕಾ', mult: 0.58, isPrimary: false },
+        { id: 'light_g3', name: 'Light Berries · Grade 3', nameKn: 'ಲೈಟ್ ಬೆರ್ರಿ · ಗ್ರೇಡ್ ೩', mult: 0.44, isPrimary: false },
+        { id: 'organic_npop', name: 'Organic · NPOP', nameKn: 'ಸಾವಯವ · ಪ್ರಮಾಣೀಕೃತ', mult: 1.32, isPrimary: false }
+    ],
+
+    mandis: [
+        { id: 'doddaballapur', name: 'Doddaballapur APMC', nameKn: 'ದೊಡ್ಡಬಳ್ಳಾಪುರ ಎಪಿಎಂಸಿ', district: 'Bengaluru Rural', basePrice: 59830, dist: 36, isWithin: true, isNearest: true, isTopRate: false },
+        { id: 'bangalore', name: 'Bengaluru (Yeshwanthpur)', nameKn: 'ಬೆಂಗಳೂರು (ಯಶವಂತಪುರ)', district: 'Bengaluru Urban', basePrice: 60500, dist: 14, isWithin: true, isNearest: false, isTopRate: false },
+        { id: 'mysore', name: 'Mysuru (Bandipalya)', nameKn: 'ಮೈಸೂರು (ಬಂಡೀಪಾಳ್ಯ)', district: 'Mysuru', basePrice: 61200, dist: 138, isWithin: true, isNearest: false, isTopRate: false },
+        { id: 'hassan', name: 'Hassan APMC', nameKn: 'ಹಾಸನ ಎಪಿಎಂಸಿ', district: 'Hassan', basePrice: 65000, dist: 162, isWithin: true, isNearest: false, isTopRate: false },
+        { id: 'sakaleshpur', name: 'Sakaleshpur APMC', nameKn: 'ಸಕಲೇಶಪುರ ಎಪಿಎಂಸಿ', district: 'Hassan', basePrice: 66400, dist: 184, isWithin: true, isNearest: false, isTopRate: false },
+        { id: 'somwarpet', name: 'Somwarpet APMC', nameKn: 'ಸೋಮವಾರಪೇಟೆ ಎಪಿಎಂಸಿ', district: 'Kodagu', basePrice: 70280, dist: 193, isWithin: true, isNearest: false, isTopRate: true },
+        // Distant mandis
+        { id: 'chikkamagaluru', name: 'Chikkamagaluru APMC', nameKn: 'ಚಿಕ್ಕಮಗಳೂರು ಎಪಿಎಂಸಿ', district: 'Chikkamagaluru', basePrice: 62500, dist: 201, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'gonikoppal', name: 'Gonikoppal APMC', nameKn: 'ಗೋಣಿಕೊಪ್ಪಲು ಎಪಿಎಂಸಿ', district: 'Kodagu', basePrice: 67800, dist: 208, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'madikeri', name: 'Madikeri APMC', nameKn: 'ಮಡಿಕೇರಿ ಎಪಿಎಂಸಿ', district: 'Kodagu', basePrice: 68900, dist: 221, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'thirthahalli', name: 'Thirthahalli APMC', nameKn: 'ತೀರ್ಥಹಳ್ಳಿ ಎಪಿಎಂಸಿ', district: 'Shivamogga', basePrice: 52000, dist: 267, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'belthangady', name: 'Belthangady APMC', nameKn: 'ಬೆಳ್ತಂಗಡಿ ಎಪಿಎಂಸಿ', district: 'Dakshina Kannada', basePrice: 57900, dist: 272, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'puttur', name: 'Puttur APMC (CAMPCO)', nameKn: 'ಪುತ್ತೂರು ಎಪಿಎಂಸಿ (ಕ್ಯಾಂಪ್ಕೋ)', district: 'Dakshina Kannada', basePrice: 58500, dist: 285, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'sagara', name: 'Sagara APMC', nameKn: 'ಸಾಗರ ಎಪಿಎಂಸಿ', district: 'Shivamogga', basePrice: 51800, dist: 298, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'karkala', name: 'Karkala APMC', nameKn: 'ಕಾರ್ಕಳ ಎಪಿಎಂಸಿ', district: 'Udupi', basePrice: 56900, dist: 304, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'mangalore', name: 'Mangaluru APMC', nameKn: 'ಮಂಗಳೂರು ಎಪಿಎಂಸಿ', district: 'Dakshina Kannada', basePrice: 57400, dist: 312, isWithin: false, isNearest: false, isTopRate: false },
+        { id: 'sirsi', name: 'Sirsi APMC (TSS)', nameKn: 'ಶಿರಸಿ ಎಪಿಎಂಸಿ (ಟಿ.ಎಸ್.ಎಸ್)', district: 'Uttara Kannada', basePrice: 54200, dist: 334, isWithin: false, isNearest: false, isTopRate: false }
+    ],
+
+    get currentGradeObj() {
+        return this.grades.find(g => g.id === this.selectedGrade) || this.grades[0];
+    },
+
+    get currentMandiObj() {
+        return this.mandis.find(m => m.id === this.selectedMandi) || this.mandis[0];
+    },
+
+    get currentPrice() {
+        return Math.round(this.currentMandiObj.basePrice * this.currentGradeObj.mult);
+    },
+
+    get perKgPrice() {
+        return (this.currentPrice / 100).toFixed(1);
+    },
+
+    get sortedMandis() {
+        let list = [...this.mandis];
+        if (this.activeSort === 'highest_price_first') {
+            list.sort((a, b) => b.basePrice - a.basePrice);
+        } else {
+            list.sort((a, b) => a.dist - b.dist);
+        }
+        return list;
+    },
+
+    get beyondRadiusCount() {
+        return this.mandis.filter(m => !m.isWithin && m.id !== this.selectedMandi).length;
+    }
+}">
+
+    <!-- Top Design Control Bar -->
+    <div class="max-w-7xl mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <a href="#" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border-2 border-[#D9CEB8] text-stone-800 hover:bg-stone-50 font-bold transition shadow-2xs">
+            <span class="text-sm leading-none">&lsaquo;</span>
+            <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'Back' : 'ಹಿಂದಕ್ಕೆ'"></span>
+            <span class="text-[11px] text-stone-400 font-normal" x-show="lang === 'kn'">Back</span>
+        </a>
+
+        <!-- Comparison Controls -->
+        <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <!-- Placement Toggle -->
+            <div class="bg-white p-1 rounded-xl border-2 border-[#D9CEB8] flex items-center text-xs font-bold shadow-2xs">
+                <span class="px-2 text-[10px] uppercase font-black text-stone-400">Box 2 Placement:</span>
+                <button @click="placementMode = 'below_image'" 
+                        :class="placementMode === 'below_image' ? 'bg-[#1C5A2C] text-white shadow-xs' : 'text-stone-700 hover:text-stone-950'" 
+                        class="px-3 py-1 rounded-lg transition">
+                    ⬇️ Below Image (Aligned with Price Box)
+                </button>
+                <button @click="placementMode = 'full_width_below'" 
+                        :class="placementMode === 'full_width_below' ? 'bg-[#1C5A2C] text-white shadow-xs' : 'text-stone-700 hover:text-stone-950'" 
+                        class="px-3 py-1 rounded-lg transition">
+                    ↔️ Full Width Spanning Bottom
+                </button>
+            </div>
+
+            <!-- Language Switcher -->
+            <div class="bg-white p-1 rounded-xl border-2 border-[#D9CEB8] flex items-center text-xs font-bold shadow-2xs">
+                <button @click="lang = 'en'" :class="lang === 'en' ? 'bg-[#1C5A2C] text-white' : 'text-stone-700 hover:text-stone-950'" class="px-2.5 py-1 rounded-lg transition text-[11px]">EN</button>
+                <button @click="lang = 'kn'" :class="lang === 'kn' ? 'bg-[#1C5A2C] text-white font-kannada' : 'text-stone-700 hover:text-stone-950 font-kannada'" class="px-2.5 py-1 rounded-lg transition text-[11px]">ಕನ್ನಡ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER (max-w-7xl) -->
+    <main class="max-w-7xl mx-auto space-y-5">
+
+        <!-- ========================================================================= -->
+        <!-- OPTION A: BOX 2 PLACED BELOW THE IMAGE (LEFT COLUMN) & ALIGNED WITH RIGHT  -->
+        <!-- ========================================================================= -->
+        <div x-show="placementMode === 'below_image'" class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            
+            <!-- LEFT COLUMN (5 Cols): Image Card + Box 2 (Advisory & Buttons) Below It -->
+            <div class="lg:col-span-5 flex flex-col justify-between gap-5">
+                
+                <!-- Crop Photo Specimen Card (Top Left) -->
+                <div class="bg-stone-900 rounded-3xl overflow-hidden border-2 border-[#D9CEB8] shadow-sm relative flex flex-col justify-between p-5 text-white min-h-[280px] sm:min-h-[310px] flex-1">
+                    <img src="https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&w=1000&q=80" 
+                         alt="Black Pepper" 
+                         class="w-full h-full absolute inset-0 object-cover opacity-85">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/20"></div>
+
+                    <!-- Top Badges -->
+                    <div class="relative z-10 flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-stone-900 font-extrabold text-xs shadow-sm border border-stone-200/60 font-sans">
+                            <span class="w-2 h-2 rounded-full bg-[#1C5A2C] animate-pulse"></span>
+                            <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'Reliable' : 'ಅಧಿಕೃತ'"></span>
+                            <small class="text-[10px] text-stone-500 font-kannada font-normal" x-show="lang === 'en'">• ಅಧಿಕೃತ</small>
+                        </span>
+
+                        <span class="px-2.5 py-0.5 rounded-full bg-amber-400 text-stone-950 font-black text-[10px] uppercase tracking-wider shadow-2xs font-sans">
+                            Major Crop
+                        </span>
+                    </div>
+
+                    <!-- Bottom Details -->
+                    <div class="relative z-10 space-y-1 mt-auto">
+                        <div class="text-[11px] font-black uppercase tracking-widest text-emerald-300 font-sans">
+                            SPICES • PIPER NIGRUM
+                        </div>
+                        <div class="flex items-baseline gap-2.5">
+                            <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-white font-sans drop-shadow-sm">
+                                <span x-text="lang === 'en' ? 'Black Pepper' : 'ಕಾಳುಮೆಣಸು'"></span>
+                            </h1>
+                            <span class="text-base font-semibold text-amber-200/80 font-kannada" x-show="lang === 'en'">(ಕಾಳುಮೆಣಸು)</span>
+                        </div>
+
+                        <div class="pt-1 flex items-center gap-2 text-xs text-white/80">
+                            <span x-text="lang === 'en' ? 'Standard Unit:' : 'ಪ್ರಮಾಣಿತ ಘಟಕ:'"></span>
+                            <strong class="text-white font-bold" x-text="lang === 'en' ? 'Quintal' : 'ಕ್ವಿಂಟಾಲ್'"></strong>
+                            <span>•</span>
+                            <span class="italic text-white/70">Piper nigrum L.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ───────────────────────────────────────────────────────────── -->
+                <!-- BOX 2: ADVISORY & ACTION BUTTONS (BELOW IMAGE, ALIGNED!)      -->
+                <!-- (Screenshot 2: media_1790689940172.png)                       -->
+                <!-- ───────────────────────────────────────────────────────────── -->
+                <div class="classic-card rounded-3xl p-5 shadow-sm space-y-4">
+                    <!-- Market Advisory Banner -->
+                    <div class="rounded-2xl p-4 bg-amber-50/80 border border-amber-200/90 text-amber-950 flex items-start gap-3">
+                        <span class="text-2xl shrink-0">⏰</span>
+                        <div class="space-y-0.5 text-xs">
+                            <div class="font-extrabold text-sm flex items-center gap-2 text-stone-900" :class="lang === 'kn' ? 'kn-text' : ''">
+                                <span x-text="lang === 'en' ? 'Optimal Time to Sell (Sell now)' : 'ಮಾರಾಟಕ್ಕೆ ಅತ್ಯಂತ ಸೂಕ್ತ ಸಮಯ (ಈಗಲೇ ಮಾರಾಟ)'"></span>
+                            </div>
+                            <p class="text-stone-700 leading-tight font-medium" :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'Daily arrivals are expected to increase over coming weeks. Selling at current high rates of ₹52,000 – ₹70,280 is recommended.' : 'ಮುಂದಿನ ವಾರಗಳಲ್ಲಿ ಮಂಡಿಗಳಿಗೆ ಆವಕ ಹೆಚ್ಚಾಗುವ ಮುನ್ಸೂಚನೆ ಇದ್ದು, ಸದ್ಯದ ಉತ್ತಮ ಬೆಲೆಯಲ್ಲಿ ಮಾರಾಟ ಮಾಡುವುದು ಸೂಕ್ತ.'"></p>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-2 gap-3 pt-0.5">
+                        <a href="#" class="py-3 px-3 rounded-2xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-extrabold text-xs shadow-xs transition flex items-center justify-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-base"></i>
+                            <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'Share on WhatsApp' : 'ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಶೇರ್ ಮಾಡಿ'"></span>
+                        </a>
+
+                        <a href="#" class="py-3 px-3 rounded-2xl bg-[#1C5A2C] hover:bg-[#154622] text-white font-extrabold text-xs shadow-xs transition flex items-center justify-center gap-2">
+                            <span>⚖️</span>
+                            <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'Net Profit Calculator' : 'ನಿವ್ವಳ ಲಾಭ ಲೆಕ್ಕಾಚಾರ'"></span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN (7 Cols): BOX 1 (Price, Grades & Mandis) -->
+            <!-- (Screenshot 1: media_1790689920911.png) -->
+            <div class="lg:col-span-7">
+                <div class="classic-card rounded-3xl p-5 sm:p-7 shadow-sm space-y-4 h-full flex flex-col justify-between">
+                    
+                    <!-- 1. Price Section -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-extrabold tracking-wider text-stone-400 uppercase text-[11px]" :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'CURRENT PRICE' : 'ಇಂದಿನ ದರ'"></span>
+                            <span class="text-xs font-semibold text-stone-500" x-text="lang === 'en' ? 'Updated: 29 Sep 2026' : 'ನವೀಕರಿಸಲಾಗಿದೆ: ೨೯ ಸೆಪ್ಟೆಂಬರ್ ೨೦೨೬'"></span>
+                        </div>
+
+                        <div class="flex flex-wrap items-baseline gap-3">
+                            <div class="text-4xl sm:text-5xl font-black text-stone-900 tracking-tight font-sans">
+                                ₹<span x-text="currentPrice.toLocaleString('en-IN')"></span>
+                            </div>
+
+                            <div class="text-base sm:text-lg font-bold text-stone-500 font-sans">
+                                ≈ ₹<span x-text="perKgPrice"></span>/kg
+                            </div>
+
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold font-sans border border-emerald-200">
+                                <span>↑</span>
+                                <span>+₹1,200</span>
+                                <small class="text-[11px] font-semibold text-emerald-600">(+2.4%)</small>
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-stone-600 pt-0.5">
+                            <span class="font-bold text-stone-800 uppercase">
+                                QUINTAL • @ <span x-text="lang === 'en' ? currentMandiObj.name.toUpperCase() : currentMandiObj.nameKn"></span>
+                            </span>
+                            
+                            <span class="text-stone-300">•</span>
+                            
+                            <span class="text-stone-600 font-semibold">
+                                <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'Day Range:' : 'ಶ್ರೇಣಿ:'"></span> 
+                                ₹<span x-text="Math.round(currentPrice * 0.94).toLocaleString('en-IN')"></span> – ₹<span x-text="Math.round(currentPrice * 1.06).toLocaleString('en-IN')"></span>
+                            </span>
+                            
+                            <span class="text-stone-300">•</span>
+                            
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold whitespace-nowrap">
+                                📍 <span x-text="currentMandiObj.dist"></span> km <span class="font-normal" x-text="lang === 'en' ? 'away' : 'ದೂರ'"></span>
+                            </span>
+                            
+                            <span class="text-stone-300">•</span>
+                            
+                            <span class="text-stone-700 font-bold">
+                                <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'as of 29 Sep' : 'ದಿನಾಂಕ ೨೯ ಸೆಪ್ಟೆಂಬರ್'"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Pick Your Grade Section -->
+                    <div class="space-y-2 pt-2 border-t border-stone-100">
+                        <div class="flex items-center justify-between">
+                            <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider flex items-center gap-2" :class="lang === 'kn' ? 'kn-text' : ''">
+                                <span x-text="lang === 'en' ? 'PICK YOUR GRADE' : 'ಗ್ರೇಡ್ ಆಯ್ಕೆಮಾಡಿ'"></span>
+                                <span class="text-[10px] text-stone-500 font-bold">
+                                    (<span x-text="grades.length"></span> <span x-text="lang === 'en' ? 'VARIETIES' : 'ತಳಿಗಳು'"></span>)
+                                </span>
+                            </div>
+                            <span class="text-[11px] text-stone-500 font-medium hidden sm:inline">
+                                Trades this week: ₹48,000 – ₹78,000
+                            </span>
+                        </div>
+
+                        <!-- Grade Pills Grid -->
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <template x-for="g in grades" :key="g.id">
+                                <div x-show="showAllGrades || g.isPrimary || g.id === selectedGrade"
+                                     @click="selectedGrade = g.id"
+                                     :class="selectedGrade === g.id 
+                                         ? 'active-green shadow-sm' 
+                                         : 'bg-white text-stone-700 hover:bg-stone-50 border-2 border-stone-200'"
+                                     class="px-3.5 py-2 rounded-2xl font-bold transition flex flex-col items-start gap-0.5 cursor-pointer tap-feedback active:scale-95">
+                                    <span class="text-[11px]" 
+                                          :class="selectedGrade === g.id ? 'text-white' : 'text-stone-600'"
+                                          x-text="lang === 'en' ? g.name : g.nameKn"></span>
+                                    <span class="text-sm font-black font-sans" 
+                                          :class="selectedGrade === g.id ? 'text-emerald-200' : 'text-[#1C5A2C]'">
+                                        ₹<span x-text="Math.round(currentMandiObj.basePrice * g.mult).toLocaleString('en-IN')"></span>
+                                    </span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Grade Show More Toggle -->
+                        <div class="pt-0.5">
+                            <button type="button" 
+                                    @click="showAllGrades = !showAllGrades" 
+                                    class="text-xs font-bold text-[#1C5A2C] hover:text-[#0F3318] transition inline-flex items-center gap-1 cursor-pointer">
+                                <span x-text="showAllGrades 
+                                    ? (lang === 'en' ? '▲ Hide extra grades' : '▲ ಹೆಚ್ಚುವರಿ ಗ್ರೇಡ್ ಮರೆಮಾಡಿ') 
+                                    : '+ ' + (lang === 'en' ? 'Show 4 more grades (TGSEB, Malabar, Organic) ▾' : '೪ ಹೆಚ್ಚಿನ ತಳಿಗಳನ್ನು ವೀಕ್ಷಿಸಿ ▾')"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3. View Different Market Section -->
+                    <div class="space-y-2.5 pt-2 border-t border-stone-100">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider flex items-center gap-1.5" :class="lang === 'kn' ? 'kn-text' : ''">
+                                    <span x-text="lang === 'en' ? 'VIEW DIFFERENT MARKET (ALL MANDIS)' : 'ಮಾರುಕಟ್ಟೆ ಬದಲಿಸಿ (ಕರ್ನಾಟಕ ಮಂಡಿಗಳು)'"></span>
+                                    <span class="text-[10px] font-semibold text-stone-400 normal-case">(<span x-text="marketRadiusKm"></span> km)</span>
+                                </div>
+
+                                <!-- Sort Toggle -->
+                                <div class="inline-flex items-center bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-[10px] font-bold">
+                                    <button type="button" 
+                                            @click="activeSort = 'nearest_first'"
+                                            :class="activeSort === 'nearest_first' ? 'bg-[#1C5A2C] text-white shadow-2xs' : 'text-stone-700 hover:text-stone-950'"
+                                            class="px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer">
+                                        <span>📍</span>
+                                        <span x-text="lang === 'en' ? 'Nearest' : 'ಹತ್ತಿರ'"></span>
+                                    </button>
+                                    <button type="button" 
+                                            @click="activeSort = 'highest_price_first'"
+                                            :class="activeSort === 'highest_price_first' ? 'bg-[#1C5A2C] text-white shadow-2xs' : 'text-stone-700 hover:text-stone-950'"
+                                            class="px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer">
+                                        <span>🔥</span>
+                                        <span x-text="lang === 'en' ? 'Top Rate' : 'ಹೆಚ್ಚಿನ ಬೆಲೆ'"></span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Reset Button -->
+                            <div x-show="selectedMandi !== 'thirthahalli'">
+                                <button type="button" 
+                                        @click="selectedMandi = 'thirthahalli'" 
+                                        class="text-xs text-stone-500 hover:text-stone-800 font-bold flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-stone-100 hover:bg-stone-200 border border-stone-200 transition cursor-pointer">
+                                    <span>✕</span>
+                                    <span x-text="lang === 'en' ? 'Reset' : 'ಮರುಹೊಂದಿಸಿ'"></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Mandi Pills in Max-Height Container (max-h-56) -->
+                        <div class="flex flex-wrap gap-2 text-xs max-h-56 overflow-y-auto pr-1 custom-mandi-scroll">
+                            <template x-for="am in sortedMandis" :key="am.id">
+                                <div x-show="showAllRadius || am.isWithin || am.id === selectedMandi"
+                                     @click="selectedMandi = am.id"
+                                     :class="selectedMandi === am.id 
+                                         ? 'active-green shadow-sm' 
+                                         : 'bg-white text-stone-700 hover:bg-stone-50 border-2 border-stone-200'"
+                                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition border cursor-pointer tap-feedback active:scale-95">
+                                    
+                                    <span x-show="selectedMandi === am.id" class="text-amber-300 text-xs">★</span>
+                                    
+                                    <span class="uppercase text-[12px] font-extrabold tracking-wide" 
+                                          :class="lang === 'kn' ? 'kn-text' : ''" 
+                                          x-text="lang === 'en' ? am.name.replace(' APMC', '') : am.nameKn.replace(' ಎಪಿಎಂಸಿ', '')"></span>
+                                    
+                                    <span class="text-[10px] font-medium" 
+                                          :class="selectedMandi === am.id ? 'text-emerald-200' : 'text-stone-400'">
+                                        (<span x-text="am.dist"></span>km)
+                                    </span>
+
+                                    <!-- Solid Smart Badges -->
+                                    <template x-if="am.isNearest && selectedMandi !== am.id">
+                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-200">
+                                            📍 <span x-text="lang === 'en' ? 'Nearest' : 'ಹತ್ತಿರ'"></span>
+                                        </span>
+                                    </template>
+                                    <template x-if="am.isTopRate && selectedMandi !== am.id">
+                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
+                                            🔥 <span x-text="lang === 'en' ? 'Top Rate' : 'ಅತ್ಯಧಿಕ'"></span>
+                                        </span>
+                                    </template>
+
+                                    <!-- Price Badge -->
+                                    <span class="px-2 py-0.5 rounded-md text-[11px] font-black font-sans" 
+                                          :class="selectedMandi === am.id ? 'bg-white/20 text-white' : 'bg-emerald-50 text-[#1C5A2C] border border-emerald-200'">
+                                        ₹<span x-text="Math.round(am.basePrice * currentGradeObj.mult).toLocaleString('en-IN')"></span>
+                                    </span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- + Show More Mandis beyond XXX km Toggle -->
+                        <div class="pt-0.5">
+                            <button type="button" 
+                                    @click="showAllRadius = !showAllRadius" 
+                                    class="text-xs font-bold text-[#1C5A2C] hover:text-[#0F3318] transition inline-flex items-center gap-1 cursor-pointer">
+                                <span x-text="showAllRadius 
+                                    ? (lang === 'en' ? '▲ Hide distant mandis beyond ' + marketRadiusKm + ' km' : '▲ ದೂರದ ಮಂಡಿಗಳನ್ನು ಮರೆಮಾಡಿ') 
+                                    : '+ ' + (lang === 'en' ? 'Show ' + beyondRadiusCount + ' more mandis beyond ' + marketRadiusKm + ' km ▾' : beyondRadiusCount + ' ಹೆಚ್ಚಿನ ಮಂಡಿಗಳು ತೋರಿಸಿ ▾')"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- OPTION B: BOX 2 SPANNING FULL WIDTH BELOW BOTH (ALTERNATIVE COMPARISON)   -->
+        <!-- ========================================================================= -->
+        <div x-show="placementMode === 'full_width_below'" class="space-y-5" x-cloak>
+            
+            <!-- Top Row: Image (5 cols) & Price Box (7 cols) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                <!-- Left Image -->
+                <div class="lg:col-span-5 bg-stone-900 rounded-3xl overflow-hidden border-2 border-[#D9CEB8] shadow-sm relative flex flex-col justify-between p-5 text-white min-h-[380px] sm:min-h-[440px]">
+                    <img src="https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&w=1000&q=80" 
+                         alt="Black Pepper" 
+                         class="w-full h-full absolute inset-0 object-cover opacity-85">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/20"></div>
+                    <div class="relative z-10 flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-stone-900 font-extrabold text-xs shadow-sm border border-stone-200/60 font-sans">
+                            <span class="w-2 h-2 rounded-full bg-[#1C5A2C] animate-pulse"></span>
+                            <span>Reliable • ಅಧಿಕೃತ</span>
+                        </span>
+                        <span class="px-2.5 py-0.5 rounded-full bg-amber-400 text-stone-950 font-black text-[10px] uppercase tracking-wider font-sans">Major Crop</span>
+                    </div>
+                    <div class="relative z-10 space-y-1 mt-auto">
+                        <div class="text-[11px] font-black uppercase tracking-widest text-emerald-300 font-sans">SPICES • PIPER NIGRUM</div>
+                        <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-white font-sans drop-shadow-sm">Black Pepper (ಕಾಳುಮೆಣಸು)</h1>
+                        <div class="pt-1 flex items-center gap-2 text-xs text-white/80">
+                            <span>Standard Unit: <strong>Quintal</strong> • <em>Piper nigrum L.</em></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Price Box (Box 1) -->
+                <div class="lg:col-span-7 classic-card rounded-3xl p-5 sm:p-7 shadow-sm space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-extrabold tracking-wider text-stone-400 uppercase text-[11px]">CURRENT PRICE</span>
+                            <span class="text-xs font-semibold text-stone-500">Updated: 29 Sep 2026</span>
+                        </div>
+                        <div class="flex flex-wrap items-baseline gap-3">
+                            <div class="text-4xl sm:text-5xl font-black text-stone-900 tracking-tight font-sans">
+                                ₹<span x-text="currentPrice.toLocaleString('en-IN')"></span>
+                            </div>
+                            <div class="text-base sm:text-lg font-bold text-stone-500 font-sans">≈ ₹<span x-text="perKgPrice"></span>/kg</div>
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold font-sans border border-emerald-200">
+                                <span>↑</span> <span>+₹1,200</span> <small class="text-[11px] font-semibold text-emerald-600">(+2.4%)</small>
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-stone-600 pt-0.5">
+                            <span class="font-bold text-stone-800 uppercase">QUINTAL • @ <span x-text="currentMandiObj.name.toUpperCase()"></span></span>
+                            <span>•</span> <span>Day Range: ₹48k – ₹56k</span>
+                            <span>•</span> <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border text-[11px] font-bold">📍 <span x-text="currentMandiObj.dist"></span> km away</span>
+                            <span>•</span> <span class="text-stone-700 font-bold">as of 29 Sep</span>
+                        </div>
+                    </div>
+
+                    <!-- Grades in Price Box -->
+                    <div class="space-y-2 pt-2 border-t border-stone-100">
+                        <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">PICK YOUR GRADE</div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <template x-for="g in grades" :key="g.id">
+                                <div x-show="showAllGrades || g.isPrimary || g.id === selectedGrade"
+                                     @click="selectedGrade = g.id"
+                                     :class="selectedGrade === g.id ? 'active-green shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-2 border-stone-200'"
+                                     class="px-3.5 py-2 rounded-2xl font-bold transition flex flex-col items-start gap-0.5 cursor-pointer">
+                                    <span class="text-[11px]" :class="selectedGrade === g.id ? 'text-white' : 'text-stone-600'" x-text="g.name"></span>
+                                    <span class="text-sm font-black" :class="selectedGrade === g.id ? 'text-emerald-200' : 'text-[#1C5A2C]'">₹<span x-text="Math.round(currentMandiObj.basePrice * g.mult).toLocaleString('en-IN')"></span></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Mandis in Price Box -->
+                    <div class="space-y-2 pt-2 border-t border-stone-100">
+                        <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">VIEW DIFFERENT MARKET</div>
+                        <div class="flex flex-wrap gap-2 text-xs max-h-44 overflow-y-auto pr-1 custom-mandi-scroll">
+                            <template x-for="am in sortedMandis" :key="am.id">
+                                <div x-show="showAllRadius || am.isWithin || am.id === selectedMandi"
+                                     @click="selectedMandi = am.id"
+                                     :class="selectedMandi === am.id ? 'active-green shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-2 border-stone-200'"
+                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold transition border cursor-pointer">
+                                    <span x-show="selectedMandi === am.id" class="text-amber-300">★</span>
+                                    <span class="uppercase text-[11px] font-extrabold" x-text="am.name.replace(' APMC', '')"></span>
+                                    <span class="text-[10px] opacity-75">(<span x-text="am.dist"></span>km)</span>
+                                    <span class="px-2 py-0.5 rounded-md text-[11px] font-black" :class="selectedMandi === am.id ? 'bg-white/20 text-white' : 'bg-emerald-50 text-[#1C5A2C]'">₹<span x-text="Math.round(am.basePrice * currentGradeObj.mult).toLocaleString('en-IN')"></span></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Row: Box 2 Spanning Full 12 Columns -->
+            <div class="classic-card rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                <div class="rounded-2xl p-4 bg-amber-50/80 border border-amber-200/90 text-amber-950 flex items-start gap-3">
+                    <span class="text-2xl shrink-0">⏰</span>
+                    <div class="space-y-0.5 text-xs">
+                        <div class="font-extrabold text-sm text-stone-900">Optimal Time to Sell (Sell now)</div>
+                        <p class="text-stone-700 leading-tight font-medium">Daily arrivals are expected to increase over coming weeks. Selling at current high rates of ₹52,000 – ₹70,280 is recommended.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <a href="#" class="py-3.5 px-4 rounded-2xl bg-[#25D366] text-white font-extrabold text-xs flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                        <span>Share on WhatsApp</span>
+                    </a>
+                    <a href="#" class="py-3.5 px-4 rounded-2xl bg-[#1C5A2C] text-white font-extrabold text-xs flex items-center justify-center gap-2">
+                        <span>⚖️</span>
+                        <span>Net Profit Calculator</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Layout Explanation Footnote -->
+        <div class="mt-5 bg-white rounded-3xl p-4 border-2 border-[#D9CEB8] text-xs flex items-center justify-between text-stone-700">
+            <div class="flex items-center gap-2 font-bold">
+                <span class="w-3 h-3 rounded-full bg-[#1C5A2C]"></span>
+                <span>Active Mode: <strong class="text-stone-900">Box 2 Below Image (Left Column)</strong> — Perfectly balanced with Box 1 (Right Column)! Both columns share identical bottom alignment.</span>
+            </div>
+            <span class="text-stone-500 font-semibold">Toggle top switch to test Full-Width view</span>
+        </div>
+    </main>
+
+</body>
+</html>

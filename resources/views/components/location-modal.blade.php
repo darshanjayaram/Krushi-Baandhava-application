@@ -306,9 +306,36 @@
             </button>
 
             <!-- GPS Error Banner if any -->
-            <div x-show="gpsError" x-cloak style="display: none;" class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center gap-1.5">
-                <span>⚠️</span>
+            <div x-show="gpsError && !isPermissionDenied" x-cloak style="display: none;" class="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center gap-2">
+                <span class="text-sm">⚠️</span>
                 <span x-text="gpsError"></span>
+            </div>
+
+            <!-- Location Permission Guide (When Denied/Blocked in Chrome) -->
+            <div x-show="isPermissionDenied" x-cloak style="display: none;" class="p-3.5 rounded-2xl bg-amber-50/95 border border-amber-300 text-stone-800 text-xs shadow-xs">
+                <div class="flex items-center gap-2 font-black text-amber-900 mb-1.5 text-xs sm:text-[13px]">
+                    <span class="text-base">📍</span>
+                    <span>{{ $isEn ? 'How to enable Location access in Chrome:' : 'ಸ್ಥಳ (Location) ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
+                </div>
+                <div class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
+                    <p>{{ $isEn 
+                        ? 'Location permission is currently blocked in your browser for localhost.' 
+                        : 'ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ localhost ಗೆ ಸ್ಥಳ (Location) ಅನುಮತಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Blocked).' }}</p>
+                    <ol class="list-decimal pl-4 space-y-1 font-semibold text-stone-800">
+                        <li>{{ $isEn ? 'Click the Tune / Lock (🔒) icon on the left of localhost in the address bar.' : 'Chrome URL ಬಾರ್‌ನಲ್ಲಿ localhost ಪಕ್ಕದಲ್ಲಿರುವ Tune / Lock (🔒) ಐಕಾನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Change Location to "Ask (default)" or "Allow".' : 'Location ಅನ್ನು "Allow" ಅಥವಾ "Ask" ಗೆ ಬದಲಾಯಿಸಿ.' }}</li>
+                        <li>{{ $isEn ? 'Tap "Use Current Location (GPS)" again.' : 'ನಂತರ ಮತ್ತೆ "ಪ್ರಸ್ತುತ ಸ್ಥಳ ಬಳಸಿ (GPS)" ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.' }}</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Insecure Context Notice (Mobile HTTP) -->
+            <div x-show="insecureContextNotice" x-cloak style="display: none;" class="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-950 text-xs">
+                <p class="font-medium">
+                    {{ $isEn 
+                        ? 'Direct GPS access requires HTTPS or localhost. If testing via mobile network IP, network location is used or select your district below.' 
+                        : 'ನೇರ ಜಿಪಿಎಸ್‌ಗೆ HTTPS ಅಗತ್ಯವಿದೆ. ಮೊಬೈಲ್ ಐಪಿ ಮೂಲಕ ಪರೀಕ್ಷಿಸುತ್ತಿದ್ದರೆ ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಬಳಸಲಾಗುತ್ತದೆ ಅಥವಾ ಕೆಳಗಿನ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.' }}
+                </p>
             </div>
 
             <!-- 2. Modern Dropdown Component (Contained Inline Expansion, Symmetrical p-3.5 sm:p-4) -->
@@ -528,6 +555,8 @@ function locationModalHandler() {
         locale: '{{ $activeLocale }}',
         detectingMessage: '{{ $isEn ? "Detecting location..." : "ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲಾಗುತ್ತಿದೆ..." }}',
         gpsError: null,
+        isPermissionDenied: false,
+        insecureContextNotice: false,
         searchFilter: '',
         activeDistrictId: {{ $currentActiveId ?? 1 }},
         activeDistrictName: '{{ $currentActiveName }}',
@@ -552,6 +581,8 @@ function locationModalHandler() {
             this.updatingDistrictId = null;
             this.searchFilter = '';
             this.gpsError = null;
+            this.isPermissionDenied = false;
+            this.insecureContextNotice = false;
             // Preserves website scrollbar - no overflow-hidden on body
         },
 
@@ -598,6 +629,10 @@ function locationModalHandler() {
 
         detectGPSLocation() {
             if (this.isUpdating) return;
+            this.gpsError = null;
+            this.isPermissionDenied = false;
+            this.insecureContextNotice = false;
+
             if (!navigator.geolocation) {
                 this.gpsError = this.locale === 'en'
                     ? 'Your browser does not support GPS. Please select your district from the list below.'
@@ -605,45 +640,99 @@ function locationModalHandler() {
                 return;
             }
 
+            // Direct check for insecure HTTP context on mobile/LAN
+            if (window.isSecureContext === false && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                this.insecureContextNotice = true;
+                this.isDetecting = true;
+                this.fallbackToIP();
+                return;
+            }
+
             this.isDetecting = true;
             this.detectingMessage = this.locale === 'en' ? 'Detecting location...' : 'ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲಾಗುತ್ತಿದೆ...';
-            this.gpsError = null;
 
+            const self = this;
+
+            // Attempt 1: High Accuracy GPS (Best for mobile devices / GPS hardware)
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    this.detectingMessage = this.locale === 'en' ? 'Matching nearest Karnataka mandi...' : 'ಸಮೀಪದ ಜಿಲ್ಲೆ ಹೊಂದಿಸಲಾಗುತ್ತಿದೆ...';
-                    this.findNearestDistrictAndSelect(lat, lon);
+                    self.handlePositionSuccess(position);
                 },
                 (error) => {
-                    console.warn('GPS failed or timed out, trying IP geolocation fallback...', error);
-                    this.fallbackToIP();
+                    console.warn('GPS attempt 1 failed:', error);
+
+                    if (error.code === 1) { // PERMISSION_DENIED
+                        self.isDetecting = false;
+                        self.isPermissionDenied = true;
+                        self.gpsError = self.locale === 'en'
+                            ? 'Location permission denied by browser. Please follow instructions below or select a district.'
+                            : 'ಸ್ಥಳ ಪ್ರವೇಶ ನಿರಾಕರಿಸಲಾಗಿದೆ. ದಯವಿಟ್ಟು ಕೆಳಗಿನ ಸೂಚನೆ ಪಾಲಿಸಿ ಅಥವಾ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.';
+                        return;
+                    }
+
+                    // Attempt 2: Low Accuracy / Network Geolocation (Ideal for desktops, Wi-Fi or laptops without GPS hardware)
+                    self.detectingMessage = self.locale === 'en' ? 'Retrying with network location...' : 'ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಹುಡುಕಲಾಗುತ್ತಿದೆ...';
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            self.handlePositionSuccess(position);
+                        },
+                        (err2) => {
+                            console.warn('GPS attempt 2 failed, falling back to IP:', err2);
+                            self.fallbackToIP();
+                        },
+                        {
+                            enableHighAccuracy: false,
+                            timeout: 8000,
+                            maximumAge: 300000
+                        }
+                    );
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 7000,
+                    timeout: 6000,
                     maximumAge: 60000
                 }
             );
         },
 
-        fallbackToIP() {
-            fetch('https://ipapi.co/json/')
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.latitude && data.longitude) {
-                        this.findNearestDistrictAndSelect(data.latitude, data.longitude);
-                    } else {
-                        throw new Error('IP coordinates unavailable');
-                    }
-                })
-                .catch(() => {
-                    this.isDetecting = false;
-                    this.gpsError = this.locale === 'en'
-                        ? 'Could not detect location. Please select your district from the list.'
-                        : 'ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಪಟ್ಟಿಯಿಂದ ನಿಮ್ಮ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.';
-                });
+        handlePositionSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            this.detectingMessage = this.locale === 'en' ? 'Matching nearest Karnataka mandi...' : 'ಸಮೀಪದ ಜಿಲ್ಲೆ ಹೊಂದಿಸಲಾಗುತ್ತಿದೆ...';
+            this.findNearestDistrictAndSelect(lat, lon);
+        },
+
+        async fallbackToIP() {
+            this.detectingMessage = this.locale === 'en' ? 'Detecting via IP...' : 'ಐಪಿ ಮೂಲಕ ಸ್ಥಳ ಹುಡುಕಲಾಗುತ್ತಿದೆ...';
+
+            // Provider 1: ipwho.is (Fast, SSL, CORS enabled, no API key needed)
+            try {
+                const res = await fetch('https://ipwho.is/');
+                const data = await res.json();
+                if (data && data.success !== false && data.latitude && data.longitude) {
+                    this.findNearestDistrictAndSelect(data.latitude, data.longitude);
+                    return;
+                }
+            } catch (e) {
+                console.warn('ipwho.is lookup failed:', e);
+            }
+
+            // Provider 2: ipapi.co
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                if (data && data.latitude && data.longitude) {
+                    this.findNearestDistrictAndSelect(data.latitude, data.longitude);
+                    return;
+                }
+            } catch (e) {
+                console.warn('ipapi.co lookup failed:', e);
+            }
+
+            this.isDetecting = false;
+            this.gpsError = this.locale === 'en'
+                ? 'Could not detect location automatically. Please select your district from the list below.'
+                : 'ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಕೆಳಗಿನ ಪಟ್ಟಿಯಿಂದ ನಿಮ್ಮ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.';
         },
 
         findNearestDistrictAndSelect(userLat, userLon) {

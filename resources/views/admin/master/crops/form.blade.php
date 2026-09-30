@@ -3,205 +3,409 @@
 @section('title', $isEdit ? 'Edit ' . $crop->name : 'Register New Crop')
 
 @section('content')
-<div class="w-full space-y-6" x-data="{ 
-    tab: '{{ request()->get('tab', 'profile') }}',
-    // Proximity state
-    radius: {{ old('market_radius_km', $crop->market_radius_km ?? 300) }},
-    sort: '{{ old('default_market_sort', $crop->default_market_sort ?? 'nearest_first') }}',
-    
-    // Crop Image State
-    imagePreviewUrl: '{{ $crop->photo_url }}',
-    selectedPreset: '{{ $crop->icon && str_starts_with($crop->icon, "images/crops/") ? basename($crop->icon) : "" }}',
-    isCustomUpload: {{ $crop->icon && str_starts_with($crop->icon, "uploads/crops/") ? 'true' : 'false' }},
-    removeImage: false,
+<script>
+function cropFormHandler() {
+    return {
+        tab: '{{ request()->get('tab', 'profile') }}',
+        // Proximity state
+        radius: {{ old('market_radius_km', $crop->market_radius_km ?? 300) }},
+        sort: '{{ old('default_market_sort', $crop->default_market_sort ?? 'nearest_first') }}',
+        
+        // Crop Image & Gallery Modal State
+        imagePreviewUrl: '{{ $crop->photo_url }}',
+        selectedImagePath: '{{ $crop->icon ?? "" }}',
+        selectedPreset: '{{ $crop->icon && str_starts_with($crop->icon, "images/crops/") ? basename($crop->icon) : "" }}',
+        isCustomUpload: {{ $crop->icon && str_starts_with($crop->icon, "uploads/crops/") ? 'true' : 'false' }},
+        removeImage: false,
+        imageSearch: '',
+        imageFilter: 'all',
+        availableImages: {!! json_encode($availableImages ?? []) !!},
 
-    handleFileChange(event) {
-        const file = event.target.files[0];
-        if (file) {
+        // Gallery Modal & Batch Delete State
+        galleryModalOpen: false,
+        uploadingMedia: false,
+        uploadError: null,
+        selectionMode: false,
+        selectedForDelete: [],
+        deletingMedia: false,
+        tempSelectedPath: '{{ $crop->icon ?? "" }}',
+        tempSelectedPreset: '{{ $crop->icon && str_starts_with($crop->icon, "images/crops/") ? basename($crop->icon) : "" }}',
+        tempSelectedUrl: '{{ $crop->photo_url }}',
+        tempSelectedIsUpload: {{ $crop->icon && str_starts_with($crop->icon, "uploads/crops/") ? 'true' : 'false' }},
+
+        filteredImages() {
+            const q = (this.imageSearch || '').toLowerCase().trim();
+            return (this.availableImages || []).filter(img => {
+                const matchType = this.imageFilter === 'all' || img.type === this.imageFilter;
+                const matchSearch = !q || (img.label && img.label.toLowerCase().includes(q)) || (img.filename && img.filename.toLowerCase().includes(q));
+                return matchType && matchSearch;
+            });
+        },
+
+        openGalleryModal() {
+            this.galleryModalOpen = true;
+            this.imageSearch = '';
+            this.imageFilter = 'all';
+            this.selectionMode = false;
+            this.selectedForDelete = [];
+            this.tempSelectedPath = this.selectedImagePath;
+            this.tempSelectedPreset = this.selectedPreset;
+            this.tempSelectedUrl = this.imagePreviewUrl;
+            this.tempSelectedIsUpload = this.isCustomUpload;
+        },
+
+        closeGalleryModal() {
+            this.galleryModalOpen = false;
+            this.selectionMode = false;
+            this.selectedForDelete = [];
+        },
+
+        chooseGalleryItem(img) {
+            if (!img) return;
+            if (this.selectionMode) {
+                this.toggleSelectForDelete(img.path);
+                return;
+            }
+            this.tempSelectedPath = img.path;
+            this.tempSelectedPreset = (img.type === 'preset' ? img.filename : '');
+            this.tempSelectedUrl = img.url;
+            this.tempSelectedIsUpload = (img.type === 'upload');
+        },
+
+        applyGalleryChoice() {
             this.removeImage = false;
-            this.selectedPreset = '';
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                this.imagePreviewUrl = e.target.result;
-                this.isCustomUpload = true;
-            };
-            reader.readAsDataURL(file);
-        }
-    },
+            this.selectedImagePath = this.tempSelectedPath;
+            this.selectedPreset = this.tempSelectedPreset;
+            this.imagePreviewUrl = this.tempSelectedUrl;
+            this.isCustomUpload = this.tempSelectedIsUpload;
+            const fileInput = document.getElementById('crop_image_input');
+            if (fileInput) fileInput.value = '';
+            this.galleryModalOpen = false;
+        },
 
-    selectPreset(filename) {
-        if (!filename) return;
-        this.removeImage = false;
-        this.selectedPreset = filename;
-        this.isCustomUpload = false;
-        this.imagePreviewUrl = '{{ asset("images/crops") }}/' + filename;
-        const fileInput = document.getElementById('crop_image_input');
-        if (fileInput) fileInput.value = '';
-    },
-
-    clearImage() {
-        this.removeImage = true;
-        this.selectedPreset = '';
-        this.isCustomUpload = false;
-        this.imagePreviewUrl = '{{ asset("images/crops/arecanut.jpg") }}';
-        const fileInput = document.getElementById('crop_image_input');
-        if (fileInput) fileInput.value = '';
-    },
-
-    // Live Variety Suggestions State
-    liveLoading: false,
-    liveSourceId: '{{ $dataSources->first()?->id ?? 1 }}',
-    liveVarietiesList: [],
-    liveError: null,
-
-    // API Inspector Modal State
-    inspectorOpen: false,
-    inspectorLoading: false,
-    inspectorData: null,
-    inspectorError: null,
-
-    initLiveVarieties() {
-        @if($isEdit)
-        this.fetchLiveVarieties();
-        @endif
-    },
-
-    fetchLiveVarieties() {
-        this.liveLoading = true;
-        this.liveError = null;
-        fetch('{{ $isEdit ? route('admin.crops.live-varieties', $crop) : '#' }}?data_source_id=' + this.liveSourceId, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+        toggleSelectForDelete(path) {
+            if (!path || !path.startsWith('uploads/crops/')) {
+                alert('Bundled preset photos cannot be deleted as they are core system assets.');
+                return;
             }
-        })
-        .then(res => res.json())
-        .then(data => {
-            this.liveLoading = false;
-            if (data.ok) {
-                this.liveVarietiesList = (data.varieties || [])
-                    .filter(v => v.raw_name && String(v.raw_name).trim().length > 0)
-                    .map(v => ({
-                        ...v,
-                        selected_grade_id: v.suggested_variety_id ? String(v.suggested_variety_id) : '',
-                        mapping_in_progress: false
-                    }));
+            const idx = this.selectedForDelete.indexOf(path);
+            if (idx > -1) {
+                this.selectedForDelete.splice(idx, 1);
             } else {
-                this.liveError = data.error || 'Failed to fetch live varieties.';
+                this.selectedForDelete.push(path);
             }
-        })
-        .catch(err => {
-            this.liveLoading = false;
-            this.liveError = err.message || 'Network error.';
-        });
-    },
+        },
 
-    quickMapVariety(item) {
-        if (!item) return;
-        const targetGradeId = item.selected_grade_id;
-        const varietyRawName = item.raw_name;
+        selectAllUploadsForDelete() {
+            const uploads = (this.availableImages || [])
+                .filter(i => i.type === 'upload')
+                .map(i => i.path);
+            this.selectedForDelete = [...uploads];
+        },
 
-        if (!targetGradeId) {
-            alert('Please select a target canonical grade to map.');
-            return;
-        }
+        clearSelectionForDelete() {
+            this.selectedForDelete = [];
+        },
 
-        item.mapping_in_progress = true;
+        uploadToGallery(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-        fetch('{{ $isEdit ? route('admin.crops.variety-aliases.add', $crop) : '#' }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                crop_variety_id: targetGradeId,
-                source_variety_name: varietyRawName,
-                data_source_id: this.liveSourceId ? parseInt(this.liveSourceId) : null
+            const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/svg+xml'];
+            if (!validTypes.includes(file.type) && !/\.(jpe?g|png|webp|svg)$/i.test(file.name)) {
+                alert(`Selected file format (${file.type || file.name}) is not supported. Please select a JPG, PNG, WEBP, or SVG image.`);
+                event.target.value = '';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert(`Selected image is ${(file.size / (1024 * 1024)).toFixed(1)} MB, which exceeds the 5MB upload limit. Please compress or resize the photo.`);
+                event.target.value = '';
+                return;
+            }
+
+            this.uploadingMedia = true;
+            this.uploadError = null;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('_token', '{{ csrf_token() }}');
+
+            fetch('{{ route('admin.crops.media.upload') }}', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData,
             })
-        })
-        .then(res => res.json())
-        .then(data => {
-            item.mapping_in_progress = false;
-            if (data.ok) {
-                // Update item locally
-                item.is_mapped = true;
-                item.mapped_variety_name = data.mapping.variety_name;
-                item.mapped_variety_id = data.mapping.variety_id;
-                item.mapping_id = data.mapping.id;
-            } else {
-                alert(data.message || data.error || 'Failed to map variety.');
-            }
-        })
-        .catch(err => {
-            item.mapping_in_progress = false;
-            alert(err.message || 'Failed to map variety.');
-        });
-    },
+            .then(res => res.json())
+            .then(data => {
+                this.uploadingMedia = false;
+                event.target.value = '';
+                if (data.ok && data.image) {
+                    this.availableImages.unshift(data.image);
+                    this.chooseGalleryItem(data.image);
+                } else {
+                    this.uploadError = data.message || 'Failed to upload photo.';
+                    alert(this.uploadError);
+                }
+            })
+            .catch(err => {
+                this.uploadingMedia = false;
+                event.target.value = '';
+                this.uploadError = err.message || 'Network error.';
+                alert(this.uploadError);
+            });
+        },
 
-    quickUnmapVariety(item) {
-        if (!item || !item.mapping_id) return;
-        if (!confirm(`Remove variety mapping for '${item.raw_name}'?`)) return;
-
-        item.mapping_in_progress = true;
-        const deleteUrl = '{{ $isEdit ? url('/admin/crops/' . $crop->id . '/variety-aliases') : '#' }}/' + item.mapping_id;
-
-        fetch(deleteUrl, {
-            method: 'DELETE',
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-Requested-With': 'XMLHttpRequest'
+        deleteSelectedPhotos() {
+            if (this.selectedForDelete.length === 0) {
+                alert('Please select at least one uploaded photo to delete.');
+                return;
             }
-        })
-        .then(res => res.json())
-        .then(data => {
-            item.mapping_in_progress = false;
-            if (data.ok) {
-                item.is_mapped = false;
-                item.mapped_variety_name = null;
-                item.mapped_variety_id = null;
-                item.mapping_id = null;
-                item.selected_grade_id = item.suggested_variety_id ? String(item.suggested_variety_id) : '';
-            } else {
-                alert(data.message || data.error || 'Failed to remove mapping.');
-            }
-        })
-        .catch(err => {
-            item.mapping_in_progress = false;
-            alert(err.message || 'Failed to remove mapping.');
-        });
-    },
 
-    openInspector() {
-        this.inspectorOpen = true;
-        this.inspectorLoading = true;
-        this.inspectorError = null;
-        this.inspectorData = null;
+            if (!confirm(`Are you sure you want to permanently delete ${this.selectedForDelete.length} photo(s)? This will unlink the files from disk.`)) {
+                return;
+            }
 
-        fetch('{{ $isEdit ? route('admin.crops.inspect-feed', $crop) : '#' }}?data_source_id=' + this.liveSourceId, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+            this.deletingMedia = true;
+
+            fetch('{{ route('admin.crops.media.batch-delete') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    paths: this.selectedForDelete,
+                }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.deletingMedia = false;
+                if (data.ok) {
+                    const deleted = data.deleted_paths || [];
+                    this.availableImages = this.availableImages.filter(img => !deleted.includes(img.path));
+
+                    if (deleted.includes(this.selectedImagePath)) {
+                        this.clearImage();
+                    }
+                    if (deleted.includes(this.tempSelectedPath)) {
+                        this.tempSelectedPath = '';
+                        this.tempSelectedPreset = '';
+                        this.tempSelectedUrl = '{{ asset("images/crops/arecanut.jpg") }}';
+                        this.tempSelectedIsUpload = false;
+                    }
+
+                    this.selectedForDelete = [];
+                    this.selectionMode = false;
+                    alert(data.message || 'Selected photos deleted successfully.');
+                } else {
+                    alert(data.message || 'Failed to delete selected photos.');
+                }
+            })
+            .catch(err => {
+                this.deletingMedia = false;
+                alert(err.message || 'Network error.');
+            });
+        },
+
+        handleFileChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/svg+xml'];
+                if (!validTypes.includes(file.type) && !/\.(jpe?g|png|webp|svg)$/i.test(file.name)) {
+                    alert(`Selected file format (${file.type || file.name}) is not supported. Please select a JPG, PNG, WEBP, or SVG image.`);
+                    event.target.value = '';
+                    return;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                    alert(`Selected image is ${(file.size / (1024 * 1024)).toFixed(1)} MB, which exceeds the 5MB upload limit. Please compress or resize the photo.`);
+                    event.target.value = '';
+                    return;
+                }
+                this.removeImage = false;
+                this.selectedPreset = '';
+                this.selectedImagePath = '';
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.imagePreviewUrl = e.target.result;
+                    this.isCustomUpload = true;
+                };
+                reader.readAsDataURL(file);
             }
-        })
-        .then(res => res.json())
-        .then(data => {
-            this.inspectorLoading = false;
-            if (data.ok) {
-                this.inspectorData = data;
-            } else {
-                this.inspectorError = data.error || 'Failed to retrieve raw feed.';
+        },
+
+        clearImage() {
+            this.removeImage = true;
+            this.selectedPreset = '';
+            this.selectedImagePath = '';
+            this.isCustomUpload = false;
+            this.imagePreviewUrl = '{{ asset("images/crops/arecanut.jpg") }}';
+            const fileInput = document.getElementById('crop_image_input');
+            if (fileInput) fileInput.value = '';
+        },
+
+        // Live Variety Suggestions State
+        liveLoading: false,
+        liveSourceId: '{{ $dataSources->first()?->id ?? 1 }}',
+        liveVarietiesList: [],
+        liveError: null,
+
+        // API Inspector Modal State
+        inspectorOpen: false,
+        inspectorLoading: false,
+        inspectorData: null,
+        inspectorError: null,
+
+        initLiveVarieties() {
+            @if($isEdit)
+            this.fetchLiveVarieties();
+            @endif
+        },
+
+        fetchLiveVarieties() {
+            this.liveLoading = true;
+            this.liveError = null;
+            fetch('{{ $isEdit ? route('admin.crops.live-varieties', $crop) : '#' }}?data_source_id=' + this.liveSourceId, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.liveLoading = false;
+                if (data.ok) {
+                    this.liveVarietiesList = (data.varieties || [])
+                        .filter(v => v.raw_name && String(v.raw_name).trim().length > 0)
+                        .map(v => ({
+                            ...v,
+                            selected_grade_id: v.suggested_variety_id ? String(v.suggested_variety_id) : '',
+                            mapping_in_progress: false
+                        }));
+                } else {
+                    this.liveError = data.error || 'Failed to fetch live varieties.';
+                }
+            })
+            .catch(err => {
+                this.liveLoading = false;
+                this.liveError = err.message || 'Network error.';
+            });
+        },
+
+        quickMapVariety(item) {
+            if (!item) return;
+            const targetGradeId = item.selected_grade_id;
+            const varietyRawName = item.raw_name;
+
+            if (!targetGradeId) {
+                alert('Please select a target canonical grade to map.');
+                return;
             }
-        })
-        .catch(err => {
-            this.inspectorLoading = false;
-            this.inspectorError = err.message || 'Network error.';
-        });
-    }
-}" x-init="initLiveVarieties()">
+
+            item.mapping_in_progress = true;
+
+            fetch('{{ $isEdit ? route('admin.crops.variety-aliases.add', $crop) : '#' }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    crop_variety_id: targetGradeId,
+                    source_variety_name: varietyRawName,
+                    data_source_id: this.liveSourceId ? parseInt(this.liveSourceId) : null
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                item.mapping_in_progress = false;
+                if (data.ok) {
+                    // Update item locally
+                    item.is_mapped = true;
+                    item.mapped_variety_name = data.mapping.variety_name;
+                    item.mapped_variety_id = data.mapping.variety_id;
+                    item.mapping_id = data.mapping.id;
+                } else {
+                    alert(data.message || data.error || 'Failed to map variety.');
+                }
+            })
+            .catch(err => {
+                item.mapping_in_progress = false;
+                alert(err.message || 'Failed to map variety.');
+            });
+        },
+
+        quickUnmapVariety(item) {
+            if (!item || !item.mapping_id) return;
+            if (!confirm(`Remove variety mapping for '${item.raw_name}'?`)) return;
+
+            item.mapping_in_progress = true;
+            const deleteUrl = '{{ $isEdit ? url('/admin/crops/' . $crop->id . '/variety-aliases') : '#' }}/' + item.mapping_id;
+
+            fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                item.mapping_in_progress = false;
+                if (data.ok) {
+                    item.is_mapped = false;
+                    item.mapped_variety_name = null;
+                    item.mapped_variety_id = null;
+                    item.mapping_id = null;
+                    item.selected_grade_id = item.suggested_variety_id ? String(item.suggested_variety_id) : '';
+                } else {
+                    alert(data.message || data.error || 'Failed to remove mapping.');
+                }
+            })
+            .catch(err => {
+                item.mapping_in_progress = false;
+                alert(err.message || 'Failed to remove mapping.');
+            });
+        },
+
+        openInspector() {
+            this.inspectorOpen = true;
+            this.inspectorLoading = true;
+            this.inspectorError = null;
+            this.inspectorData = null;
+
+            fetch('{{ $isEdit ? route('admin.crops.inspect-feed', $crop) : '#' }}?data_source_id=' + this.liveSourceId, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.inspectorLoading = false;
+                if (data.ok) {
+                    this.inspectorData = data;
+                } else {
+                    this.inspectorError = data.error || 'Failed to retrieve raw feed.';
+                }
+            })
+            .catch(err => {
+                this.inspectorLoading = false;
+                this.inspectorError = err.message || 'Network error.';
+            });
+        }
+    };
+}
+</script>
+
+<div class="w-full space-y-6" x-data="cropFormHandler()" x-init="initLiveVarieties()">
 
     <!-- Header & Breadcrumbs -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -238,6 +442,20 @@
                 <span class="text-emerald-400 font-bold">✓</span>
                 <span>{{ session('success') }}</span>
             </div>
+        </div>
+    @endif
+
+    @if(isset($errors) && $errors->any())
+        <div class="p-4 rounded-2xl bg-rose-950/70 border border-rose-800/80 text-rose-300 text-xs font-medium space-y-1.5 shadow-sm">
+            <div class="flex items-center gap-2 font-bold text-rose-200">
+                <span>⚠️</span>
+                <span>Update Failed. Please check the following:</span>
+            </div>
+            <ul class="list-disc list-inside pl-1 text-[11px] text-rose-300 space-y-0.5">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -287,75 +505,89 @@
                 </span>
             </div>
 
-            <!-- Crop Image & Thumbnail Section -->
-            <div class="p-4 sm:p-5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-4">
-                <div class="flex items-center justify-between">
+            <!-- Crop Image & Visual Asset Hero Card -->
+            <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
                     <div>
                         <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                            <span>🖼️</span> Crop Image & Thumbnail
+                            <span>🖼️</span> Crop Photo & Visual Asset
                         </h3>
-                        <p class="text-[11px] text-slate-400 mt-0.5">
-                            Displays on farmer price discovery cards, APMC comparisons, and admin lists.
-                        </p>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                            <p class="text-[11px] text-slate-400">
+                                Displays across farmer market views, price tickers, and APMC comparisons.
+                            </p>
+                            <a href="{{ route('admin.notes.index') }}#media-guidelines" target="_blank" 
+                               class="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 underline underline-offset-2">
+                                <span>📐</span> Image Guidelines (1:1 • 600–800px) ↗
+                            </a>
+                        </div>
                     </div>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold"
-                          :class="isCustomUpload ? 'bg-indigo-950 text-indigo-300 border border-indigo-800/80' : (selectedPreset ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/80' : 'bg-slate-800 text-slate-300')">
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-sm"
+                          :class="isCustomUpload ? 'bg-indigo-950 text-indigo-300 border border-indigo-800/80' : (selectedPreset || selectedImagePath ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/80' : 'bg-slate-800 text-slate-300')">
                         <span x-show="isCustomUpload">Custom Uploaded Photo</span>
                         <span x-show="!isCustomUpload && selectedPreset" x-text="'Preset: ' + selectedPreset"></span>
-                        <span x-show="!isCustomUpload && !selectedPreset">Auto-Matched Preset</span>
+                        <span x-show="!isCustomUpload && !selectedPreset && selectedImagePath" x-text="'Selected: ' + selectedImagePath.split('/').pop()"></span>
+                        <span x-show="!isCustomUpload && !selectedPreset && !selectedImagePath">Auto-Matched Preset</span>
                     </span>
                 </div>
 
-                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                    <!-- Image Preview -->
-                    <div class="relative group shrink-0">
-                        <img :src="imagePreviewUrl" alt="Crop Preview" class="w-20 h-20 rounded-2xl object-cover border-2 border-slate-700 bg-slate-800 shadow-md">
-                        <div class="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none">
-                            <span class="text-[10px] text-white font-bold bg-black/60 px-2 py-0.5 rounded">Preview</span>
+                <!-- Active Photo Card & Modal Trigger -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 p-4 bg-slate-900/80 rounded-2xl border border-slate-800/90 shadow-sm">
+                    <!-- Thumbnail & Info -->
+                    <div class="flex items-center gap-4">
+                        <div class="relative group shrink-0">
+                            <img :src="imagePreviewUrl" alt="Crop Preview" class="w-20 h-20 rounded-2xl object-cover border-2 border-slate-700 bg-slate-800 shadow-md">
+                            <div class="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none">
+                                <span class="text-[10px] text-white font-bold bg-black/60 px-2 py-0.5 rounded">Active</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="text-sm font-bold text-white flex items-center gap-2">
+                                <span x-text="selectedImagePath ? selectedImagePath.split('/').pop() : '{{ $crop->name ?? "Default Photo" }}'"></span>
+                            </div>
+                            <p class="text-xs text-slate-400">
+                                <span x-show="isCustomUpload">Uploaded image from media storage</span>
+                                <span x-show="!isCustomUpload && selectedPreset">Bundled preset icon</span>
+                                <span x-show="!isCustomUpload && !selectedPreset">Default asset</span>
+                            </p>
+                            <p class="text-[11px] text-slate-500 font-mono" x-show="selectedImagePath" x-text="selectedImagePath"></p>
                         </div>
                     </div>
 
-                    <!-- Upload and Preset Controls -->
-                    <div class="flex-1 space-y-3 w-full">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <!-- File Upload Input -->
-                            <div>
-                                <label for="crop_image_input" class="block text-[11px] font-bold text-slate-300 mb-1">Upload New Photo</label>
-                                <input type="file" id="crop_image_input" name="image" accept="image/jpeg,image/png,image/jpg,image/webp,image/svg+xml"
-                                       @change="handleFileChange($event)"
-                                       class="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-950 file:text-emerald-300 hover:file:bg-emerald-900 border border-slate-800 rounded-xl bg-slate-900 cursor-pointer">
-                                <p class="text-[10px] text-slate-500 mt-1">Supports JPG, PNG, WEBP (Max 5MB). Square format recommended.</p>
-                                @error('image')
-                                    <p class="text-rose-400 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                        <!-- Open Photo Gallery Modal Trigger -->
+                        <button type="button" @click="openGalleryModal()"
+                                class="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-950/40 border border-emerald-500/30 transition flex items-center gap-2 cursor-pointer">
+                            <span class="text-base">🖼️</span>
+                            <span>Choose from Photo Gallery</span>
+                            <span class="px-1.5 py-0.5 rounded-md text-[10px] bg-emerald-950/80 text-emerald-200 border border-emerald-700/50" x-text="(availableImages || []).length"></span>
+                        </button>
 
-                            <!-- Preset Image Selector -->
-                            <div>
-                                <label for="preset_selector" class="block text-[11px] font-bold text-slate-300 mb-1">Or Pick From Bundled Presets</label>
-                                <select id="preset_selector" x-model="selectedPreset" @change="selectPreset($event.target.value)"
-                                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
-                                    <option value="">-- Choose Standard Crop Preset --</option>
-                                    @foreach($presetImages ?? [] as $preset)
-                                        <option value="{{ $preset }}">{{ ucwords(str_replace(['_', '.jpg', '.png', '.webp'], [' ', '', '', ''], $preset)) }} ({{ $preset }})</option>
-                                    @endforeach
-                                </select>
-                                <p class="text-[10px] text-slate-500 mt-1">19 high-resolution commodity presets available.</p>
-                            </div>
-                        </div>
+                        <!-- Quick Upload Button from local disk -->
+                        <label class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
+                            <span>📁</span> Quick File
+                            <input type="file" id="crop_image_input" name="image" accept="image/jpeg,image/png,image/jpg,image/webp,image/svg+xml"
+                                   @change="handleFileChange($event)" class="hidden">
+                        </label>
 
-                        <!-- Reset / Clear Buttons -->
-                        <div class="flex items-center gap-3 pt-0.5">
-                            <input type="hidden" name="preset_image" :value="selectedPreset">
-                            <input type="hidden" name="remove_image" :value="removeImage ? '1' : '0'">
-
-                            <button type="button" @click="clearImage()" x-show="isCustomUpload || selectedPreset"
-                                    class="text-[11px] font-bold text-rose-400 hover:text-rose-300 transition flex items-center gap-1 cursor-pointer">
-                                <span>✕</span> Reset Photo
-                            </button>
-                        </div>
+                        <!-- Reset to Default Button -->
+                        <button type="button" @click="clearImage()" x-show="isCustomUpload || selectedPreset || selectedImagePath"
+                                class="px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-950/30 border border-rose-900/40 hover:bg-rose-950/50 transition flex items-center gap-1.5 cursor-pointer">
+                            <span>✕</span> Reset
+                        </button>
                     </div>
                 </div>
+
+                @error('image')
+                    <p class="text-rose-400 text-xs mt-1">{{ $message }}</p>
+                @enderror
+
+                <!-- Hidden Form Payloads -->
+                <input type="hidden" name="selected_image_path" :value="selectedImagePath">
+                <input type="hidden" name="preset_image" :value="selectedPreset">
+                <input type="hidden" name="remove_image" :value="removeImage ? '1' : '0'">
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -928,6 +1160,269 @@
             </div>
         </div>
     @endif
+
+    <!-- ========================================== -->
+    <!-- PHOTO GALLERY MODAL & MEDIA ASSET MANAGER -->
+    <!-- ========================================== -->
+    <div x-show="galleryModalOpen" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @keydown.escape.window="closeGalleryModal()"
+         class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5"
+         style="display: none;">
+
+        <!-- Backdrop overlay -->
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" @click="closeGalleryModal()"></div>
+
+        <!-- Modal Dialog Window (Guaranteed bounds within viewport) -->
+        <div @click.stop
+             class="relative z-10 w-full max-w-5xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+             style="max-height: calc(100vh - 32px); height: min(760px, calc(100vh - 32px));">
+            
+            <!-- Modal Header (Pinned at top) -->
+            <div class="shrink-0 p-3.5 sm:p-5 border-b border-slate-800 bg-slate-950/90 flex items-center justify-between gap-4"
+                 style="flex-shrink: 0;">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-950/80 border border-emerald-700/50 flex items-center justify-center text-lg shadow-inner shrink-0">
+                        🖼️
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h3 class="text-sm sm:text-base font-extrabold text-white">Crop Photo Gallery</h3>
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700"
+                                  x-text="(availableImages || []).length + ' Photos Available'"></span>
+                            <a href="{{ route('admin.notes.index') }}#media-guidelines" target="_blank"
+                               class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/80 hover:bg-emerald-900 transition flex items-center gap-1 shadow-sm">
+                                <span>📐</span> Image Guidelines (600–800px) ↗
+                            </a>
+                        </div>
+                        <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+                            Pick an image for this crop, upload new photos directly to library, or multi-select and delete unneeded uploads.
+                        </p>
+                    </div>
+                </div>
+
+                <button type="button" @click="closeGalleryModal()"
+                        class="w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition flex items-center justify-center border border-slate-700/60 cursor-pointer shrink-0">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Modal Toolbar: Search, Filters, Upload, Delete Controls (Pinned) -->
+            <div class="shrink-0 p-3 sm:px-5 bg-slate-900 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5"
+                 style="flex-shrink: 0;">
+                <!-- Search & Filters -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Live Search -->
+                    <div class="relative w-44 sm:w-60">
+                        <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-500 text-xs">🔍</span>
+                        <input type="text" x-model="imageSearch" placeholder="Search photo or crop..."
+                               class="w-full pl-7 pr-7 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+                        <button type="button" x-show="imageSearch" @click="imageSearch = ''" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white text-xs">✕</button>
+                    </div>
+
+                    <!-- Type Tabs -->
+                    <div class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-0.5 text-xs font-bold">
+                        <button type="button" @click="imageFilter = 'all'"
+                                :class="imageFilter === 'all' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'"
+                                class="px-3 py-1 rounded-lg transition cursor-pointer">
+                            All
+                        </button>
+                        <button type="button" @click="imageFilter = 'preset'"
+                                :class="imageFilter === 'preset' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'"
+                                class="px-3 py-1 rounded-lg transition cursor-pointer">
+                            Presets
+                        </button>
+                        <button type="button" @click="imageFilter = 'upload'"
+                                :class="imageFilter === 'upload' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'"
+                                class="px-3 py-1 rounded-lg transition cursor-pointer">
+                            Uploads
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Controls: Direct Upload & Multi-Delete Toggle -->
+                <div class="flex items-center gap-2 self-end sm:self-auto">
+                    <!-- Direct Upload to Gallery Button -->
+                    <label class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-sm transition flex items-center gap-1.5 border border-emerald-500/40">
+                        <span x-show="!uploadingMedia">⬆ Upload to Gallery</span>
+                        <span x-show="uploadingMedia" class="flex items-center gap-1.5">
+                            <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Uploading...
+                        </span>
+                        <input type="file" accept="image/jpeg,image/png,image/jpg,image/webp,image/svg+xml" class="hidden" @change="uploadToGallery($event)" :disabled="uploadingMedia">
+                    </label>
+
+                    <!-- Multi-Select Delete Mode Toggle -->
+                    <button type="button" @click="selectionMode = !selectionMode; if(!selectionMode) selectedForDelete = [];"
+                            :class="selectionMode ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer">
+                        <span x-show="!selectionMode">☑ Select to Delete</span>
+                        <span x-show="selectionMode">✕ Exit Selection</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Multi-Select Batch Delete Ribbon (Visible when in selection mode) -->
+            <div x-show="selectionMode"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 -translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 class="shrink-0 p-2.5 px-4 sm:px-5 bg-amber-950/30 border-b border-amber-900/40 flex flex-wrap items-center justify-between gap-2.5 text-xs"
+                 style="flex-shrink: 0;">
+                <div class="flex items-center gap-2 text-amber-200">
+                    <span class="text-sm">⚠️</span>
+                    <span>
+                        Delete Mode: <strong class="text-white" x-text="selectedForDelete.length"></strong> photos selected. 
+                        <span class="text-amber-300/80 text-[11px] hidden sm:inline">(Click uploads to select. Presets are core protected).</span>
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="selectAllUploadsForDelete()"
+                            class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition cursor-pointer">
+                        Select All Uploads
+                    </button>
+                    <button type="button" @click="clearSelectionForDelete()" x-show="selectedForDelete.length > 0"
+                            class="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white transition cursor-pointer">
+                        Clear Selection
+                    </button>
+                    <button type="button" @click="deleteSelectedPhotos()"
+                            :disabled="selectedForDelete.length === 0 || deletingMedia"
+                            :class="selectedForDelete.length > 0 && !deletingMedia ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-sm cursor-pointer' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/60'"
+                            class="px-3.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                        <span x-show="!deletingMedia">🗑️ Delete Selected (<span x-text="selectedForDelete.length"></span>)</span>
+                        <span x-show="deletingMedia" class="flex items-center gap-1.5">
+                            <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Deleting...
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body: Photo Grid (Scrollable middle container) -->
+            <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 modal-thin-scrollbar bg-slate-950/40"
+                 style="min-height: 0; overflow-y: auto;">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    <template x-for="img in filteredImages()" :key="img.path">
+                        <div @click="chooseGalleryItem(img)"
+                             :class="{
+                                 'ring-2 ring-rose-500 border-rose-500 bg-rose-950/20': selectionMode && selectedForDelete.includes(img.path),
+                                 'opacity-40 cursor-not-allowed': selectionMode && img.type === 'preset',
+                                 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-950/30': !selectionMode && (tempSelectedPath === img.path || (tempSelectedPreset && img.path.endsWith(tempSelectedPreset))),
+                                 'border-slate-800 hover:border-slate-700 bg-slate-900/80': !selectionMode && !(tempSelectedPath === img.path || (tempSelectedPreset && img.path.endsWith(tempSelectedPreset))),
+                                 'cursor-pointer': !(selectionMode && img.type === 'preset')
+                             }"
+                             class="group relative p-2 rounded-2xl border transition flex flex-col items-center shadow-sm select-none">
+                            
+                            <!-- Thumbnail Area -->
+                            <div class="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-950">
+                                <img :src="img.url" :alt="img.label" class="w-full h-full object-cover group-hover:scale-105 transition duration-200" loading="lazy">
+                                
+                                <!-- Normal Selection Checkmark -->
+                                <div x-show="!selectionMode && (tempSelectedPath === img.path || (tempSelectedPreset && img.path.endsWith(tempSelectedPreset)))"
+                                     class="absolute top-1.5 right-1.5 w-6 h-6 bg-emerald-500 text-slate-950 rounded-full flex items-center justify-center text-xs font-black shadow-lg">
+                                    ✓
+                                </div>
+
+                                <!-- Selection Mode Checkbox for Delete -->
+                                <div x-show="selectionMode && img.type === 'upload'"
+                                     class="absolute top-1.5 right-1.5">
+                                    <div class="w-5 h-5 rounded-md border flex items-center justify-center transition"
+                                         :class="selectedForDelete.includes(img.path) ? 'bg-rose-600 border-rose-500 text-white font-bold text-xs' : 'bg-slate-900/90 border-slate-600 text-transparent'">
+                                        <span x-show="selectedForDelete.includes(img.path)">✓</span>
+                                    </div>
+                                </div>
+
+                                <!-- Preset Protected Lock in Selection Mode -->
+                                <div x-show="selectionMode && img.type === 'preset'"
+                                     class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-900/90 text-slate-400 border border-slate-700">
+                                    🔒 Core
+                                </div>
+
+                                <!-- Type Badge -->
+                                <div class="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold backdrop-blur-md"
+                                     :class="img.type === 'upload' ? 'bg-indigo-950/90 text-indigo-300 border border-indigo-700/60' : 'bg-slate-950/80 text-slate-300 border border-slate-800'">
+                                    <span x-text="img.type === 'upload' ? 'Upload' : 'Preset'"></span>
+                                </div>
+                            </div>
+
+                            <!-- Label, Size & Usage Info -->
+                            <div class="w-full mt-2 text-center">
+                                <div class="text-[11px] font-bold text-white truncate w-full" x-text="img.label"></div>
+                                <div class="text-[10px] text-slate-400 font-mono mt-0.5" x-text="img.size_kb + ' KB'"></div>
+                                
+                                <!-- In-Use Pill -->
+                                <div x-show="img.used_by && img.used_by.length > 0" class="mt-1">
+                                    <span class="inline-block px-1.5 py-0.5 rounded text-[8px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800/60 truncate max-w-full"
+                                          :title="'In use by: ' + (img.used_by || []).join(', ')"
+                                          x-text="'🟢 ' + (img.used_by || [])[0] + (img.used_by && img.used_by.length > 1 ? ' +' + (img.used_by.length - 1) : '')">
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Empty State -->
+                <div x-show="filteredImages().length === 0" class="py-12 text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-2xl mx-auto mb-2">
+                        🖼️
+                    </div>
+                    <p class="text-sm font-bold text-slate-300">No photos match your filter</p>
+                    <p class="text-xs text-slate-500 mt-1">Try another search keyword or upload a new photo directly to the gallery above.</p>
+                </div>
+            </div>
+
+            <!-- Modal Footer: Choice Preview & Confirm Actions (Pinned at bottom) -->
+            <div class="shrink-0 p-3.5 sm:px-6 border-t border-slate-800 bg-slate-950/90 flex flex-col sm:flex-row items-center justify-between gap-3"
+                 style="flex-shrink: 0;">
+                <!-- Selected Item Summary -->
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <template x-if="tempSelectedUrl">
+                        <div class="flex items-center gap-2.5">
+                            <img :src="tempSelectedUrl" class="w-9 h-9 rounded-xl object-cover border border-slate-700 bg-slate-800">
+                            <div>
+                                <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                    <span>Selected:</span>
+                                    <span class="text-emerald-400" x-text="tempSelectedPath.split('/').pop()"></span>
+                                </div>
+                                <span class="text-[10px] text-slate-400" x-text="tempSelectedIsUpload ? 'Custom uploaded asset' : 'Bundled preset asset'"></span>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!tempSelectedUrl">
+                        <span class="text-xs text-slate-500 italic">No image selected. Click any photo above to select.</span>
+                    </template>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                    <button type="button" @click="closeGalleryModal()"
+                            class="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="button" @click="applyGalleryChoice()"
+                            :disabled="!tempSelectedPath"
+                            :class="tempSelectedPath ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-950/50 cursor-pointer' : 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700/60'"
+                            class="px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                        <span>✓ Apply to this Crop</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
 
 </div>
 @endsection

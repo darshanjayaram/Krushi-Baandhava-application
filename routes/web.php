@@ -64,57 +64,93 @@ Route::get('/articles/{slug}', [\App\Http\Controllers\Farmer\ArticleController::
 Route::get('/offline', [HomeController::class, 'offline'])->name('offline');
 Route::get('/sitemap.xml', [\App\Http\Controllers\Farmer\SitemapController::class, 'index'])->name('sitemap');
 
+// Farmer Feedback & Grievance Helpdesk
+Route::get('/feedback', [\App\Http\Controllers\Farmer\FeedbackController::class, 'create'])->name('farmer.feedback.create');
+Route::post('/feedback', [\App\Http\Controllers\Farmer\FeedbackController::class, 'store'])->name('farmer.feedback.store');
+
 Route::get('/login', fn () => redirect()->route('admin.login'))->name('login');
 
 Route::get('/manifest.json', function () {
     $manifestPath = public_path('manifest.json');
     $manifest = file_exists($manifestPath) ? json_decode(file_get_contents($manifestPath), true) : [];
 
-    $name = \App\Models\SystemSetting::get('pwa_name');
-    if ($name) $manifest['name'] = $name;
+    $name = \App\Models\SystemSetting::get('pwa_name', 'Krushi Baandhava - ಕೃಷಿ ಬಾಂಧವ');
+    $shortName = \App\Models\SystemSetting::get('pwa_short_name', 'Krushi Baandhava');
+    $desc = \App\Models\SystemSetting::get('pwa_description', 'Karnataka Farmers Market Prices, Transparent Price Forecasts, Nearby APMC Mandis, and Weather Advisories.');
+    $theme = \App\Models\SystemSetting::get('pwa_theme_color', '#1C5A2C');
+    $bg = \App\Models\SystemSetting::get('pwa_background_color', '#F5EFE6');
+    $display = \App\Models\SystemSetting::get('pwa_display_mode', 'standalone');
 
-    $shortName = \App\Models\SystemSetting::get('pwa_short_name');
-    if ($shortName) $manifest['short_name'] = $shortName;
+    $manifest['name'] = $name;
+    $manifest['short_name'] = $shortName;
+    $manifest['description'] = $desc;
+    $manifest['theme_color'] = $theme;
+    $manifest['background_color'] = $bg;
+    $manifest['display'] = $display;
+    $manifest['orientation'] = 'portrait-primary';
+    $manifest['lang'] = 'kn-IN';
+    $manifest['dir'] = 'ltr';
+    $manifest['prefer_related_applications'] = false;
+    $manifest['categories'] = ['agriculture', 'business', 'utilities'];
 
-    $desc = \App\Models\SystemSetting::get('pwa_description');
-    if ($desc) $manifest['description'] = $desc;
+    // Dynamic start_url, scope & id that adapt seamlessly to localhost subfolders or root domain
+    $manifest['id'] = url('/?source=pwa');
+    $manifest['start_url'] = url('/?source=pwa');
+    $manifest['scope'] = url('/') . '/';
 
-    $theme = \App\Models\SystemSetting::get('pwa_theme_color');
-    if ($theme) $manifest['theme_color'] = $theme;
-
-    $bg = \App\Models\SystemSetting::get('pwa_background_color');
-    if ($bg) $manifest['background_color'] = $bg;
-
-    $startUrl = \App\Models\SystemSetting::get('pwa_start_url');
-    if ($startUrl) $manifest['start_url'] = $startUrl;
-
-    $display = \App\Models\SystemSetting::get('pwa_display_mode');
-    if ($display) $manifest['display'] = $display;
-
-    $customIcon = \App\Models\SystemSetting::get('pwa_icon');
-    if (!$customIcon || $customIcon === '/icons/icon-512.svg') {
-        $customIcon = \App\Models\SystemSetting::get('app_logo');
-    }
-    if ($customIcon) {
-        $ext = strtolower(pathinfo($customIcon, PATHINFO_EXTENSION));
-        $iconType = match($ext) {
-            'png' => 'image/png',
-            'jpg', 'jpeg' => 'image/jpeg',
-            'webp' => 'image/webp',
-            default => 'image/svg+xml'
-        };
-        $manifest['icons'] = [
-            [
-                'src' => $customIcon,
-                'sizes' => '192x192 512x512',
-                'type' => $iconType,
-                'purpose' => 'any maskable',
-            ]
+    // Build standard PNG & SVG icon callset for 100% Chrome/Edge/Firefox install prompt criteria
+    $icons = [];
+    if (file_exists(public_path('icons/icon-192.png'))) {
+        $icons[] = [
+            'src' => asset('icons/icon-192.png'),
+            'sizes' => '192x192',
+            'type' => 'image/png',
+            'purpose' => 'any',
         ];
     }
+    if (file_exists(public_path('icons/icon-512.png'))) {
+        $icons[] = [
+            'src' => asset('icons/icon-512.png'),
+            'sizes' => '512x512',
+            'type' => 'image/png',
+            'purpose' => 'any',
+        ];
+    }
+    if (file_exists(public_path('icons/icon-192.png'))) {
+        $icons[] = [
+            'src' => asset('icons/icon-192.png'),
+            'sizes' => '192x192',
+            'type' => 'image/png',
+            'purpose' => 'maskable',
+        ];
+    }
+    if (file_exists(public_path('icons/icon-512.png'))) {
+        $icons[] = [
+            'src' => asset('icons/icon-512.png'),
+            'sizes' => '512x512',
+            'type' => 'image/png',
+            'purpose' => 'maskable',
+        ];
+    }
+    // Vector SVG fallback
+    $icons[] = [
+        'src' => asset('icons/icon-192.svg'),
+        'sizes' => '192x192',
+        'type' => 'image/svg+xml',
+        'purpose' => 'any',
+    ];
+    $icons[] = [
+        'src' => asset('icons/icon-512.svg'),
+        'sizes' => '512x512',
+        'type' => 'image/svg+xml',
+        'purpose' => 'any',
+    ];
+
+    $manifest['icons'] = $icons;
 
     return response()->json($manifest, 200, [
-        'Content-Type' => 'application/manifest+json',
+        'Content-Type' => 'application/manifest+json; charset=utf-8',
+        'Cache-Control' => 'no-cache, private',
     ]);
 })->name('pwa.manifest');
 
@@ -169,6 +205,8 @@ Route::prefix('admin')->group(function () {
         Route::get('/crops/{crop}/inspect-feed', [CropController::class, 'inspectFeed'])->name('admin.crops.inspect-feed');
         Route::post('/crops/{crop}/variety-aliases', [CropController::class, 'addVarietyAlias'])->name('admin.crops.variety-aliases.add');
         Route::delete('/crops/{crop}/variety-aliases/{mapping}', [CropController::class, 'removeVarietyAlias'])->name('admin.crops.variety-aliases.remove');
+        Route::post('/crops-media/upload', [CropController::class, 'uploadMedia'])->name('admin.crops.media.upload');
+        Route::post('/crops-media/batch-delete', [CropController::class, 'batchDeleteMedia'])->name('admin.crops.media.batch-delete');
         Route::resource('crops', CropController::class)->names('admin.crops');
         Route::resource('varieties', CropVarietyController::class)->only(['store', 'update', 'destroy'])->names('admin.varieties');
 
@@ -225,6 +263,22 @@ Route::prefix('admin')->group(function () {
         Route::post('/articles/{article}/toggle', [\App\Http\Controllers\Admin\ArticleController::class, 'toggle'])->name('admin.articles.toggle');
         Route::resource('articles', \App\Http\Controllers\Admin\ArticleController::class)->names('admin.articles');
 
+        // Navigation Bars & Menus CMS (Desktop, Mobile Dock, Hamburger Drawer)
+        Route::get('/navbar', [\App\Http\Controllers\Admin\NavbarController::class, 'index'])->name('admin.navbar.index');
+        Route::post('/navbar', [\App\Http\Controllers\Admin\NavbarController::class, 'update'])->name('admin.navbar.update');
+        Route::post('/navbar/reset', [\App\Http\Controllers\Admin\NavbarController::class, 'resetDefaults'])->name('admin.navbar.reset');
+
+        // Footer Layout & Content CMS
+        Route::get('/footer', [\App\Http\Controllers\Admin\FooterController::class, 'index'])->name('admin.footer.index');
+        Route::post('/footer', [\App\Http\Controllers\Admin\FooterController::class, 'update'])->name('admin.footer.update');
+
+        // Farmer Helpdesk & Grievance CRM
+        Route::post('/feedback/settings', [\App\Http\Controllers\Admin\FeedbackController::class, 'updateSettings'])->name('admin.feedback.settings.update');
+        Route::post('/feedback/settings/reset', [\App\Http\Controllers\Admin\FeedbackController::class, 'resetSettings'])->name('admin.feedback.settings.reset');
+        Route::resource('feedback', \App\Http\Controllers\Admin\FeedbackController::class)
+            ->only(['index', 'show', 'update', 'destroy'])
+            ->names('admin.feedback');
+
         // Feature Flags
         Route::get('/feature-flags', [FeatureFlagController::class, 'index'])->name('admin.feature-flags.index');
         Route::post('/feature-flags/{featureFlag}/toggle', [FeatureFlagController::class, 'toggle'])->name('admin.feature-flags.toggle');
@@ -248,6 +302,10 @@ Route::prefix('admin')->group(function () {
         Route::get('/unresolved-mappings', [UnresolvedMappingController::class, 'index'])->name('admin.unresolved-mappings.index');
         Route::post('/unresolved-mappings/resolve-crop', [UnresolvedMappingController::class, 'resolveCrop'])->name('admin.unresolved-mappings.resolve-crop');
         Route::post('/unresolved-mappings/resolve-market', [UnresolvedMappingController::class, 'resolveMarket'])->name('admin.unresolved-mappings.resolve-market');
+
+        // Admin Notes & System Guidelines
+        Route::get('/notes', [\App\Http\Controllers\Admin\NoteController::class, 'index'])->name('admin.notes.index');
+        Route::post('/notes', [\App\Http\Controllers\Admin\NoteController::class, 'update'])->name('admin.notes.update');
 
         // Audit Trail Logs
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');

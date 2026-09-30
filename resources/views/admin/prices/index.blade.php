@@ -430,11 +430,24 @@
                 <form x-show="syncMode === 'single'" @submit.prevent="runSync('single')" class="mt-4 space-y-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Target Feed</label>
-                        <select name="data_source_id" x-model="selectedSource" class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <select name="data_source_id" x-model="selectedSource" @change="onSourceChange()" class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                             <option value="">All Active Sources (Batch)</option>
                             @foreach($dataSources as $ds)
                                 <option value="{{ $ds->id }}">{{ $ds->name }} ({{ $ds->code }})</option>
                             @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Target Crop (Optional)</label>
+                            <span class="text-[10px] text-emerald-400 font-medium" x-text="availableCrops.length + ' configured sync crops'"></span>
+                        </div>
+                        <select name="crop_id" x-model="selectedCrop" class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="" x-text="availableCrops.length > 0 ? 'All Configured Crops (' + availableCrops.length + ')' : 'All Configured Crops'"></option>
+                            <template x-for="c in availableCrops" :key="c.id">
+                                <option :value="c.id" x-text="c.name + (c.name_kn ? ' (' + c.name_kn + ')' : '')"></option>
+                            </template>
                         </select>
                     </div>
 
@@ -514,12 +527,15 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Target Crop (Optional)</label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Target Crop (Optional)</label>
+                            <span class="text-[10px] text-emerald-400 font-medium" x-text="availableCrops.length + ' configured sync crops'"></span>
+                        </div>
                         <select name="crop_id" x-model="selectedCrop" class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <option value="">All Karnataka Crops</option>
-                            @foreach($crops as $c)
-                                <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->name_kn }})</option>
-                            @endforeach
+                            <option value="" x-text="availableCrops.length > 0 ? 'All Configured Crops (' + availableCrops.length + ')' : 'All Configured Crops'"></option>
+                            <template x-for="c in availableCrops" :key="c.id">
+                                <option :value="c.id" x-text="c.name + (c.name_kn ? ' (' + c.name_kn + ')' : '')"></option>
+                            </template>
                         </select>
                     </div>
 
@@ -952,13 +968,27 @@ function pricesManager() {
         agmarknetCaptchaKey: '',
         agmarknetCaptchaImage: '',
         agmarknetCaptchaCode: '',
-        agmarknetCaptchaLoading: false,
+        savedSourceCrops: @json($savedSourceCrops ?? []),
+        savedAllActiveCrops: @json($savedAllActiveCrops ?? []),
+
+        get availableCrops() {
+            if (this.selectedSource && this.savedSourceCrops && this.savedSourceCrops[this.selectedSource]) {
+                return this.savedSourceCrops[this.selectedSource];
+            }
+            return this.savedAllActiveCrops || [];
+        },
 
         isAgmarknetSourceSelected() {
             return String(this.selectedSource) === String(this.agmarknetSourceId);
         },
 
         async onSourceChange() {
+            if (this.selectedCrop) {
+                const cropExists = this.availableCrops.some(c => String(c.id) === String(this.selectedCrop));
+                if (!cropExists) {
+                    this.selectedCrop = '';
+                }
+            }
             if (this.isAgmarknetSourceSelected() && !this.agmarknetCaptchaImage) {
                 await this.refreshAgmarknetCaptcha();
             }
@@ -1109,8 +1139,11 @@ function pricesManager() {
                 url = '{{ route('admin.prices.sync') }}';
                 payload = {
                     data_source_id: this.selectedSource || null,
+                    crop_id: this.selectedCrop || null,
                     target_date: this.targetDate,
                     force: this.forceSync ? 1 : 0,
+                    captcha_key: this.agmarknetCaptchaKey || null,
+                    captcha_code: this.agmarknetCaptchaCode || null,
                 };
             } else {
                 url = '{{ route('admin.prices.sync-range') }}';

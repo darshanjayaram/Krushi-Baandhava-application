@@ -406,28 +406,62 @@ function acquireGpsLocation() {
     const gpsIcon = document.getElementById('gpsIcon');
 
     if (!navigator.geolocation) {
-        alert('ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ GPS ಸೌಲಭ್ಯ ಲಭ್ಯವಿಲ್ಲ (GPS not supported).');
+        gpsLabel.textContent = 'GPS ಸೌಲಭ್ಯ ಲಭ್ಯವಿಲ್ಲ - ಜಿಲ್ಲೆ ಆಯ್ಕೆಮಾಡಿ';
+        gpsIcon.textContent = '⚠️';
         return;
     }
 
     gpsLabel.textContent = 'ಸ್ಥಳ ಪಡೆಯಲಾಗುತ್ತಿದೆ... (Detecting GPS)';
     gpsIcon.textContent = '⏳';
 
+    function onPosSuccess(pos) {
+        document.getElementById('latInput').value = pos.coords.latitude;
+        document.getElementById('lngInput').value = pos.coords.longitude;
+        document.getElementById('districtSelect').value = '';
+        document.getElementById('talukSelect').value = '';
+        document.getElementById('decisionForm').submit();
+    }
+
+    function onPosFail(err) {
+        console.warn('GPS attempt 1 failed:', err);
+        if (err && err.code === 1) { // PERMISSION_DENIED
+            gpsLabel.textContent = 'ಸ್ಥಳ ಪ್ರವೇಶ ನಿರಾಕರಿಸಲಾಗಿದೆ (ದಯವಿಟ್ಟು ಬ್ರೌಸರ್ ಸೆಟ್ಟಿಂಗ್‌ನಲ್ಲಿ ಅನುಮತಿ ನೀಡಿ)';
+            gpsIcon.textContent = '🔒';
+            return;
+        }
+
+        // Retry with low accuracy
+        gpsLabel.textContent = 'ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಹುಡುಕಲಾಗುತ್ತಿದೆ...';
+        navigator.geolocation.getCurrentPosition(
+            onPosSuccess,
+            function (err2) {
+                console.warn('GPS attempt 2 failed, trying IP:', err2);
+                fetch('https://ipwho.is/')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.success !== false && data.latitude && data.longitude) {
+                            document.getElementById('latInput').value = data.latitude;
+                            document.getElementById('lngInput').value = data.longitude;
+                            document.getElementById('districtSelect').value = '';
+                            document.getElementById('talukSelect').value = '';
+                            document.getElementById('decisionForm').submit();
+                        } else {
+                            throw new Error('IP unavailable');
+                        }
+                    })
+                    .catch(() => {
+                        gpsLabel.textContent = 'ಸ್ಥಳ ಪತ್ತೆ ವಿಫಲವಾಗಿದೆ - ಕೆಳಗಿನ ಜಿಲ್ಲೆ ಆಯ್ಕೆಮಾಡಿ';
+                        gpsIcon.textContent = '⚠️';
+                    });
+            },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        );
+    }
+
     navigator.geolocation.getCurrentPosition(
-        function (pos) {
-            document.getElementById('latInput').value = pos.coords.latitude;
-            document.getElementById('lngInput').value = pos.coords.longitude;
-            // Clear manual district and submit
-            document.getElementById('districtSelect').value = '';
-            document.getElementById('talukSelect').value = '';
-            document.getElementById('decisionForm').submit();
-        },
-        function (err) {
-            gpsLabel.textContent = 'GPS ವಿಫಲವಾಗಿದೆ - ಜಿಲ್ಲೆ ಆಯ್ಕೆಮಾಡಿ';
-            gpsIcon.textContent = '⚠️';
-            alert('ಸ್ಥಳ ಪಡೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಕೆಳಗಿನ ಜಿಲ್ಲೆ ಮತ್ತು ತಾಲೂಕು ಆಯ್ಕೆಮಾಡಿ.');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        onPosSuccess,
+        onPosFail,
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
     );
 }
 </script>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-[#F5EFE6]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>What's Next (Price Forecast) — Negilu-Enhanced Classic UI | Krushi Baandhava</title>
+    <!-- Tailwind CSS v3 Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans & Noto Sans Kannada -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                        kannada: ['"Noto Sans Kannada"', '"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#F0F7F2',
+                            600: '#1C5A2C',
+                            700: '#154622',
+                            800: '#0F3318',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #F5EFE6;
+            color: #111827;
+            overflow-x: hidden;
+        }
+        [x-cloak] { display: none !important; }
+        
+        .kn-text {
+            font-family: 'Noto Sans Kannada', sans-serif;
+            position: relative;
+            top: 0.5px;
+        }
+
+        /* Solid Classic 2px Border matching Top Section */
+        .classic-card {
+            background-color: #FFFFFF;
+            border: 2px solid #D9CEB8;
+        }
+
+        .classic-subcard {
+            background-color: #FAF8F5;
+            border: 2px solid #E5DECE;
+        }
+
+        .classic-subcard:hover {
+            border-color: #1C5A2C;
+            background-color: #FFFFFF;
+        }
+    </style>
+</head>
+<body class="py-3 sm:py-6 px-2 sm:px-6 lg:px-8 max-w-full" x-data="{
+    lang: new URLSearchParams(window.location.search).get('lang') || 'en',
+    currentCrop: 'negilu_tomato', // 'pepper' or 'negilu_tomato'
+
+    crops: {
+        negilu_tomato: {
+            nameEn: 'Tomato · Local Hybrid',
+            nameKn: 'ಟೊಮೆಟೊ · ಸ್ಥಳೀಯ ಹೈಬ್ರಿಡ್',
+            whyEn: 'Prices look broadly steady over the coming week. Today\'s price is 14% below usual — room to recover if supply tightens. Arrivals at Bengaluru roughly normal (+2% vs last month).',
+            whyKn: 'ಮುಂಬರುವ ವಾರದಲ್ಲಿ ದರಗಳು ಸ್ಥಿರವಾಗಿರುವ ನಿರೀಕ್ಷೆಯಿದೆ. ಇಂದಿನ ದರವು ಸಾಮಾನ್ಯ ದರಕ್ಕಿಂತ 14% ಕಡಿಮೆಯಿದ್ದು, ಆವಕ ಕಡಿಮೆಯಾದರೆ ಚೇತರಿಕೆಗೆ ಅವಕಾಶವಿದೆ. ಬೆಂಗಳೂರಿನಲ್ಲಿ ಆವಕ ಸಾಮಾನ್ಯ ಮಟ್ಟದಲ್ಲಿದೆ (+2%).',
+            forecast: [
+                {
+                    days: 1,
+                    titleEn: 'TOMORROW',
+                    titleKn: 'ನಾಳೆ',
+                    dateFormatted: '30 Sep',
+                    heroChange: '→ ≈ 0%',
+                    direction: 'steady',
+                    expectedPrice: 25001,
+                    arrow: '→',
+                    lowerBound: 24251,
+                    upperBound: 25751,
+                    confidence: 45,
+                    qualitativeEn: 'LESS LIKELY',
+                    qualitativeKn: 'ಸಾಧ್ಯತೆ ಕಡಿಮೆ',
+                    unitEn: 'qtl',
+                    unitKn: 'ಕ್ವಿಂ'
+                },
+                {
+                    days: 7,
+                    titleEn: 'NEXT WEEK',
+                    titleKn: 'ಮುಂದಿನ ವಾರ',
+                    dateFormatted: '06 Oct',
+                    heroChange: '↑ +0.7%',
+                    direction: 'up',
+                    expectedPrice: 25166,
+                    arrow: '↑',
+                    lowerBound: 23278,
+                    upperBound: 27053,
+                    confidence: 48,
+                    qualitativeEn: 'LESS LIKELY',
+                    qualitativeKn: 'ಸಾಧ್ಯತೆ ಕಡಿಮೆ',
+                    unitEn: 'qtl',
+                    unitKn: 'ಕ್ವಿಂ'
+                },
+                {
+                    days: 15,
+                    titleEn: 'FORTNIGHT',
+                    titleKn: '15 ದಿನ (ಪಕ್ಷ)',
+                    dateFormatted: '14 Oct',
+                    heroChange: '↓ -4.4%',
+                    direction: 'down',
+                    expectedPrice: 23897,
+                    arrow: '↓',
+                    lowerBound: 21794,
+                    upperBound: 26000,
+                    confidence: 62,
+                    qualitativeEn: 'POSSIBLE',
+                    qualitativeKn: 'ಸಾಧ್ಯತೆ ಇದೆ',
+                    unitEn: 'qtl',
+                    unitKn: 'ಕ್ವಿಂ'
+                },
+                {
+                    days: 30,
+                    titleEn: 'NEXT MONTH',
+                    titleKn: 'ಮುಂದಿನ ತಿಂಗಳು',
+                    dateFormatted: '29 Oct',
+                    heroChange: '↓ -7.8%',
+                    direction: 'down',
+                    expectedPrice: 23042,
+                    arrow: '↓',
+                    lowerBound: 20000,
+                    upperBound: 26083,
+                    confidence: 65,
+                    qualitativeEn: 'POSSIBLE',
+                    qualitativeKn: 'ಸಾಧ್ಯತೆ ಇದೆ',
+                    unitEn: 'qtl',
+                    unitKn: 'ಕ್ವಿಂ'
+                }
+            ]
+        },
+        pepper: {
+            nameEn: 'Black Pepper · Garbled Medium',
+            nameKn: 'ಕಾಳುಮೆಣಸು · ಗಾರ್ಬಲ್ಡ್ ಮಧ್ಯಮ',
+            whyEn: 'Prices look set to rise about 7.6% over the coming week. Today\'s price is 66.1% above benchmark, supported by strong export demand and limited terminal arrivals.',
+            whyKn: 'ಮುಂಬರುವ ವಾರದಲ್ಲಿ ದರಗಳು ಸುಮಾರು 7.6% ರಷ್ಟು ಏರಿಕೆಯಾಗುವ ಸಾಧ್ಯತೆಯಿದೆ. ರಫ್ತು ಬೇಡಿಕೆ ಮತ್ತು ಸೀಮಿತ ಆವಕದ ಕಾರಣದಿಂದಾಗಿ ಇಂದಿನ ದರವು ಸಾಮಾನ್ಯ ದರಕ್ಕಿಂತ 66.1% ಹೆಚ್ಚಾಗಿದೆ.',
+            forecast: [
+                {
+                    days: 1,
+                    titleEn: 'TOMORROW',
+                    titleKn: 'ನಾಳೆ',
+                    dateFormatted: '30 Sep',
+                    heroChange: '↑ +2.1%',
+                    direction: 'up',
+                    expectedPrice: 102127,
+                    arrow: '↑',
+                    lowerBound: 40851,
+                    upperBound: 180002,
+                    confidence: 56,
+                    qualitativeEn: 'POSSIBLE',
+                    qualitativeKn: 'ಸಾಧ್ಯತೆ ಇದೆ',
+                    unitEn: 'qtl',
+                    unitKn: 'ಕ್ವಿಂ'
+                },
+                {
+                    days: 7,
+                    titleEn: 'NEXT WEEK',
+                    titleKn: 'ಮುಂದಿನ ವಾರ',
+                    dateFormatted: '06 Oct',
+                    heroChange: '↑ +7.6%',
+                    direction: 'up',
+                    expectedPrice: 107601,
+                    arrow: '↑',
+                    lowerBound: 43040,
+                    upperBound: 226556,
+                    confidence: 56,
+                    qualitativeEn: 'POSSIBLE',
+                    qualitativeKn: 'ಸಾಧ್ಯತೆ ಇದೆ',
+                    unitEn: 'qtl',
+                    unitKn: 'ಕ್ವಿಂ'
+                },
+                {
+                    days: 15,
+                    titleEn: 'FORTNIGHT',
+                    titleKn: '15 ದಿನ (ಪಕ್ಷ)',
+                    dateFormatted: '14 Oct',
+                    heroChange: '↑ +13.8%',
+                    direction: 'up',
+                    expectedPrice: 113813,
+                    arrow: '↑',
+                    lowerBound: 45525,
+                    upperBound: 271710,
+                    confidence: 56,
+                    qualitativeEn: 'POSSIBLE',
+                    qualitativeKn: 'ಸಾಧ್ಯತೆ ಇದೆ',
+                    unitEn: 'qtl',
+                    unitKn: 'ಕ್ವಿಂ'
+                },
+                {
+                    days: 30,
+                    titleEn: 'NEXT MONTH',
+                    titleKn: 'ಮುಂದಿನ ತಿಂಗಳು',
+                    dateFormatted: '29 Oct',
+                    heroChange: '↑ +17.8%',
+                    direction: 'up',
+                    expectedPrice: 117840,
+                    arrow: '↑',
+                    lowerBound: 47136,
+                    upperBound: 330316,
+                    confidence: 56,
+                    qualitativeEn: 'POSSIBLE',
+                    qualitativeKn: 'ಸಾಧ್ಯತೆ ಇದೆ',
+                    unitEn: 'qtl',
+                    unitKn: 'ಕ್ವಿಂ'
+                }
+            ]
+        }
+    }
+}">
+
+    <!-- Top Control Bar (Mobile responsive) -->
+    <div class="max-w-7xl mx-auto mb-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-full bg-white border-2 border-[#D9CEB8] font-black text-stone-800 uppercase tracking-wider text-[10px] sm:text-[11px] shadow-2xs">
+                🌾 Krushi Baandhava • What's Next (Negilu-Enhanced Classic UI)
+            </span>
+        </div>
+
+        <div class="flex items-center justify-between sm:justify-end gap-1.5">
+            <!-- Scenario Selector -->
+            <div class="bg-white p-0.5 sm:p-1 rounded-xl border-2 border-[#D9CEB8] flex items-center text-xs font-bold shadow-2xs">
+                <button @click="currentCrop = 'negilu_tomato'" 
+                        :class="currentCrop === 'negilu_tomato' ? 'bg-[#1C5A2C] text-white shadow-xs' : 'text-stone-700 hover:text-stone-950'" 
+                        class="px-2 py-0.5 sm:py-1 rounded-lg transition text-[10px] sm:text-[11px]">
+                    Tomato (Benchmark)
+                </button>
+                <button @click="currentCrop = 'pepper'" 
+                        :class="currentCrop === 'pepper' ? 'bg-[#1C5A2C] text-white shadow-xs' : 'text-stone-700 hover:text-stone-950'" 
+                        class="px-2 py-0.5 sm:py-1 rounded-lg transition text-[10px] sm:text-[11px]">
+                    Pepper / Areca (Rise)
+                </button>
+            </div>
+
+            <!-- Language Toggle -->
+            <div class="bg-white p-0.5 sm:p-1 rounded-xl border-2 border-[#D9CEB8] flex items-center text-xs font-bold shadow-2xs">
+                <button @click="lang = 'en'" :class="lang === 'en' ? 'bg-[#1C5A2C] text-white shadow-xs' : 'text-stone-700 hover:text-stone-950'" class="px-2 py-0.5 sm:py-1 rounded-lg transition text-[10px] sm:text-[11px]">EN</button>
+                <button @click="lang = 'kn'" :class="lang === 'kn' ? 'bg-[#1C5A2C] text-white shadow-xs font-kannada' : 'text-stone-700 hover:text-stone-950 font-kannada'" class="px-2 py-0.5 sm:py-1 rounded-lg transition text-[10px] sm:text-[11px]">ಕನ್ನಡ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto space-y-3 sm:space-y-6">
+
+        <!-- ========================================================================= -->
+        <!-- PROPOSED COMPACT CLASSIC DESIGN: WHAT'S NEXT (PRICE FORECAST)              -->
+        <!-- 2-COLUMN ON MOBILE | 4-COLUMN ON DESKTOP | NEGILU HERO PERCENTAGE CLARITY  -->
+        <!-- ========================================================================= -->
+        <div class="classic-card rounded-2xl sm:rounded-3xl p-2.5 sm:p-6 shadow-sm space-y-3 sm:space-y-5 overflow-hidden">
+            
+            <!-- 1. SECTION HEADER (Classic High Contrast Banner) -->
+            <div class="flex flex-wrap items-center justify-between gap-1.5 pb-2 sm:pb-3 border-b-2 border-[#F0EAE1]">
+                <div class="flex flex-wrap items-center gap-1.5 sm:gap-3">
+                    <!-- Solid Forest Green Bar -->
+                    <span class="w-1.5 sm:w-2 h-4 sm:h-6 rounded-full bg-[#1C5A2C]"></span>
+                    
+                    <h2 class="text-base sm:text-xl font-black text-stone-950 tracking-tight" :class="lang === 'kn' ? 'kn-text' : 'font-sans'">
+                        <span x-text="lang === 'en' ? 'What\'s next' : 'ಮುಂದೇನು?'"></span>
+                    </h2>
+
+                    <!-- Crop Variety & Grade Pill -->
+                    <span class="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9.5px] sm:text-[11px] font-black bg-[#FAF6EE] text-[#1C5A2C] border border-[#D9CEB8] shadow-2xs">
+                        <span>🏷️</span>
+                        <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? crops[currentCrop].nameEn : crops[currentCrop].nameKn"></span>
+                    </span>
+
+                    <!-- Subtitle (Desktop only) -->
+                    <span class="text-xs font-bold text-stone-500 hidden md:inline" :class="lang === 'kn' ? 'kn-text' : ''">
+                        • <span x-text="lang === 'en' ? 'Price Forecast & Movement Trends' : 'ದರ ಮುನ್ಸೂಚನೆ & ನಿರೀಕ್ಷಿತ ಶ್ರೇಣಿ'"></span>
+                    </span>
+                </div>
+
+                <!-- Updated Daily Status Badge with Pulse -->
+                <div class="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-[9.5px] sm:text-[11px] font-black shadow-2xs">
+                    <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#1C5A2C] animate-pulse"></span>
+                    <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'Updated daily' : 'ದೈನಂದಿನ ಅಪ್ಡೇಟ್'"></span>
+                </div>
+            </div>
+
+            <!-- 2. 4-CARD FORECAST HORIZON GRID (2 COLUMNS ON MOBILE, 4 ON DESKTOP) -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3.5">
+                <template x-for="(card, index) in crops[currentCrop].forecast" :key="index">
+                    <div class="classic-subcard rounded-xl sm:rounded-2xl p-2 sm:p-4 shadow-2xs transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-3 relative overflow-hidden group">
+                        
+                        <!-- Top Accent Line -->
+                        <div class="absolute top-0 left-0 right-0 h-1 transition-colors"
+                             :class="{
+                                 'bg-[#16803C]': card.direction === 'up',
+                                 'bg-[#C0392B]': card.direction === 'down',
+                                 'bg-amber-600': card.direction === 'steady'
+                             }"></div>
+
+                        <!-- Card Header: Horizon Title & Target Date -->
+                        <div class="flex items-center justify-between gap-1 pt-0.5">
+                            <span class="px-1.5 sm:px-2 py-0.5 rounded bg-[#1C5A2C] text-white text-[9px] sm:text-[11px] font-black tracking-wider uppercase font-sans shadow-2xs border border-[#1C5A2C]"
+                                  x-text="lang === 'en' ? card.titleEn : card.titleKn">
+                            </span>
+                            
+                            <span class="text-[9px] sm:text-xs font-bold text-stone-500 font-sans whitespace-nowrap"
+                                  x-text="card.dateFormatted">
+                            </span>
+                        </div>
+
+                        <!-- Hero Metric: Expected Movement Percentage (Negilu Style - Giant & Eye-Catching) -->
+                        <div class="space-y-0.5 sm:space-y-1">
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-xl sm:text-2xl lg:text-[32px] font-black tracking-tight font-sans leading-none"
+                                      :class="{
+                                          'text-[#16803C]': card.direction === 'up',
+                                          'text-[#C0392B]': card.direction === 'down',
+                                          'text-[#B45309]': card.direction === 'steady'
+                                      }"
+                                      x-text="card.heroChange">
+                                </span>
+                            </div>
+
+                            <!-- Sub-line: Predicted Target Price with Direction Arrow -->
+                            <div class="flex items-baseline gap-1 text-stone-900 font-sans flex-wrap leading-tight">
+                                <span class="text-xs sm:text-sm lg:text-base font-black tracking-tight">
+                                    ₹<span x-text="card.expectedPrice.toLocaleString('en-IN')"></span>
+                                </span>
+                                <span class="text-xs font-black"
+                                      :class="{
+                                          'text-[#16803C]': card.direction === 'up',
+                                          'text-[#C0392B]': card.direction === 'down',
+                                          'text-[#B45309]': card.direction === 'steady'
+                                      }"
+                                      x-text="card.arrow">
+                                </span>
+                                <span class="text-[9px] sm:text-[11px] font-semibold text-stone-400" :class="lang === 'kn' ? 'kn-text' : 'font-sans'">
+                                    /<span x-text="lang === 'en' ? card.unitEn : card.unitKn"></span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Section: Auction Range & Confidence -->
+                        <div class="pt-1.5 sm:pt-2.5 border-t border-[#EAE3D2] space-y-1.5 sm:space-y-2 text-xs">
+                            <!-- Expected Trading Range -->
+                            <div class="text-[9.5px] sm:text-xs text-stone-600 font-sans leading-tight">
+                                <span class="font-bold text-stone-400" :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'range: ' : 'ಶ್ರೇಣಿ: '"></span>
+                                <span class="font-black text-stone-800 whitespace-nowrap">
+                                    ₹<span x-text="card.lowerBound.toLocaleString('en-IN')"></span> – ₹<span x-text="card.upperBound.toLocaleString('en-IN')"></span>
+                                </span>
+                            </div>
+
+                            <!-- Confidence Score & Progress Bar (with Qualitative Status) -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-[8px] sm:text-[10px] font-bold tracking-wider uppercase">
+                                    <span class="text-stone-400 font-extrabold" :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? 'CONFIDENCE' : 'ವಿಶ್ವಾಸ'"></span>
+                                    <span class="font-black font-sans"
+                                          :class="{
+                                              'text-[#16803C]': card.confidence >= 70,
+                                              'text-[#B45309]': card.confidence >= 50 && card.confidence < 70,
+                                              'text-stone-600': card.confidence < 50
+                                          }">
+                                        <span :class="lang === 'kn' ? 'kn-text' : ''" x-text="lang === 'en' ? card.qualitativeEn : card.qualitativeKn"></span>
+                                    </span>
+                                </div>
+                                <div class="w-full bg-[#E5DECE] h-1.5 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-500" 
+                                         :style="'width: ' + card.confidence + '%; background-color: ' + (card.confidence >= 70 ? '#16803C' : (card.confidence >= 50 ? '#D97706' : '#9CA3AF'))">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+            </div>
+
+            <!-- 3. ACTIONABLE "WHY" EXPLANATORY CARD (Intelligence Card with Lightbulb) -->
+            <div class="rounded-xl sm:rounded-2xl p-2.5 sm:p-4 bg-[#FAF6EE] border-2 border-[#D9CEB8] text-stone-900 flex items-start gap-2 sm:gap-3.5 shadow-2xs">
+                <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 text-sm sm:text-lg shadow-2xs">
+                    💡
+                </div>
+                <div class="space-y-0.5 text-xs sm:text-sm">
+                    <div class="font-black text-stone-950 flex items-center gap-1.5 sm:gap-2" :class="lang === 'kn' ? 'kn-text' : ''">
+                        <span class="text-xs sm:text-sm" x-text="lang === 'en' ? 'Market Intelligence & Analysis' : 'ಮಾರುಕಟ್ಟೆ ಒಳನೋಟ & ವಿಶ್ಲೇಷಣೆ'"></span>
+                        <span class="text-[8.5px] sm:text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#1C5A2C] text-white">AI INSIGHT</span>
+                    </div>
+                    <p class="text-stone-700 leading-snug font-medium text-[10.5px] sm:text-xs" :class="lang === 'kn' ? 'kn-text' : ''">
+                        <strong class="font-bold text-stone-950" x-text="lang === 'en' ? 'Why: ' : 'ಕಾರಣ: '"></strong>
+                        <span x-text="lang === 'en' ? crops[currentCrop].whyEn : crops[currentCrop].whyKn"></span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4. DISCLAIMER FOOTER CARD -->
+            <div class="rounded-xl p-2 sm:p-3 bg-stone-50 border border-stone-200 text-stone-500 flex items-start gap-1.5 sm:gap-2 text-[10px] sm:text-[11px]">
+                <span class="text-xs sm:text-sm shrink-0">📊</span>
+                <p class="leading-tight" :class="lang === 'kn' ? 'kn-text' : ''">
+                    <strong class="font-bold text-stone-700" x-text="lang === 'en' ? 'Disclaimer: ' : 'ಹಕ್ಕುತ್ಯಾಗ: '"></strong>
+                    <span x-text="lang === 'en' 
+                        ? 'Statistical projections based on historical APMC auction patterns. Subject to market fluctuations, weather, and policy shifts.' 
+                        : 'ಐತಿಹಾಸಿಕ ಎಪಿಎಂಸಿ ಹರಾಜು ಮಾದರಿಗಳ ಆಧಾರದ ಮೇಲೆ ಅಂಕಿಅಂಶ ಮುನ್ಸೂಚನೆ. ಮಾರುಕಟ್ಟೆ ಏರಿಳಿತಗಳು, ಹವಾಮಾನ ಮತ್ತು ನೀತಿ ಬದಲಾವಣೆಗಳಿಗೆ ಒಳಪಟ್ಟಿರುತ್ತದೆ.'"></span>
+                </p>
+            </div>
+
+        </div>
+
+    </main>
+
+</body>
+</html>

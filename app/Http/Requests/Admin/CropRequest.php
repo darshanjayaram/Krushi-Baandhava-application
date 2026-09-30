@@ -21,7 +21,8 @@ class CropRequest extends FormRequest
      */
     public function rules(): array
     {
-        $cropId = $this->route('crop')?->id ?? $this->route('crop');
+        $crop = $this->route('crop');
+        $cropId = is_object($crop) ? $crop->id : ($crop ?: $this->input('id'));
 
         return [
             'category_id' => ['required', 'exists:crop_categories,id'],
@@ -38,6 +39,8 @@ class CropRequest extends FormRequest
             'icon' => ['nullable', 'string', 'max:255'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:5120'],
             'preset_image' => ['nullable', 'string', 'max:255'],
+            'selected_image_path' => ['nullable', 'string', 'max:255'],
+            'remove_image' => ['sometimes', 'boolean'],
             'description' => ['nullable', 'string'],
             'is_major' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],

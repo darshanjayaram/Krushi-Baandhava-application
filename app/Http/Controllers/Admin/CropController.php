@@ -48,6 +48,65 @@ class CropController extends Controller
     }
 
     /**
+     * Get all available crop images (bundled presets and custom uploads) with crop usage tags.
+     */
+    protected function getAvailableImages(): \Illuminate\Support\Collection
+    {
+        $images = collect();
+
+        // 1. Bundled Presets
+        $presetDir = public_path('images/crops');
+        if (file_exists($presetDir)) {
+            foreach (File::files($presetDir) as $file) {
+                $name = $file->getFilename();
+                if (preg_match('/\.(jpg|jpeg|png|webp)$/i', $name)) {
+                    $cleanLabel = ucwords(str_replace(['_', '-'], ' ', pathinfo($name, PATHINFO_FILENAME)));
+                    $images->push([
+                        'filename' => $name,
+                        'path' => 'images/crops/' . $name,
+                        'url' => asset('images/crops/' . $name),
+                        'type' => 'preset',
+                        'label' => $cleanLabel,
+                        'size_kb' => round($file->getSize() / 1024),
+                    ]);
+                }
+            }
+        }
+
+        // 2. Custom Uploads
+        $uploadDir = public_path('uploads/crops');
+        if (file_exists($uploadDir)) {
+            foreach (File::files($uploadDir) as $file) {
+                $name = $file->getFilename();
+                if (preg_match('/\.(jpg|jpeg|png|webp|svg)$/i', $name)) {
+                    $cleanLabel = preg_replace('/^crop_/', '', pathinfo($name, PATHINFO_FILENAME));
+                    $cleanLabel = preg_replace('/_\d+$/', '', $cleanLabel);
+                    $cleanLabel = ucwords(str_replace(['_', '-'], ' ', $cleanLabel));
+                    $images->push([
+                        'filename' => $name,
+                        'path' => 'uploads/crops/' . $name,
+                        'url' => asset('uploads/crops/' . $name),
+                        'type' => 'upload',
+                        'label' => $cleanLabel . ' (Upload)',
+                        'size_kb' => round($file->getSize() / 1024),
+                    ]);
+                }
+            }
+        }
+
+        // Map live crop usage for each image
+        $usageGroup = Crop::whereNotNull('icon')->get(['name', 'icon'])->groupBy('icon');
+
+        return $images->map(function ($img) use ($usageGroup) {
+            $usedBy = $usageGroup->get($img['path']);
+            $img['used_by'] = $usedBy ? $usedBy->pluck('name')->all() : [];
+            return $img;
+        })->sortBy(function ($img) {
+            return ($img['type'] === 'upload' ? '0_' : '1_') . $img['label'];
+        })->values();
+    }
+
+    /**
      * Show the form for creating a new crop.
      */
     public function create(Request $request): View
@@ -68,6 +127,7 @@ class CropController extends Controller
             ]),
             'categories' => $categories,
             'presetImages' => $presetImages,
+            'availableImages' => $this->getAvailableImages(),
             'isEdit' => false,
         ]);
     }
@@ -88,7 +148,7 @@ class CropController extends Controller
         $data['market_radius_km'] = $request->filled('market_radius_km') ? (int) $request->input('market_radius_km') : 300;
         $data['default_market_sort'] = $request->input('default_market_sort', 'nearest_first') ?: 'nearest_first';
 
-        // Process crop image (file upload or preset)
+        // Process crop image (file upload, selected gallery image, or preset)
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $uploadDir = public_path('uploads/crops');
@@ -98,6 +158,11 @@ class CropController extends Controller
             $filename = 'crop_' . Str::slug($data['slug']) . '_' . time() . '.' . $file->getClientOriginalExtension();
             $file->move($uploadDir, $filename);
             $data['icon'] = 'uploads/crops/' . $filename;
+        } elseif ($request->filled('selected_image_path')) {
+            $path = trim($request->input('selected_image_path'));
+            if (file_exists(public_path($path))) {
+                $data['icon'] = $path;
+            }
         } elseif ($request->filled('preset_image')) {
             $data['icon'] = 'images/crops/' . $request->input('preset_image');
         }
@@ -132,6 +197,7 @@ class CropController extends Controller
             'categories' => $categories,
             'dataSources' => $dataSources,
             'presetImages' => $presetImages,
+            'availableImages' => $this->getAvailableImages(),
             'isEdit' => true,
         ]);
     }
@@ -153,8 +219,22 @@ class CropController extends Controller
         $data['market_radius_km'] = $request->filled('market_radius_km') ? (int) $request->input('market_radius_km') : 300;
         $data['default_market_sort'] = $request->input('default_market_sort', 'nearest_first') ?: 'nearest_first';
 
-        // Process crop image (file upload, preset, or remove)
+        // Helper to safely delete previous custom upload if not shared with another crop
+        $deleteOldCustomUpload = function () use ($crop) {
+            if ($crop->icon && str_starts_with($crop->icon, 'uploads/crops/')) {
+                $otherUsageCount = Crop::where('id', '!=', $crop->id)
+                    ->where('icon', $crop->icon)
+                    ->count();
+                if ($otherUsageCount === 0 && file_exists(public_path($crop->icon))) {
+                    @unlink(public_path($crop->icon));
+                }
+            }
+        };
+
+        // Process crop image (file upload, selected gallery image, preset, or remove)
         if ($request->hasFile('image')) {
+            $deleteOldCustomUpload();
+
             $file = $request->file('image');
             $uploadDir = public_path('uploads/crops');
             if (!file_exists($uploadDir)) {
@@ -163,9 +243,18 @@ class CropController extends Controller
             $filename = 'crop_' . Str::slug($data['slug'] ?? $crop->slug) . '_' . time() . '.' . $file->getClientOriginalExtension();
             $file->move($uploadDir, $filename);
             $data['icon'] = 'uploads/crops/' . $filename;
+        } elseif ($request->filled('selected_image_path')) {
+            $newPath = trim($request->input('selected_image_path'));
+            if (file_exists(public_path($newPath))) {
+                $data['icon'] = $newPath;
+            }
         } elseif ($request->filled('preset_image')) {
-            $data['icon'] = 'images/crops/' . $request->input('preset_image');
+            $newPath = 'images/crops/' . $request->input('preset_image');
+            if (file_exists(public_path($newPath))) {
+                $data['icon'] = $newPath;
+            }
         } elseif ($request->boolean('remove_image')) {
+            $deleteOldCustomUpload();
             $data['icon'] = null;
         }
 
@@ -515,5 +604,101 @@ class CropController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Upload an image directly into the crop media gallery (AJAX).
+     */
+    public function uploadMedia(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:5120'],
+        ]);
+
+        $file = $request->file('file');
+        $uploadDir = public_path('uploads/crops');
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $cleanBaseName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        if (empty($cleanBaseName)) {
+            $cleanBaseName = 'asset';
+        }
+        $filename = 'crop_' . $cleanBaseName . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $file->move($uploadDir, $filename);
+
+        $path = 'uploads/crops/' . $filename;
+        $cleanLabel = ucwords(str_replace(['_', '-'], ' ', $cleanBaseName));
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Image uploaded to gallery successfully.',
+            'image' => [
+                'filename' => $filename,
+                'path' => $path,
+                'url' => asset($path),
+                'type' => 'upload',
+                'label' => $cleanLabel . ' (Upload)',
+                'size_kb' => round(filesize(public_path($path)) / 1024),
+                'used_by' => [],
+            ],
+        ]);
+    }
+
+    /**
+     * Batch delete uploaded photos from the gallery (AJAX).
+     */
+    public function batchDeleteMedia(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'paths' => ['required', 'array'],
+            'paths.*' => ['required', 'string'],
+        ]);
+
+        $deleted = [];
+        $skipped = [];
+
+        foreach ($validated['paths'] as $path) {
+            $trimmedPath = ltrim($path, '/\\');
+
+            // Security: Only allow deleting files in uploads/crops/ (never core bundled presets in images/crops/)
+            if (!str_starts_with($trimmedPath, 'uploads/crops/')) {
+                $skipped[] = [
+                    'path' => $path,
+                    'reason' => 'Presets cannot be deleted as they are core bundled assets.',
+                ];
+                continue;
+            }
+
+            $fullPath = public_path($trimmedPath);
+            if (file_exists($fullPath)) {
+                // If any crop is currently using this photo, unassign it so there are no broken links
+                $affectedCrops = Crop::where('icon', $trimmedPath)->get();
+                foreach ($affectedCrops as $crop) {
+                    $crop->icon = null;
+                    $crop->save();
+                }
+
+                if (@unlink($fullPath)) {
+                    $deleted[] = $trimmedPath;
+                } else {
+                    $skipped[] = [
+                        'path' => $trimmedPath,
+                        'reason' => 'Permission denied or file locked by system.',
+                    ];
+                }
+            } else {
+                $deleted[] = $trimmedPath;
+            }
+        }
+
+        return response()->json([
+            'ok' => count($deleted) > 0,
+            'deleted_count' => count($deleted),
+            'deleted_paths' => $deleted,
+            'skipped' => $skipped,
+            'message' => count($deleted) . ' photo(s) removed from gallery.',
+        ]);
     }
 }

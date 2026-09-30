@@ -75,6 +75,9 @@ class SystemSettingController extends Controller
             SystemSetting::set('app_logo', $logoUrl, 'string', 'general', 'Application branding logo path.');
             Cache::forget('system_setting_app_logo');
 
+            // Automatically sync standard PWA installation icons from the new application logo
+            $this->syncPwaIconsFromLogo($logoUrl);
+
             AuditLog::log('settings.update_logo', 'SystemSetting', null, ['app_logo' => $oldLogo], ['app_logo' => $logoUrl]);
         } elseif ($request->boolean('remove_logo')) {
             $oldLogo = SystemSetting::get('app_logo', '/icons/icon-192.svg');
@@ -216,5 +219,50 @@ class SystemSettingController extends Controller
 
         return redirect()->route('admin.settings.index', ['tab' => 'forecasting'])
             ->with('success', 'Statistical price forecasting batch execution completed across all active Karnataka crops.');
+    }
+
+    /**
+     * Automatically regenerate high-resolution standard PNG icons for PWA installation
+     * matching the uploaded application branding logo.
+     */
+    protected function syncPwaIconsFromLogo(string $logoPath): void
+    {
+        $fullPath = public_path(ltrim($logoPath, '/'));
+        if (!file_exists($fullPath)) {
+            return;
+        }
+
+        try {
+            $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+            $src = match($ext) {
+                'png' => @imagecreatefrompng($fullPath),
+                'jpg', 'jpeg' => @imagecreatefromjpeg($fullPath),
+                'webp' => @imagecreatefromwebp($fullPath),
+                default => null,
+            };
+
+            if (!$src) {
+                return;
+            }
+
+            $w = imagesx($src);
+            $h = imagesy($src);
+
+            foreach ([192, 512] as $size) {
+                $dest = imagecreatetruecolor($size, $size);
+                imagealphablending($dest, false);
+                imagesavealpha($dest, true);
+                $transparent = imagecolorallocatealpha($dest, 255, 255, 255, 127);
+                imagefilledrectangle($dest, 0, 0, $size, $size, $transparent);
+                imagecopyresampled($dest, $src, 0, 0, 0, 0, $size, $size, $w, $h);
+                $target = public_path('icons/icon-' . $size . '.png');
+                imagepng($dest, $target, 9);
+                imagedestroy($dest);
+            }
+
+            imagedestroy($src);
+        } catch (\Throwable $e) {
+            \Log::warning('PWA icon generation from logo skipped: ' . $e->getMessage());
+        }
     }
 }

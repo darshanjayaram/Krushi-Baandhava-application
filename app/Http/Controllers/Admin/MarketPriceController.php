@@ -106,6 +106,35 @@ class MarketPriceController extends Controller
         $districts = District::where('is_active', true)->orderBy('name')->get();
         $dataSources = DataSource::orderBy('name')->get();
 
+        // Build configured sync crops per data source for the Run Ingestion Sync modal
+        $activeSourceIds = $dataSources->where('is_active', true)->pluck('id');
+        $syncRows = \App\Models\DataSourceCropSync::whereIn('data_source_id', $activeSourceIds)
+            ->where('is_enabled', true)
+            ->with('crop:id,name,name_kn')
+            ->get();
+
+        $savedSourceCrops = [];
+        $allDistinctCrops = [];
+
+        foreach ($syncRows as $row) {
+            if (!$row->crop) continue;
+            $cropData = [
+                'id' => (int) $row->crop->id,
+                'name' => $row->crop->name,
+                'name_kn' => $row->crop->name_kn,
+            ];
+            $savedSourceCrops[$row->data_source_id][] = $cropData;
+            $allDistinctCrops[$row->crop->id] = $cropData;
+        }
+
+        foreach ($savedSourceCrops as $srcId => &$cropList) {
+            usort($cropList, fn ($a, $b) => strcmp($a['name'], $b['name']));
+        }
+        unset($cropList);
+
+        $savedAllActiveCrops = array_values($allDistinctCrops);
+        usort($savedAllActiveCrops, fn ($a, $b) => strcmp($a['name'], $b['name']));
+
         // Available years for dropdown
         $availableYears = MarketPrice::selectRaw('DISTINCT YEAR(price_date) as yr')
             ->orderByDesc('yr')
@@ -160,6 +189,8 @@ class MarketPriceController extends Controller
             'activeMarketsCount',
             'avgSpread',
             'crops',
+            'savedSourceCrops',
+            'savedAllActiveCrops',
             'markets',
             'districts',
             'dataSources',
@@ -181,8 +212,18 @@ class MarketPriceController extends Controller
      */
     public function sync(Request $request): RedirectResponse|JsonResponse
     {
+        $validated = $request->validate([
+            'data_source_id' => ['nullable', 'exists:data_sources,id'],
+            'target_date' => ['nullable', 'date'],
+            'crop_id' => ['nullable', 'exists:crops,id'],
+            'force' => ['nullable', 'boolean'],
+            'captcha_key' => ['nullable', 'string'],
+            'captcha_code' => ['nullable', 'string', 'max:10'],
+        ]);
+
         $sourceId = $request->input('data_source_id');
         $date = $request->input('target_date', Carbon::today()->toDateString());
+        $cropId = $request->input('crop_id');
         $force = $request->boolean('force', false);
         $startTime = microtime(true);
         $syncStartTimestamp = Carbon::now()->subSeconds(2);
@@ -190,6 +231,9 @@ class MarketPriceController extends Controller
         $sources = $sourceId
             ? DataSource::where('id', $sourceId)->get()
             : DataSource::where('is_active', true)->get();
+
+        $targetCrop = $cropId ? Crop::find($cropId) : null;
+        $targetCommodity = $targetCrop?->name;
 
         $sourceBreakdown = [];
         $totalReceived = 0;
@@ -199,9 +243,20 @@ class MarketPriceController extends Controller
         $totalRejected = 0;
 
         foreach ($sources as $source) {
+            $filters = array_filter([
+                'date' => $date,
+                'from_date' => $date,
+                'to_date' => $date,
+                'crop_id' => $cropId,
+                'commodity' => $targetCommodity,
+                'captcha_key' => $validated['captcha_key'] ?? null,
+                'captcha_value' => $validated['captcha_code'] ?? null,
+                'captcha_code' => $validated['captcha_code'] ?? null,
+            ], fn ($val) => $val !== null && $val !== '');
+
             $res = $this->ingestionService->ingest($source, [
                 'force' => $force,
-                'filters' => ['date' => $date],
+                'filters' => $filters,
             ]);
 
             $rec = (int) ($res['received'] ?? 0);

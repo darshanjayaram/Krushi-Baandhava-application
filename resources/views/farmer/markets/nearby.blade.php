@@ -344,38 +344,49 @@ function detectFarmerLocation() {
     btn.classList.add('opacity-75');
     statusMsg.classList.add('hidden');
 
-    navigator.geolocation.getCurrentPosition(
-        function (position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
+    function onGpsSuccess(position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
 
-            // Preserve current radius and crop filters if present
-            const url = new URL(window.location.href);
-            url.searchParams.set('lat', lat.toFixed(6));
-            url.searchParams.set('lon', lon.toFixed(6));
-            url.searchParams.delete('district'); // Clear manual district when GPS is used
+        const url = new URL(window.location.href);
+        url.searchParams.set('lat', lat.toFixed(6));
+        url.searchParams.set('lon', lon.toFixed(6));
+        url.searchParams.delete('district');
 
-            window.location.href = url.toString();
-        },
-        function (error) {
-            btn.disabled = false;
-            btn.classList.remove('opacity-75');
-            icon.innerHTML = '📍';
-            text.innerText = isEn ? 'Locate Me (Current GPS)' : 'ಪ್ರಸ್ತುತ ಸ್ಥಳದಿಂದ ಹುಡುಕಿ (Locate Me)';
+        window.location.href = url.toString();
+    }
 
-            let msg = isEn ? 'Could not detect location. Please select from the district list.' : 'ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಜಿಲ್ಲಾ ಪಟ್ಟಿಯಿಂದ ಆಯ್ಕೆಮಾಡಿ.';
-            if (error.code === error.PERMISSION_DENIED) {
-                msg = isEn ? '⚠️ Location permission denied. Please enable location in your browser settings or select a district below.' : '⚠️ ಸ್ಥಳ ಪ್ರವೇಶ ನಿರಾಕರಿಸಲಾಗಿದೆ (Location Permission Denied). ದಯವಿಟ್ಟು ಬ್ರೌಸರ್ ಸೆಟ್ಟಿಂಗ್‌ನಲ್ಲಿ ಅನುಮತಿ ನೀಡಿ ಅಥವಾ ಕೆಳಗಿನ ಜಿಲ್ಲಾ ಪಟ್ಟಿಯಿಂದ ಆಯ್ಕೆಮಾಡಿ.';
-            } else if (error.code === error.TIMEOUT) {
-                msg = isEn ? '⚠️ Location detection timed out. Please try again.' : '⚠️ ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚುವಿಕೆ ಸಮಯ ಮೀರಿದೆ. ದಯವಿಟ್ಟು ಪುನಃ ಪ್ರಯತ್ನಿಸಿ.';
-            }
-            showGpsError(msg);
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 60000
+    function onGpsFinalError(error) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75');
+        icon.innerHTML = '📍';
+        text.innerText = isEn ? 'Locate Me (Current GPS)' : 'ಪ್ರಸ್ತುತ ಸ್ಥಳದಿಂದ ಹುಡುಕಿ (Locate Me)';
+
+        let msg = isEn ? 'Could not detect location. Please select from the district list.' : 'ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಜಿಲ್ಲಾ ಪಟ್ಟಿಯಿಂದ ಆಯ್ಕೆಮಾಡಿ.';
+        if (error.code === error.PERMISSION_DENIED) {
+            msg = isEn ? '⚠️ Location permission denied. Please click the lock (🔒) icon in your browser to allow location access, or select a district below.' : '⚠️ ಸ್ಥಳ ಪ್ರವೇಶ ನಿರಾಕರಿಸಲಾಗಿದೆ. ಬ್ರೌಸರ್ URL ಬಾರ್‌ನಲ್ಲಿರುವ Lock (🔒) ಐಕಾನ್ ಒತ್ತಿ Location Allow ಮಾಡಿ ಅಥವಾ ಕೆಳಗಿನ ಜಿಲ್ಲೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.';
+        } else if (error.code === error.TIMEOUT) {
+            msg = isEn ? '⚠️ Location detection timed out. Please try again.' : '⚠️ ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚುವಿಕೆ ಸಮಯ ಮೀರಿದೆ. ದಯವಿಟ್ಟು ಪುನಃ ಪ್ರಯತ್ನಿಸಿ.';
         }
+        showGpsError(msg);
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        onGpsSuccess,
+        function (err) {
+            console.warn('GPS high accuracy failed, retrying network location...', err);
+            if (err.code === err.PERMISSION_DENIED) {
+                onGpsFinalError(err);
+                return;
+            }
+            text.innerText = isEn ? 'Trying network location...' : 'ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಹುಡುಕಲಾಗುತ್ತಿದೆ...';
+            navigator.geolocation.getCurrentPosition(
+                onGpsSuccess,
+                onGpsFinalError,
+                { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+            );
+        },
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
     );
 }
 

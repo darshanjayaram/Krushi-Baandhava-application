@@ -411,7 +411,25 @@
                                       class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans leading-relaxed"></textarea>
                             <p class="text-[10px] text-slate-500">Supporting subtitle displayed under the English headline.</p>
                         </div>
+                <!-- ============================================================== -->
+                <!-- DEDICATED FOOTER CMS CALLOUT                                   -->
+                <!-- ============================================================== -->
+                <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Footer Layout & Content CMS</h4>
+                            <p class="text-xs text-slate-400 mt-0.5">Developer attribution, bilingual statements, APMC feeds badge, and farmer community links are managed in the dedicated CMS page.</p>
+                        </div>
                     </div>
+                    <a href="{{ route('admin.footer.index') }}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition flex items-center gap-1.5 self-start sm:self-auto shadow-sm">
+                        <span>Open Footer CMS</span>
+                        <span>→</span>
+                    </a>
                 </div>
             @endif
 

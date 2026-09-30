@@ -145,8 +145,8 @@ class AgmarknetHistoricalDataProvider extends BaseMarketDataProvider
         $payload = array_merge([
             'state_id' => $filters['state_id'] ?? 16, // Karnataka
             'commodity_id' => $filters['commodity_id'] ?? null,
-            'from_date' => $filters['from_date'] ?? Carbon::now()->subYears(3)->format('Y-m-d'),
-            'to_date' => $filters['to_date'] ?? Carbon::now()->format('Y-m-d'),
+            'from_date' => $filters['from_date'] ?? ($filters['date'] ?? Carbon::now()->subYears(3)->format('Y-m-d')),
+            'to_date' => $filters['to_date'] ?? ($filters['date'] ?? Carbon::now()->format('Y-m-d')),
         ], array_filter([
             'captcha_key' => $captchaKey,
             'captcha_value' => $captchaVal,

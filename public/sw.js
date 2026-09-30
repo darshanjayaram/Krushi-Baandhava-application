@@ -1,19 +1,21 @@
-// Krushi Baandhava PWA Service Worker (v3)
-const CACHE_NAME = 'krushi-baandhava-v3';
+// Krushi Baandhava PWA Service Worker (v4)
+const CACHE_NAME = 'krushi-baandhava-v4';
 const STATIC_ASSETS = [
-    '/offline',
-    '/manifest.json',
-    '/icons/icon-192.svg',
-    '/icons/icon-512.svg'
+    './offline',
+    './manifest.json',
+    './icons/icon-192.png',
+    './icons/icon-512.png',
+    './icons/icon-192.svg',
+    './icons/icon-512.svg'
 ];
 
 // Precache App Shell and Offline Page
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(STATIC_ASSETS).catch((err) => {
-                console.warn('Pre-cache partial failure:', err);
-            });
+            return Promise.allSettled(
+                STATIC_ASSETS.map((url) => cache.add(url).catch(() => {}))
+            );
         })
     );
     self.skipWaiting();

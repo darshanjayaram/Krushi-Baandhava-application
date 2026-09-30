@@ -29,13 +29,13 @@ class SecurityHeadersMiddleware
         // 4. Referrer Policy
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-        // 5. Restrict Unused Device Hardware APIs
+        // 5. Restrict Unused Device Hardware APIs (Permit microphone and geolocation on self for farmer voice notes & mandi lookup)
         $response->headers->set(
             'Permissions-Policy',
-            'camera=(), microphone=(), payment=(), usb=(), display-capture=(), geolocation=(self)'
+            'camera=(), microphone=(self), payment=(), usb=(), display-capture=(), geolocation=(self)'
         );
 
-        // 6. Content Security Policy (allows self, Livewire/Alpine inline, Chart.js CDN, YouTube embeds)
+        // 6. Content Security Policy (allows self, Livewire/Alpine inline, Chart.js CDN, YouTube embeds, audio blob playback)
         if (!$response->headers->has('Content-Security-Policy')) {
             $csp = [
                 "default-src 'self'",
@@ -43,9 +43,9 @@ class SecurityHeadersMiddleware
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                 "font-src 'self' https://fonts.gstatic.com data:",
                 "img-src 'self' data: https: blob:",
-                "media-src 'self'",
+                "media-src 'self' blob: data:",
                 "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
-                "connect-src 'self' https://nominatim.openstreetmap.org https://api.open-meteo.com",
+                "connect-src 'self' https://nominatim.openstreetmap.org https://api.open-meteo.com https://ipwho.is https://ipapi.co",
                 "object-src 'none'",
                 "base-uri 'self'",
                 "form-action 'self'",
