@@ -157,11 +157,9 @@ html[lang="kn"] #siteHeader .header-location-pill span:not(.text-rose-500) {
     line-height: 1.2;
 }
 
-/* Strict Responsive Visibility Guarantee: never display hidden elements on mobile */
-html[lang="kn"] .hidden,
-html[lang="kn"] #siteHeader .hidden {
-    display: none !important;
-}
+/* Strict Responsive Visibility Guarantee: never display hidden elements on mobile/tablet only.
+   IMPORTANT: Do NOT add unconditional html[lang="kn"] .hidden rules here — that breaks desktop
+   responsive variants like lg:flex and md:flex which rely on Tailwind's cascade to override .hidden. */
 @media (max-width: 1023px) {
     html[lang="kn"] #siteHeader .hidden,
     html[lang="kn"] #siteHeader .lg\:flex,

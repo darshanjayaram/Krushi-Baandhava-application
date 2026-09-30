@@ -1,5 +1,5 @@
-// Krushi Baandhava PWA Service Worker (v4)
-const CACHE_NAME = 'krushi-baandhava-v4';
+// Krushi Baandhava PWA Service Worker (v5)
+const CACHE_NAME = 'krushi-baandhava-v5';
 const STATIC_ASSETS = [
     './offline',
     './manifest.json',
@@ -35,6 +35,13 @@ self.addEventListener('activate', (event) => {
         })
     );
     self.clients.claim();
+});
+
+// Allow client pages to trigger immediate skip waiting on user refresh
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 // Intercept fetch requests
@@ -84,8 +91,9 @@ self.addEventListener('fetch', (event) => {
                     }
                     // For document navigation requests when completely offline, show dedicated offline screen
                     if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
-                        return caches.match('/offline').then((offlineFallback) => {
-                            return offlineFallback || caches.match('/');
+                        const offlineUrl = new URL('./offline', self.registration.scope).href;
+                        return caches.match(offlineUrl).then((offlineFallback) => {
+                            return offlineFallback || caches.match('./offline') || caches.match('/offline') || caches.match('/');
                         });
                     }
                     return null;

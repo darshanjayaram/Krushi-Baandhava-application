@@ -53,22 +53,22 @@
 @endphp
 
 <!-- Full-Width Classic & Simple Footer (100% Viewport Background, Aligned Max-w-7xl Container) -->
-<footer class="w-full mt-auto bg-[#EFEAE0] border-t-2 border-[#DDD3BE] text-stone-800 pb-24 md:pb-8"
+<footer class="w-full mt-auto bg-[#EFEAE0] border-t-2 border-[#DDD3BE] text-stone-800"
         x-data="{
             exploreOpen: false,
             communityOpen: false
         }">
     
     <!-- Main Content Container: Perfectly matches Homepage max-w-7xl width and gutters -->
-    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:py-9">
 
-        <!-- 3-Column Responsive Flex Layout (Bulletproof: Immune to Grid Collapsing) -->
-        <div class="flex flex-col md:flex-row gap-8 lg:gap-12 justify-between items-start">
+        <!-- 3-Column Responsive Flex Layout: Consistent compact gap on mobile, spacious on desktop -->
+        <div class="flex flex-col md:flex-row gap-3.5 md:gap-8 lg:gap-12 justify-between items-start">
 
             <!-- ============================================================== -->
             <!-- COLUMN 1: BRAND, TELEMETRY & ABOUT (5/12 desktop width)        -->
             <!-- ============================================================== -->
-            <div class="w-full md:w-5/12 min-w-0 space-y-3.5">
+            <div class="w-full md:w-5/12 min-w-0 space-y-2.5 pb-1 md:pb-0">
                 <!-- Brand Header -->
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-white border border-[#DDD3BE] p-1.5 shrink-0 shadow-2xs flex items-center justify-center">
@@ -192,15 +192,15 @@
                 @endif
 
                 <!-- MOBILE ACCORDION (Column 2) -->
-                <div class="md:hidden space-y-2">
+                <div class="md:hidden space-y-1.5">
                     <button type="button" 
                             @click="exploreOpen = !exploreOpen"
-                            class="w-full py-2.5 px-3.5 rounded-xl bg-white/70 border border-[#DDD3BE] flex items-center justify-between text-xs font-bold text-stone-800 active:scale-[0.99] transition cursor-pointer">
+                            class="w-full py-2 px-3.5 rounded-xl bg-white/80 hover:bg-white border border-[#DDD3BE] flex items-center justify-between text-xs font-bold text-stone-800 shadow-2xs active:scale-[0.99] transition cursor-pointer">
                         <span class="flex items-center gap-2">
                             <span>📂</span>
                             <span class="{{ $locale === 'kn' ? 'font-kannada' : '' }}">{{ $col2Title }}</span>
                         </span>
-                        <span class="text-stone-500 transform transition-transform duration-200" :class="{ 'rotate-180': exploreOpen }">▼</span>
+                        <span class="text-stone-500 text-[10px] transform transition-transform duration-200" :class="{ 'rotate-180': exploreOpen }">▼</span>
                     </button>
 
                     <div x-show="exploreOpen" x-cloak class="space-y-1.5 pt-1">
@@ -296,18 +296,18 @@
                 </div>
 
                 <!-- MOBILE ACCORDION (Column 3) -->
-                <div class="md:hidden space-y-2">
+                <div class="md:hidden space-y-1.5">
                     <button type="button" 
                             @click="communityOpen = !communityOpen"
-                            class="w-full py-2.5 px-3.5 rounded-xl bg-white/70 border border-[#DDD3BE] flex items-center justify-between text-xs font-bold text-stone-800 active:scale-[0.99] transition cursor-pointer">
+                            class="w-full py-2 px-3.5 rounded-xl bg-white/80 hover:bg-white border border-[#DDD3BE] flex items-center justify-between text-xs font-bold text-stone-800 shadow-2xs active:scale-[0.99] transition cursor-pointer">
                         <span class="flex items-center gap-2">
                             <span>🤝</span>
                             <span class="{{ $locale === 'kn' ? 'font-kannada' : '' }}">{{ $col3Title }}</span>
                         </span>
-                        <span class="text-stone-500 transform transition-transform duration-200" :class="{ 'rotate-180': communityOpen }">▼</span>
+                        <span class="text-stone-500 text-[10px] transform transition-transform duration-200" :class="{ 'rotate-180': communityOpen }">▼</span>
                     </button>
 
-                    <div x-show="communityOpen" x-cloak class="space-y-2 pt-1">
+                    <div x-show="communityOpen" x-cloak class="space-y-1.5 pt-1">
                         @forelse($visibleCol3Links as $item)
                             @php
                                 $itemLabel = ($locale === 'kn' && !empty($item['label_kn'])) ? $item['label_kn'] : ($item['label_en'] ?? '');
@@ -320,7 +320,7 @@
 
                             @if($itemStyle === 'button')
                                 <a href="{{ $itemUrl }}" {!! $itemTarget !!}
-                                   class="inline-flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl bg-[#1C5A2C] hover:bg-[#154622] text-white text-xs font-bold transition">
+                                   class="inline-flex items-center justify-between w-full px-3 py-2 rounded-xl bg-[#1C5A2C] hover:bg-[#154622] text-white text-xs font-bold transition">
                                     <span class="flex items-center gap-2">
                                         <span class="text-base">{{ $itemIcon }}</span>
                                         <span class="flex flex-col text-left">
@@ -370,9 +370,17 @@
         <!-- ============================================================== -->
         <!-- BOTTOM ATTRIBUTION & COPYRIGHT BAR                            -->
         <!-- ============================================================== -->
-        <div class="mt-8 pt-5 border-t border-[#DDD3BE] flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-stone-600">
-            <!-- Left: Developed by -->
-            <div class="w-full md:w-1/3 flex justify-center md:justify-start items-center gap-1.5 order-2 md:order-1">
+        <div class="mt-4 pt-3.5 md:mt-8 md:pt-5 border-t border-[#DDD3BE] flex flex-col md:flex-row items-center justify-between gap-1.5 md:gap-3 text-xs text-stone-600">
+            <!-- Center: Made with ❤️ for Karnataka Farmers 🌱 (Order 1 on mobile, Order 2 on desktop) -->
+            <div class="w-full md:w-1/3 flex justify-center items-center text-center order-1 md:order-2">
+                <span class="text-[11.5px] sm:text-xs font-semibold text-stone-700 flex items-center justify-center gap-1 {{ $locale === 'kn' ? 'font-kannada leading-tight' : '' }}">
+                    <span>🌾</span>
+                    <span>{{ $locale === 'kn' ? 'ಕರ್ನಾಟಕದ ರೈತರಿಗಾಗಿ ರೂಪಿಸಲಾಗಿದೆ 🌱' : 'Made with ❤️ for Karnataka Farmers 🌱' }}</span>
+                </span>
+            </div>
+
+            <!-- Left: Developed by (Order 2 on mobile, Order 1 on desktop) -->
+            <div class="w-full md:w-1/3 flex justify-center md:justify-start items-center gap-1 text-[11px] sm:text-xs text-stone-500 order-2 md:order-1">
                 <span>Developed by</span>
                 @if($footerDevUrl && $footerDevUrl !== '#')
                     <a href="{{ $footerDevUrl }}" target="_blank" rel="noopener noreferrer" class="font-bold text-[#1C5A2C] hover:underline">
@@ -383,16 +391,8 @@
                 @endif
             </div>
 
-            <!-- Center: Made with ❤️ for Karnataka Farmers 🌱 -->
-            <div class="w-full md:w-1/3 flex justify-center items-center text-center order-1 md:order-2">
-                <span class="font-medium text-stone-700 flex items-center justify-center gap-1 {{ $locale === 'kn' ? 'font-kannada' : '' }}">
-                    <span>🌾</span>
-                    <span>{{ $locale === 'kn' ? 'ಕರ್ನಾಟಕದ ರೈತರಿಗಾಗಿ ರೂಪಿಸಲಾಗಿದೆ 🌱' : 'Made with ❤️ for Karnataka Farmers 🌱' }}</span>
-                </span>
-            </div>
-
-            <!-- Right: Copyright notice -->
-            <div class="w-full md:w-1/3 flex justify-center md:justify-end items-center text-center md:text-right order-3">
+            <!-- Right: Copyright notice (Order 3 on mobile and desktop) -->
+            <div class="w-full md:w-1/3 flex justify-center md:justify-end items-center text-center md:text-right text-[10.5px] sm:text-xs text-stone-400 font-medium order-3">
                 <span>{{ $footerCopyrightText }}</span>
             </div>
         </div>

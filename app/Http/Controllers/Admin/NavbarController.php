@@ -122,8 +122,8 @@ class NavbarController extends Controller
                 'icon' => '🌾',
                 'label_en' => 'Home & Live Mandi Rates',
                 'label_kn' => 'ಮುಖಪುಟ & ಲೈವ್ ಮಂಡಿ ದರ',
-                'subtitle_en' => 'Karnataka APMC live prices',
-                'subtitle_kn' => 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ದರಗಳು',
+                'subtitle_en' => 'Karnataka mandi live prices',
+                'subtitle_kn' => 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಮಾರುಕಟ್ಟೆ ದರಗಳು',
                 'url' => '/',
                 'badge' => '',
                 'new_tab' => false,
@@ -221,7 +221,14 @@ class NavbarController extends Controller
             'desktop_links' => $desktopLinks,
             'show_location_pill' => (bool) SystemSetting::get('navbar_show_location_pill', true),
             'show_language_toggle' => (bool) SystemSetting::get('navbar_show_language_toggle', true),
+            'show_desktop_app_button' => (bool) SystemSetting::get('navbar_show_desktop_app_button', true),
             'show_hamburger_button' => (bool) SystemSetting::get('navbar_show_hamburger_button', true),
+            'show_subtitle' => (bool) SystemSetting::get('navbar_show_subtitle', true),
+            'subtitle_en' => SystemSetting::get('navbar_subtitle_en', 'Direct Mandi Rates & Forecast'),
+            'subtitle_kn' => SystemSetting::get('navbar_subtitle_kn', 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ'),
+            'navbar_show_subtitle' => (bool) SystemSetting::get('navbar_show_subtitle', true),
+            'navbar_subtitle_en' => SystemSetting::get('navbar_subtitle_en', 'Direct Mandi Rates & Forecast'),
+            'navbar_subtitle_kn' => SystemSetting::get('navbar_subtitle_kn', 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ'),
 
             // Section 2: Mobile Bottom Dock
             'mobile_dock_links' => $mobileDockLinks,
@@ -236,6 +243,8 @@ class NavbarController extends Controller
             'drawer_whatsapp_label_en' => SystemSetting::get('navbar_drawer_whatsapp_label_en', 'Join WhatsApp Farmer Helpdesk'),
             'drawer_whatsapp_label_kn' => SystemSetting::get('navbar_drawer_whatsapp_label_kn', 'ವಾಟ್ಸಾಪ್ ರೈತರ ಸಹಾಯವಾಣಿಗೆ ಸೇರಿ'),
             'drawer_show_pwa' => (bool) SystemSetting::get('navbar_drawer_show_pwa', true),
+            'drawer_pwa_label_en' => SystemSetting::get('navbar_drawer_pwa_label_en', 'Install App on Phone'),
+            'drawer_pwa_label_kn' => SystemSetting::get('navbar_drawer_pwa_label_kn', 'ಆ್ಯಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ'),
 
             // Section 4: Floating Feedback Action Button (FAB)
             'show_feedback_fab' => (bool) SystemSetting::get('navbar_show_feedback_fab', true),
@@ -256,9 +265,13 @@ class NavbarController extends Controller
             'navbar_mobile_dock_links' => 'nullable|string',
             'navbar_drawer_links' => 'nullable|string',
             'navbar_mobile_dock_style' => 'nullable|string|in:floating,fixed',
+            'navbar_subtitle_en' => 'nullable|string|max:150',
+            'navbar_subtitle_kn' => 'nullable|string|max:150',
             'navbar_drawer_whatsapp_url' => 'nullable|string|max:255',
             'navbar_drawer_whatsapp_label_en' => 'nullable|string|max:100',
             'navbar_drawer_whatsapp_label_kn' => 'nullable|string|max:100',
+            'navbar_drawer_pwa_label_en' => 'nullable|string|max:100',
+            'navbar_drawer_pwa_label_kn' => 'nullable|string|max:100',
             'navbar_feedback_fab_url' => 'nullable|string|max:255',
         ]);
 
@@ -331,6 +344,8 @@ class NavbarController extends Controller
             'navbar_show_location_pill',
             'navbar_show_language_toggle',
             'navbar_show_hamburger_button',
+            'navbar_show_desktop_app_button',
+            'navbar_show_subtitle',
             'navbar_mobile_dock_show_labels',
             'navbar_drawer_show_district',
             'navbar_drawer_show_whatsapp',
@@ -346,10 +361,14 @@ class NavbarController extends Controller
 
         // 5. Process String Settings
         $stringKeys = [
+            'navbar_subtitle_en',
+            'navbar_subtitle_kn',
             'navbar_mobile_dock_style',
             'navbar_drawer_whatsapp_url',
             'navbar_drawer_whatsapp_label_en',
             'navbar_drawer_whatsapp_label_kn',
+            'navbar_drawer_pwa_label_en',
+            'navbar_drawer_pwa_label_kn',
             'navbar_feedback_fab_url',
         ];
 
@@ -378,6 +397,10 @@ class NavbarController extends Controller
             SystemSetting::set('navbar_show_location_pill', '1', 'boolean', 'navbar');
             SystemSetting::set('navbar_show_language_toggle', '1', 'boolean', 'navbar');
             SystemSetting::set('navbar_show_hamburger_button', '1', 'boolean', 'navbar');
+            SystemSetting::set('navbar_show_desktop_app_button', '1', 'boolean', 'navbar');
+            SystemSetting::set('navbar_show_subtitle', '1', 'boolean', 'navbar');
+            SystemSetting::set('navbar_subtitle_en', 'Farmer Portal | Empowering Agriculture', 'string', 'navbar');
+            SystemSetting::set('navbar_subtitle_kn', 'ರೈತ ಮಿತ್ರ ಪೋರ್ಟಲ್ | ಕೃಷಿ ವಿಕಾಸ', 'string', 'navbar');
         }
 
         if ($section === 'all' || $section === 'mobile_dock') {
@@ -394,6 +417,8 @@ class NavbarController extends Controller
             SystemSetting::set('navbar_drawer_whatsapp_url', 'https://chat.whatsapp.com/sample-farmer-group', 'string', 'navbar');
             SystemSetting::set('navbar_drawer_whatsapp_label_en', 'Join WhatsApp Farmer Helpdesk', 'string', 'navbar');
             SystemSetting::set('navbar_drawer_whatsapp_label_kn', 'ವಾಟ್ಸಾಪ್ ರೈತರ ಸಹಾಯವಾಣಿಗೆ ಸೇರಿ', 'string', 'navbar');
+            SystemSetting::set('navbar_drawer_pwa_label_en', 'Install App on Phone', 'string', 'navbar');
+            SystemSetting::set('navbar_drawer_pwa_label_kn', 'ಆ್ಯಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ', 'string', 'navbar');
         }
 
         if ($section === 'all' || $section === 'feedback') {

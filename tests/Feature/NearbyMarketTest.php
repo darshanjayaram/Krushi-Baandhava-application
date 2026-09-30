@@ -17,7 +17,7 @@ class NearbyMarketTest extends TestCase
         $response = $this->get('/nearby-markets');
 
         $response->assertStatus(200);
-        $response->assertSee('ನಿಮ್ಮ ಸಮೀಪದ ಕರ್ನಾಟಕ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಗಳು', false);
+        $response->assertSee('ನಿಮ್ಮ ಸಮೀಪದ ಕರ್ನಾಟಕ ಮಂಡಿ ಮಾರುಕಟ್ಟೆಗಳು', false);
         $response->assertSee('ಪ್ರಸ್ತುತ ಸ್ಥಳದಿಂದ ಹುಡುಕಿ', false);
         $response->assertSee('ಹುಡುಕಾಟ ವ್ಯಾಪ್ತಿ', false);
     }
@@ -28,7 +28,7 @@ class NearbyMarketTest extends TestCase
         $response = $this->get('/nearby-markets?lat=13.9299&lon=75.5681&radius=50');
 
         $response->assertStatus(200);
-        $response->assertSee('Shivamogga APMC');
+        $response->assertSee('Shivamogga');
         $response->assertSee('ಕಿ.ಮೀ', false);
         $response->assertSee('Google Maps ನಲ್ಲಿ ದಾರಿ ನೋಡಿ', false);
     }

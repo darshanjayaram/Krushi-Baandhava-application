@@ -477,8 +477,9 @@
 
             <!-- Action Buttons: WhatsApp Share & Where to Sell Simulator -->
             @php
+                $cleanDisplayMarket = preg_replace('/\s+APMC$/i', '', $displayMarketName);
                 $sharePriceText = "🌾 *" . ($activeLocale === 'en' ? 'Krushi Baandhava — ' : 'ಕೃಷಿ ಬಾಂಧವ — ') . ($activeLocale === 'en' ? $crop->name : ($crop->name_kn ?: $crop->name)) . "*\n"
-                    . "📍 " . ($boardMeta ? ($activeLocale === 'en' ? 'Centre: ' : 'ಕೇಂದ್ರ: ') : ($activeLocale === 'en' ? 'Market: ' : 'ಮಾರುಕಟ್ಟೆ: ')) . $displayMarketName . ($boardMeta ? '' : (str_ends_with(strtolower($displayMarketName), 'apmc') ? '' : ' APMC')) . "\n"
+                    . "📍 " . ($boardMeta ? ($activeLocale === 'en' ? 'Centre: ' : 'ಕೇಂದ್ರ: ') : ($activeLocale === 'en' ? 'Market: ' : 'ಮಾರುಕಟ್ಟೆ: ')) . $cleanDisplayMarket . "\n"
                     . "💰 " . ($activeLocale === 'en' ? "Today's Modal Rate: ₹" : 'ಇಂದಿನ ಮಾದರಿ ದರ: ₹') . number_format($displayModal, 0) . " / " . ($activeLocale === 'en' ? ($crop->standard_unit ?? 'Quintal') : ($crop->standard_unit === 'Quintal' ? 'ಕ್ವಿಂಟಾಲ್' : ($crop->standard_unit ?? 'ಕ್ವಿಂಟಾಲ್'))) . "\n"
                     . ($perKgPrice ? ($activeLocale === 'en' ? "⚖️ Approx per kg: ≈ ₹" : "⚖️ ಪ್ರತಿ ಕೆ.ಜಿ ಗೆ: ≈ ₹") . $perKgPrice . "/kg\n" : "")
                     . "📅 " . ($activeLocale === 'en' ? 'Date: ' : 'ದಿನಾಂಕ: ') . $stats['date_formatted'] . "\n"
@@ -520,7 +521,7 @@
                 {{ $stats['highest_modal'] > 0 ? '₹' . number_format($stats['highest_modal'], 0) : '—' }}
             </div>
             <div class="text-xs font-semibold text-emerald-700 truncate mt-0.5 font-sans">
-                {{ $stats['highest_market'] }}{{ $boardMeta ? '' : (str_ends_with(strtolower($stats['highest_market']), 'apmc') ? '' : ' APMC') }}
+                {{ preg_replace('/\s+APMC$/i', '', $stats['highest_market']) }}
             </div>
         </div>
 
@@ -533,7 +534,7 @@
                 {{ $stats['lowest_modal'] > 0 ? '₹' . number_format($stats['lowest_modal'], 0) : '—' }}
             </div>
             <div class="text-xs font-semibold text-stone-500 truncate mt-0.5 font-sans">
-                {{ $stats['lowest_market'] }}{{ $boardMeta ? '' : (str_ends_with(strtolower($stats['lowest_market']), 'apmc') ? '' : ' APMC') }}
+                {{ preg_replace('/\s+APMC$/i', '', $stats['lowest_market']) }}
             </div>
         </div>
 
@@ -1107,7 +1108,7 @@
                     @if($boardMeta)
                         {{ $activeLocale === 'en' ? 'Rates not yet published by official centres.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ' . $boardMeta['badge_kn'] . ' ಅಧಿಕೃತ ಕೇಂದ್ರಗಳಿಂದ ದರ ಮಾಹಿತಿ ಪ್ರಕಟವಾಗಿಲ್ಲ.' }}
                     @else
-                        {{ $activeLocale === 'en' ? 'No APMC market has reported prices for this date.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ಯಾವುದೇ APMC ಮಾರುಕಟ್ಟೆಯಿಂದ ದರ ಮಾಹಿತಿ ಬಂದಿಲ್ಲ.' }}
+                        {{ $activeLocale === 'en' ? 'No mandi market has reported prices for this date.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ಯಾವುದೇ ಮಾರುಕಟ್ಟೆಯಿಂದ ದರ ಮಾಹಿತಿ ಬಂದಿಲ್ಲ.' }}
                     @endif
                 </p>
                 <div class="pt-2">
@@ -1117,7 +1118,7 @@
                 </div>
             </div>
         @else
-            <!-- 2 APMCs Near to Current User Location (Ranked by Best Price) -->
+            <!-- 2 Mandis Near to Current User Location (Ranked by Best Price) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 @foreach($nearestTwoGroups as $index => $group)
                     @include('farmer.crops.partials.mandi-card', [
@@ -1231,7 +1232,7 @@
                 <div class="flex items-center gap-2 mt-1.5 text-xs text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex-wrap">
                     @if($selectedMarket)
                         <span class="inline-flex items-center gap-1 font-semibold text-stone-800 bg-stone-100/80 px-2 py-0.5 rounded-md border border-stone-200/60 font-sans">
-                            🏛️ {{ $displayMarketName }}{{ $boardMeta ? '' : (str_ends_with(strtolower($displayMarketName), 'apmc') ? '' : ' APMC') }}
+                            🏛️ {{ preg_replace('/\s+APMC$/i', '', $displayMarketName) }}
                         </span>
                         <span>{{ $activeLocale === 'en' ? "— {$rangeDays} days price and market arrival report" : "ಯ {$rangeDays} ದಿನಗಳ ದರ ಮತ್ತು ಮಾರುಕಟ್ಟೆ ಆವಕ ವರದಿ" }}</span>
                     @else
@@ -1469,7 +1470,7 @@
                     @endif
                 </div>
                 <div class="text-stone-400 font-sans text-[10.5px]">
-                    {{ $activeLocale === 'en' ? 'Source: APMC / Agmarknet Karnataka' : 'ಮೂಲ: ಎಪಿಎಂಸಿ / Agmarknet Karnataka' }}
+                    {{ $activeLocale === 'en' ? 'Source: Mandi / Agmarknet Karnataka' : 'ಮೂಲ: ಮಂಡಿ / Agmarknet Karnataka' }}
                 </div>
             </div>
         </div>

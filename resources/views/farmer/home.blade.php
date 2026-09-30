@@ -46,7 +46,7 @@
                 <!-- Live Eyebrow -->
                 <div class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-black/40 backdrop-blur-md text-[11px] sm:text-xs font-bold text-emerald-200 border border-emerald-500/40 shadow-sm max-w-full">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                    <span class="truncate min-w-0">{{ $activeLocale === 'en' ? 'Live Market Data • Live APMC Market Rates' : 'ದೈನಂದಿನ ಅಧಿಕೃತ ಎಪಿಎಂಸಿ ದರಗಳು (ನೇರ ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ)' }} • {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}</span>
+                    <span class="truncate min-w-0">{{ $activeLocale === 'en' ? 'Live Market Data • Live Mandi Rates' : 'ದೈನಂದಿನ ಅಧಿಕೃತ ಮಂಡಿ ದರಗಳು (ನೇರ ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ)' }} • {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}</span>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -76,8 +76,8 @@
 
             <p class="text-xs sm:text-sm text-emerald-100 font-medium max-w-xl {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} leading-relaxed">
                 {{ $activeLocale === 'en' 
-                    ? \App\Models\SystemSetting::get('hero_subtitle_en', 'Live prices and future trends from all Karnataka APMC mandis.')
-                    : \App\Models\SystemSetting::get('hero_subtitle_kn', 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳ ಇಂದಿನ ನೇರ ದರ ಮತ್ತು ದರ ಮುನ್ಸೂಚನೆ.') }}
+                    ? \App\Models\SystemSetting::get('hero_subtitle_en', 'Live prices and future trends from Karnataka mandis and agricultural markets.')
+                    : \App\Models\SystemSetting::get('hero_subtitle_kn', 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಮಂಡಿಗಳ ಇಂದಿನ ನೇರ ದರ ಮತ್ತು ದರ ಮುನ್ಸೂಚನೆ.') }}
             </p>
         </div>
 
@@ -150,7 +150,7 @@
                                 {{ $activeLocale === 'en' ? 'Your Mandi Center' : 'ನಿಮ್ಮ ಮಂಡಿ ಕೇಂದ್ರ' }}
                             </span>
                             <span class="font-black text-xs sm:text-sm text-white block truncate {{ $activeLocale === 'kn' ? 'font-kannada leading-normal pt-1 pb-0.5' : 'font-sans leading-tight mt-0.5' }}">
-                                {{ $activeLocale === 'en' ? (($activeDistrict->name ?? 'Karnataka') . ' (APMC)') : (($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') . ' (ಎಪಿಎಂಸಿ)') }}
+                                {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
                             </span>
                         </div>
                     </div>
@@ -211,7 +211,7 @@
                         <div class="px-3.5 py-1.5 bg-[#FAF8F5] text-[10px] font-bold text-stone-500 flex items-center justify-between border-b border-stone-100">
                             <span x-text="searchQuery.trim().length === 0 ? '{{ $activeLocale === 'en' ? 'Popular Karnataka Crops' : 'ಪ್ರಮುಖ ಬೆಳೆಗಳು' }}' : (results.length > 0 ? (results.length + ' {{ $activeLocale === 'en' ? 'crops found' : 'ಬೆಳೆಗಳು ಲಭ್ಯ' }}') : '{{ $activeLocale === 'en' ? 'Search Results' : 'ಫಲಿತಾಂಶ' }}')"></span>
                             <div class="flex items-center gap-2">
-                                <span class="text-[9px] text-[#1C5A2C] font-black uppercase">LIVE APMC</span>
+                                <span class="text-[9px] text-[#1C5A2C] font-black uppercase">LIVE MANDI</span>
                                 <button type="button"
                                         @click.stop="closeSearch(true)"
                                         class="text-stone-400 hover:text-stone-800 text-[11px] font-black px-1.5 py-0.5 rounded hover:bg-stone-200 transition cursor-pointer flex items-center gap-0.5"
@@ -240,7 +240,7 @@
                                         </div>
                                         <div class="text-[10px] text-stone-500 font-medium truncate flex items-center gap-1 mt-0.5">
                                             <span class="text-[9px] text-[#1C5A2C]">📍</span>
-                                            <span x-text="item.market ? (item.market + (item.district ? ' · ' + item.district : '')) : '{{ $activeLocale === 'en' ? 'Karnataka APMC' : 'ಕರ್ನಾಟಕ ಎಪಿಎಂಸಿ' }}'"></span>
+                                            <span x-text="item.market ? (item.market + (item.district ? ' · ' + item.district : '')) : '{{ $activeLocale === 'en' ? 'Karnataka Mandi' : 'ಕರ್ನಾಟಕ ಮಂಡಿ' }}'"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -534,7 +534,7 @@
                     </span>
                 </div>
                 <p class="text-xs text-stone-600 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} mt-0.5">
-                    {{ $activeLocale === 'en' ? 'Official Karnataka APMC modal and average prices by commodity' : 'ಕರ್ನಾಟಕದ ಪ್ರಮುಖ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಗಳ ಇಂದಿನ ಸರಾಸರಿ ಮತ್ತು ಮಾದರಿ ಧಾರಣೆ' }}
+                    {{ $activeLocale === 'en' ? 'Official Karnataka mandi modal and average prices by commodity' : 'ಕರ್ನಾಟಕದ ಪ್ರಮುಖ ಮಂಡಿ ಮಾರುಕಟ್ಟೆಗಳ ಇಂದಿನ ಸರಾಸರಿ ಮತ್ತು ಮಾದರಿ ಧಾರಣೆ' }}
                 </p>
             </div>
 

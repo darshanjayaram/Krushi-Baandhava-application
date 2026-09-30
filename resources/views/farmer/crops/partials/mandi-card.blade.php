@@ -4,6 +4,9 @@
     $hasMultipleVarieties = $group->variety_count > 1;
     $distName = $market->district ? ($activeLocale === 'en' ? $market->district->name : ($market->district->name_kn ?? $market->district->name)) : 'Karnataka';
     $isBestPrice = ($rank === 1);
+    $cleanMarketName = preg_replace('/\s+APMC$/i', '', $market->name);
+    $cleanMarketNameKn = $market->name_kn ? preg_replace('/\s*(?:ಎಪಿಎಂಸಿ|APMC)$/ui', '', $market->name_kn) : $cleanMarketName;
+    $displayMarketName = $activeLocale === 'en' ? $cleanMarketName : ($cleanMarketNameKn ?: $cleanMarketName);
 @endphp
 <div class="bg-white border {{ $isBestPrice ? 'border-emerald-600 ring-2 ring-emerald-500/20' : 'border-[#E8DFC8]' }} rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition flex flex-col justify-between relative group">
     <div>
@@ -19,7 +22,7 @@
                             <span>{{ $market->name }}</span>
                         @else
                             <a href="{{ route('farmer.markets.show', $market->code) }}" class="hover:text-emerald-700 transition">
-                                {{ str_ends_with(strtolower($market->name), 'apmc') ? $market->name : $market->name . ' APMC' }}
+                                {{ $displayMarketName }}
                             </a>
                         @endif
                     </h3>
@@ -155,7 +158,7 @@
             @if($group->total_arrivals > 0)
                 <span>{{ $hasMultipleVarieties ? ($activeLocale === 'en' ? 'Total Arrivals: ' : 'ಒಟ್ಟು ಆವಕ: ') : ($activeLocale === 'en' ? 'Arrivals: ' : 'ಆವಕ: ') }}<strong>{{ number_format($group->total_arrivals, 1) }}</strong> {{ $group->arrival_unit }}</span>
             @else
-                <span>{{ $boardMeta ? ($activeLocale === 'en' ? 'Source: ' . ($group->dataSource ? $group->dataSource->name : $boardMeta['badge_en']) : 'ದರ ಮೂಲ: ' . ($group->dataSource ? $group->dataSource->name : $boardMeta['badge_en'])) : ($activeLocale === 'en' ? 'Mandi Feed: ' . ($group->dataSource ? $group->dataSource->name : 'APMC') : 'ಮಂಡಿ ಫೀಡ್: ' . ($group->dataSource ? $group->dataSource->name : 'APMC')) }}</span>
+                <span>{{ $boardMeta ? ($activeLocale === 'en' ? 'Source: ' . ($group->dataSource ? $group->dataSource->name : $boardMeta['badge_en']) : 'ದರ ಮೂಲ: ' . ($group->dataSource ? $group->dataSource->name : $boardMeta['badge_en'])) : ($activeLocale === 'en' ? 'Mandi Feed: ' . ($group->dataSource ? $group->dataSource->name : 'Daily Mandi') : 'ಮಂಡಿ ಫೀಡ್: ' . ($group->dataSource ? $group->dataSource->name : 'ದೈನಂದಿನ ಮಂಡಿ')) }}</span>
             @endif
         </div>
 
@@ -164,9 +167,9 @@
             $cropNameDisplay = ($activeLocale === 'kn' && !empty($crop->name_kn)) ? $crop->name_kn : $crop->name;
             $mandiShare = ($activeLocale === 'en'
                 ? "🌾 *Krushi Baandhava — Today's {$crop->name} Rates*\n"
-                    . "🏛️ @" . $market->name . ($boardMeta ? '' : (str_ends_with(strtolower($market->name), 'apmc') ? '' : ' APMC')) . " (" . $distName . "):\n"
+                    . "🏛️ @" . $displayMarketName . " (" . $distName . "):\n"
                 : "🌾 *ಕೃಷಿ ಬಾಂಧವ — ಇಂದಿನ {$cropNameDisplay} ದರಗಳು*\n"
-                    . "🏛️ @" . $market->name . ($boardMeta ? '' : (str_ends_with(strtolower($market->name), 'apmc') ? '' : ' APMC')) . " (" . $distName . "):\n");
+                    . "🏛️ @" . $displayMarketName . " (" . $distName . "):\n");
 
             foreach($group->varieties as $v) {
                 $vName = $v->variety ? $v->variety->displayName($activeLocale) : $cropNameDisplay;

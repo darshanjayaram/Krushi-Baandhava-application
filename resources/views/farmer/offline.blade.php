@@ -36,10 +36,10 @@
             <div>
                 <h2 class="text-sm font-bold text-slate-900">Cached Rates Remain Available</h2>
                 <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                    Any APMC mandi prices, weather forecasts, or guides you have recently viewed on Krushi Baandhava are saved in your phone's offline storage.
+                    Any mandi prices, weather forecasts, or guides you have recently viewed on Krushi Baandhava are saved in your phone's offline storage.
                 </p>
                 <p class="text-xs text-emerald-700 font-medium mt-1 font-kannada leading-relaxed">
-                    ನೀವು ಇತ್ತೀಚೆಗೆ ವೀಕ್ಷಿಸಿದ ಎಪಿಎಂಸಿ ದರಗಳು ಮತ್ತು ಮಾಹಿತಿಯನ್ನು ಆಫ್‌ಲೈನ್‌ನಲ್ಲೂ ನೋಡಬಹುದು.
+                    ನೀವು ಇತ್ತೀಚೆಗೆ ವೀಕ್ಷಿಸಿದ ಮಂಡಿ ದರಗಳು ಮತ್ತು ಮಾಹಿತಿಯನ್ನು ಆಫ್‌ಲೈನ್‌ನಲ್ಲೂ ನೋಡಬಹುದು.
                 </p>
             </div>
         </div>

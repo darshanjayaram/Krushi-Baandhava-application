@@ -1,6 +1,6 @@
 @extends('layouts.farmer')
 
-@section('title', app()->getLocale() === 'en' ? 'Karnataka APMC Mandis Directory — Krushi Baandhava' : 'ಕರ್ನಾಟಕ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಗಳು — APMC Mandis Directory')
+@section('title', app()->getLocale() === 'en' ? 'Karnataka Mandis Directory — Krushi Baandhava' : 'ಕರ್ನಾಟಕ ಮಂಡಿ ಮಾರುಕಟ್ಟೆಗಳು — Mandis Directory')
 
 @section('content')
 @php
@@ -12,13 +12,13 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
             <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                <span>🏛️ {{ $activeLocale === 'en' ? 'Agricultural Produce Market Committees' : 'ಕೃಷಿ ಉತ್ಪನ್ನ ಮಾರುಕಟ್ಟೆ ಸಮಿತಿಗಳು' }}</span>
+                <span>🏛️ {{ $activeLocale === 'en' ? 'Karnataka Mandi Markets Network' : 'ಕರ್ನಾಟಕ ಮಂಡಿ ಮತ್ತು ಕೃಷಿ ಮಾರುಕಟ್ಟೆಗಳು' }}</span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                {{ $activeLocale === 'en' ? 'Karnataka APMC Mandis Directory' : 'ಕರ್ನಾಟಕ APMC ಮಂಡಿಗಳು (Mandis Directory)' }}
+                {{ $activeLocale === 'en' ? 'Karnataka Mandis Directory' : 'ಕರ್ನಾಟಕ ಮಂಡಿಗಳು (Mandis Directory)' }}
             </h1>
             <p class="text-xs sm:text-sm text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                {{ $activeLocale === 'en' ? 'Registered APMC market centers across Karnataka with daily arrivals and live transaction rates.' : 'ರಾಜ್ಯದ ನೋಂದಾಯಿತ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆ ಕೇಂದ್ರಗಳು ಹಾಗೂ ಇಂದಿನ ಆವಕ ಮತ್ತು ವಹಿವಾಟು ದರಗಳು.' }}
+                {{ $activeLocale === 'en' ? 'Registered mandi market centers across Karnataka with daily arrivals and live transaction rates.' : 'ರಾಜ್ಯದ ನೋಂದಾಯಿತ ಮಾರುಕಟ್ಟೆ ಕೇಂದ್ರಗಳು ಹಾಗೂ ಇಂದಿನ ಆವಕ ಮತ್ತು ವಹಿವಾಟು ದರಗಳು.' }}
             </p>
         </div>
 
@@ -92,12 +92,12 @@
                             <div>
                                 <h2 class="font-black text-stone-900 text-base leading-snug {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                                     <a href="{{ route('farmer.markets.show', $market->code) }}" class="hover:text-emerald-700 transition">
-                                        {{ $activeLocale === 'en' ? $market->name : ($market->name_kn ?: $market->name) }} APMC
+                                        {{ preg_replace('/\s+APMC$/i', '', $activeLocale === 'en' ? $market->name : ($market->name_kn ?: $market->name)) }}
                                     </a>
                                 </h2>
                                 @if($activeLocale === 'kn' && $market->name_kn)
                                     <span class="text-xs font-semibold text-stone-600 font-kannada">
-                                        {{ $market->name_kn }} ಎಪಿಎಂಸಿ
+                                        {{ preg_replace('/\s*(?:ಎಪಿಎಂಸಿ|APMC)$/ui', '', $market->name_kn) }}
                                     </span>
                                 @elseif($activeLocale === 'en' && $market->name_kn)
                                     <span class="text-xs font-medium text-stone-400">

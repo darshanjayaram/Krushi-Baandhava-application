@@ -46,10 +46,11 @@
     <meta name="twitter:image" content="{{ $appLogoUrl }}">
 
     <!-- PWA Settings & Dynamic Favicons -->
-    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <link rel="manifest" href="{{ route('pwa.manifest') }}">
     <script>
         // Global PWA prompt listener (early capture before Alpine initializes)
         window.deferredPwaPrompt = null;
+        window.isPwaStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             window.deferredPwaPrompt = e;
@@ -57,6 +58,7 @@
         });
         window.addEventListener('appinstalled', () => {
             window.deferredPwaPrompt = null;
+            window.isPwaStandalone = true;
             window.dispatchEvent(new CustomEvent('pwa-installed'));
         });
     </script>
@@ -64,6 +66,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ $appName }}">
+    <meta name="application-name" content="{{ $appName }}">
     <link rel="apple-touch-icon" href="{{ $pwaIconUrl }}">
     <link rel="icon" type="{{ $logoMime }}" href="{{ $appLogoUrl }}">
     <link rel="shortcut icon" href="{{ $appLogoUrl }}">
@@ -131,11 +135,9 @@
             line-height: 1.2;
         }
 
-        /* Strict Responsive Visibility Guarantee: never display hidden elements on mobile */
-        html[lang="kn"] .hidden,
-        html[lang="kn"] #siteHeader .hidden {
-            display: none !important;
-        }
+        /* Strict Responsive Visibility Guarantee: never display hidden elements on mobile/tablet only.
+           IMPORTANT: Do NOT add unconditional html[lang="kn"] .hidden rules here — that breaks desktop
+           responsive variants like lg:flex and md:flex which rely on Tailwind's cascade to override .hidden. */
         @media (max-width: 1023px) {
             html[lang="kn"] #siteHeader .hidden,
             html[lang="kn"] #siteHeader .lg\:flex,
@@ -391,6 +393,8 @@
         $showLocationPill = (bool) \App\Models\SystemSetting::get('navbar_show_location_pill', true);
         $showLanguageToggle = (bool) \App\Models\SystemSetting::get('navbar_show_language_toggle', true);
         $showHamburgerButton = (bool) \App\Models\SystemSetting::get('navbar_show_hamburger_button', true);
+        $showDesktopAppButton = (bool) \App\Models\SystemSetting::get('navbar_show_desktop_app_button', true);
+        $showSubtitle = (bool) \App\Models\SystemSetting::get('navbar_show_subtitle', true);
 
         // 2. Mobile Bottom Dock
         $rawDockNav = \App\Models\SystemSetting::get('navbar_mobile_dock_links');
@@ -407,7 +411,7 @@
         // 3. Mobile Hamburger Drawer
         $rawDrawerNav = \App\Models\SystemSetting::get('navbar_drawer_links');
         $drawerNavLinks = is_array($rawDrawerNav) ? $rawDrawerNav : (json_decode($rawDrawerNav ?? '', true) ?: [
-            ['icon' => '🌾', 'label_en' => 'Daily Mandi Rates', 'label_kn' => 'ದೈನಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು', 'subtitle_en' => 'Karnataka APMC live prices', 'subtitle_kn' => 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಎಪಿಎಂಸಿ ದರಗಳು', 'url' => '/', 'badge' => '', 'new_tab' => false, 'is_visible' => true],
+            ['icon' => '🌾', 'label_en' => 'Daily Mandi Rates', 'label_kn' => 'ದೈನಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು', 'subtitle_en' => 'Karnataka mandi live prices', 'subtitle_kn' => 'ಕರ್ನಾಟಕದ ಎಲ್ಲಾ ಮಾರುಕಟ್ಟೆ ದರಗಳು', 'url' => '/', 'badge' => '', 'new_tab' => false, 'is_visible' => true],
             ['icon' => '📊', 'label_en' => 'Crops & Rate Forecast', 'label_kn' => 'ಬೆಳೆಗಳು & ದರ ಮುನ್ಸೂಚನೆ', 'subtitle_en' => 'Vegetables, Grains, Arecanut', 'subtitle_kn' => 'ತರಕಾರಿ, ಧಾನ್ಯ, ಅಡಿಕೆ', 'url' => '/crops', 'badge' => 'LIVE', 'new_tab' => false, 'is_visible' => true],
             ['icon' => '🏛️', 'label_en' => 'Government Schemes', 'label_kn' => 'ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು', 'subtitle_en' => 'Subsidies & welfare', 'subtitle_kn' => 'ಸಬ್ಸಿಡಿ & ಸಹಾಯಧನ', 'url' => '/schemes', 'badge' => 'NEW', 'new_tab' => false, 'is_visible' => true],
             ['icon' => '🎬', 'label_en' => 'Farming Videos', 'label_kn' => 'ಕೃಷಿ ವಿಡಿಯೋಗಳು', 'subtitle_en' => 'Agri video guides', 'subtitle_kn' => 'ಕೃಷಿ ಮಾಹಿತಿ ವಿಡಿಯೋಗಳು', 'url' => '/videos', 'badge' => '', 'new_tab' => false, 'is_visible' => true],
@@ -422,6 +426,8 @@
         $drawerWhatsappLabelEn = \App\Models\SystemSetting::get('navbar_drawer_whatsapp_label_en', 'Join WhatsApp Farmer Helpdesk');
         $drawerWhatsappLabelKn = \App\Models\SystemSetting::get('navbar_drawer_whatsapp_label_kn', 'ವಾಟ್ಸಾಪ್ ರೈತರ ಸಹಾಯವಾಣಿಗೆ ಸೇರಿ');
         $drawerShowPwa = (bool) \App\Models\SystemSetting::get('navbar_drawer_show_pwa', true);
+        $drawerPwaLabelEn = \App\Models\SystemSetting::get('navbar_drawer_pwa_label_en', 'Install App on Phone');
+        $drawerPwaLabelKn = \App\Models\SystemSetting::get('navbar_drawer_pwa_label_kn', 'ಆ್ಯಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ');
 
         // 4. Floating Feedback Action Button (FAB)
         $showFeedbackFab = (bool) \App\Models\SystemSetting::get('navbar_show_feedback_fab', true);
@@ -458,11 +464,13 @@
                                     : \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava') }}
                             </span>
                         </div>
+                        @if($showSubtitle)
                         <p class="text-[10px] sm:text-[11px] text-stone-500 font-medium font-kannada truncate max-w-[130px] sm:max-w-[200px] lg:max-w-none {{ $activeLocale === 'kn' ? 'leading-snug pt-0.5' : 'leading-none mt-0.5' }}">
                             {{ $activeLocale === 'en' 
-                                ? \App\Models\SystemSetting::get('navbar_subtitle_en', 'Direct APMC Market Rates & Forecast') 
+                                ? \App\Models\SystemSetting::get('navbar_subtitle_en', 'Direct Mandi Rates & Forecast') 
                                 : \App\Models\SystemSetting::get('navbar_subtitle_kn', 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ') }}
                         </p>
+                        @endif
                     </div>
                 </a>
 
@@ -545,15 +553,18 @@
                     </div>
                     @endif
 
-                    <!-- Desktop PWA App Button - Wide Desktop Only (Hidden on Mobile & Tablet) -->
+                    @if($showDesktopAppButton)
+                    <!-- Desktop PWA App Button - Wide Desktop Only (Hidden on Mobile, Tablet & Standalone App) -->
                     <button type="button" 
-                            x-data
+                            x-data="{ isStandalone: window.isPwaStandalone }"
+                            x-show="!isStandalone"
                             @click="$dispatch('open-install-prompt')"
                             class="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 border border-amber-300 font-bold text-xs transition active:scale-95 cursor-pointer shadow-2xs shrink-0"
                             title="{{ $activeLocale === 'en' ? 'Get the App' : 'ಆ್ಯಪ್ ಪಡೆಯಿರಿ' }}">
                         <span>📲</span>
                         <span class="{{ $activeLocale === 'kn' ? 'font-kannada pt-0.5' : '' }}">{{ $activeLocale === 'en' ? 'App' : 'ಆ್ಯಪ್' }}</span>
                     </button>
+                    @endif
 
                     @if($showHamburgerButton)
                     <!-- Top-Right Hamburger Menu Button -->
@@ -697,7 +708,7 @@
                                     {{ $activeLocale === 'kn' ? 'ಕೃಷಿ ಬಾಂಧವ' : 'Krushi Baandhava' }}
                                 </h3>
                                 <p class="text-[10px] text-stone-500 font-medium">
-                                    {{ $activeLocale === 'en' ? 'APMC Mandi & Farmer Hub' : 'ಕರ್ನಾಟಕ ರೈತ ಮಾರುಕಟ್ಟೆ' }}
+                                    {{ $activeLocale === 'en' ? 'Mandi & Farmer Hub' : 'ಕರ್ನಾಟಕ ರೈತ ಮಾರುಕಟ್ಟೆ' }}
                                 </p>
                             </div>
                         </div>
@@ -785,12 +796,22 @@
 
                         @if($drawerShowPwa)
                         <!-- PWA Install / Status -->
-                        <button type="button" 
-                                @click="isMobileMenuOpen = false; $dispatch('open-install-prompt')"
-                                class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#DDD2BE] text-stone-700 hover:bg-stone-50 font-bold text-xs transition cursor-pointer">
-                            <span>📲</span>
-                            <span>{{ $activeLocale === 'en' ? 'Install App on Phone' : 'ಆ್ಯಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ' }}</span>
-                        </button>
+                        <div x-data="{ isStandalone: window.isPwaStandalone }">
+                            <template x-if="!isStandalone">
+                                <button type="button" 
+                                        @click="isMobileMenuOpen = false; $dispatch('open-install-prompt')"
+                                        class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#DDD2BE] text-stone-700 hover:bg-stone-50 font-bold text-xs transition cursor-pointer">
+                                    <span>📲</span>
+                                    <span>{{ $activeLocale === 'en' ? $drawerPwaLabelEn : $drawerPwaLabelKn }}</span>
+                                </button>
+                            </template>
+                            <template x-if="isStandalone">
+                                <div class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs">
+                                    <span>✅</span>
+                                    <span>{{ $activeLocale === 'kn' ? 'ಆ್ಯಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಆಗಿದೆ' : 'App Installed' }}</span>
+                                </div>
+                            </template>
+                        </div>
                         @endif
                     </div>
                     @endif
@@ -1051,13 +1072,64 @@
         </div>
     </div>
 
-    <!-- Service Worker Registration -->
+    <!-- PWA Service Worker Update Available Notification Toast -->
+    <div id="pwaUpdateToast" style="display: none;" class="fixed bottom-20 md:bottom-6 left-4 z-50 max-w-sm bg-slate-900 border border-slate-700 text-white rounded-2xl p-3.5 shadow-2xl items-center justify-between gap-3 animate-bounce">
+        <div class="flex items-center gap-2.5">
+            <span class="text-xl">✨</span>
+            <div class="text-xs">
+                <div class="font-bold">{{ $activeLocale === 'kn' ? 'ಹೊಸ ಆವೃತ್ತಿ ಲಭ್ಯವಿದೆ!' : 'New Update Available!' }}</div>
+                <div class="text-[10px] text-slate-300">{{ $activeLocale === 'kn' ? 'ತಾಜಾ ದರಗಳನ್ನು ಪಡೆಯಲು ಮರುಲೋಡ್ ಮಾಡಿ' : 'Reload to get latest rates & features' }}</div>
+            </div>
+        </div>
+        <button id="pwaReloadBtn" type="button" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 cursor-pointer shadow-sm">
+            {{ $activeLocale === 'kn' ? 'ಮರುಲೋಡ್' : 'Reload' }}
+        </button>
+    </div>
+
+    <!-- Service Worker Registration & Live Update Flow -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('{{ asset('sw.js') }}', { scope: '{{ asset('/') }}' }).catch((err) => {
+                navigator.serviceWorker.register('{{ asset('sw.js') }}', { scope: '{{ asset('/') }}' }).then((registration) => {
+                    function promptUpdate() {
+                        const toast = document.getElementById('pwaUpdateToast');
+                        const reloadBtn = document.getElementById('pwaReloadBtn');
+                        if (toast && reloadBtn) {
+                            toast.style.display = 'flex';
+                            reloadBtn.onclick = () => {
+                                if (registration.waiting) {
+                                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                                }
+                                window.location.reload();
+                            };
+                        }
+                    }
+
+                    if (registration.waiting) {
+                        promptUpdate();
+                    }
+
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    promptUpdate();
+                                }
+                            });
+                        }
+                    });
+                }).catch((err) => {
                     console.warn('Service Worker registration skipped:', err);
                 });
+            });
+
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
             });
         }
     </script>

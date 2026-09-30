@@ -1,6 +1,6 @@
 @extends('layouts.farmer')
 
-@section('title', app()->getLocale() === 'en' ? 'Nearby APMC Mandis — Krushi Baandhava' : 'ಹತ್ತಿರದ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಗಳು (Nearby APMC Mandis) — ಕೃಷಿ ಬಾಂಧವ')
+@section('title', app()->getLocale() === 'en' ? 'Nearby Mandis — Krushi Baandhava' : 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆಗಳು (Nearby Mandis) — ಕೃಷಿ ಬಾಂಧವ')
 
 @section('content')
 @php
@@ -18,7 +18,7 @@
     </nav>
 
     <!-- Geolocation Hero Card -->
-    <div class="bg-gradient-to-br from-emerald-900 via-emerald-850 to-stone-900 text-white rounded-3xl p-5 sm:p-7 shadow-lg relative overflow-hidden">
+    <div class="bg-gradient-to-br from-emerald-900 via-emerald-855 to-stone-900 text-white rounded-3xl p-5 sm:p-7 shadow-lg relative overflow-hidden">
         <div class="relative z-10 max-w-2xl space-y-3">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/80 border border-emerald-600/40 text-emerald-200 text-xs font-bold font-sans">
                 <span>📍 {{ $activeLocale === 'en' ? 'GPS Mandi Radar' : 'ಜಿಪಿಎಸ್ ಆಧಾರಿತ ಮಂಡಿ ಶೋಧಕ' }}</span>
@@ -27,10 +27,10 @@
             </div>
 
             <h1 class="text-2xl sm:text-3xl font-black tracking-tight leading-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                {{ $activeLocale === 'en' ? 'APMC Mandis Nearest to You in Karnataka' : 'ನಿಮ್ಮ ಸಮೀಪದ ಕರ್ನಾಟಕ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಗಳು' }}
+                {{ $activeLocale === 'en' ? 'Mandis Nearest to You in Karnataka' : 'ನಿಮ್ಮ ಸಮೀಪದ ಕರ್ನಾಟಕ ಮಂಡಿ ಮಾರುಕಟ್ಟೆಗಳು' }}
             </h1>
             <p class="text-xs sm:text-sm text-emerald-100/90 leading-relaxed {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                {{ $activeLocale === 'en' ? 'Detect your GPS location to instantly discover nearest APMC mandis and compare live rates.' : 'ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಜಿಪಿಎಸ್ ಸ್ಥಳವನ್ನು ಪತ್ತೆಹಚ್ಚಿ, ಕಡಿಮೆ ದೂರದಲ್ಲಿರುವ ಎಪಿಎಂಸಿ ಮಂಡಿಗಳನ್ನು ಮತ್ತು ಇಂದಿನ ದರಗಳನ್ನು ಕ್ಷಣಾರ್ಧದಲ್ಲಿ ಹೋಲಿಕೆ ಮಾಡಿ.' }}
+                {{ $activeLocale === 'en' ? 'Detect your GPS location to instantly discover nearest mandis and compare live rates.' : 'ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಜಿಪಿಎಸ್ ಸ್ಥಳವನ್ನು ಪತ್ತೆಹಚ್ಚಿ, ಕಡಿಮೆ ದೂರದಲ್ಲಿರುವ ಮಂಡಿಗಳನ್ನು ಮತ್ತು ಇಂದಿನ ದರಗಳನ್ನು ಕ್ಷಣಾರ್ಧದಲ್ಲಿ ಹೋಲಿಕೆ ಮಾಡಿ.' }}
             </p>
 
             <!-- GPS Auto-Detect Button -->
@@ -302,8 +302,8 @@
 
                         <!-- WhatsApp Share -->
                         @php
-                            $shareText = "🌾 *ಕೃಷಿ ಬಾಂಧವ — ಹತ್ತಿರದ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆ*\n"
-                                . "🏛️ *" . $market->name . " APMC*\n"
+                            $shareText = "🌾 *ಕೃಷಿ ಬಾಂಧವ — ಹತ್ತಿರದ ಮಂಡಿ ಮಾರುಕಟ್ಟೆ*\n"
+                                . "🏛️ *" . preg_replace('/\s+APMC$/i', '', $market->name) . "*\n"
                                 . "📍 ದೂರ: " . $market->distance_km . " ಕಿ.ಮೀ (" . $market->direction_kn . ")\n"
                                 . "🗺️ ದಾರಿ: " . $market->google_maps_url . "\n"
                                 . "👉 ಮಂಡಿ ದರಗಳನ್ನು ವೀಕ್ಷಿಸಲು: " . route('farmer.markets.show', $market->code);

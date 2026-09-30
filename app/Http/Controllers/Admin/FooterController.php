@@ -27,7 +27,7 @@ class FooterController extends Controller
 
             // Sub-column 2 (Right - Top to Bottom)
             ['icon' => '📖', 'label_en' => 'Farming Guides', 'label_kn' => 'ಕೃಷಿ ಕೈಪಿಡಿಗಳು (Guides)', 'url' => '/articles', 'style' => 'link', 'new_tab' => false, 'is_visible' => true],
-            ['icon' => '🏢', 'label_en' => 'APMC Directory', 'label_kn' => 'ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆ ವಿವರ', 'url' => '/crops', 'style' => 'link', 'new_tab' => false, 'is_visible' => true],
+            ['icon' => '🏢', 'label_en' => 'Mandi Directory', 'label_kn' => 'ಮಂಡಿ ವಿವರ', 'url' => '/crops', 'style' => 'link', 'new_tab' => false, 'is_visible' => true],
             ['icon' => '🌾', 'label_en' => 'Crop Advisory', 'label_kn' => 'ಬೆಳೆ ಸಲಹೆ & ರಕ್ಷಣೆ', 'url' => '/articles', 'style' => 'link', 'new_tab' => false, 'is_visible' => true],
             ['icon' => '💰', 'label_en' => 'MSP Support Rates', 'label_kn' => 'ಬೆಂಬಲ ಬೆಲೆ (MSP) ವಿವರ', 'url' => '/schemes', 'style' => 'link', 'new_tab' => false, 'is_visible' => true],
             ['icon' => '🧪', 'label_en' => 'Soil & Nutrients', 'label_kn' => 'ಮಣ್ಣು & ಪೋಷಕಾಂಶ ನಿರ್ವಹಣೆ', 'url' => '/articles', 'style' => 'link', 'new_tab' => false, 'is_visible' => true],
@@ -94,12 +94,12 @@ class FooterController extends Controller
             'copyright_text' => SystemSetting::get('footer_copyright_text', '© ' . date('Y') . ' Krushi Baandhava. All rights reserved.'),
             'tagline_en' => SystemSetting::get('footer_tagline_en', 'Karnataka Farmer Market Intelligence Network'),
             'tagline_kn' => SystemSetting::get('footer_tagline_kn', 'ಕರ್ನಾಟಕದ ರೈತ ಮಾರುಕಟ್ಟೆ ಮಾಹಿತಿ ವೇದಿಕೆ'),
-            'description_en' => SystemSetting::get('footer_description_en', 'Karnataka agricultural intelligence network — real-time APMC trading prices, modal rates, and predictive crop guidance.'),
-            'description_kn' => SystemSetting::get('footer_description_kn', 'ಕರ್ನಾಟಕದ ಸ್ವತಂತ್ರ ರೈತ ಮಾರುಕಟ್ಟೆ ಮಾಹಿತಿ ವೇದಿಕೆ — ನೈಜ ಸಮಯದ ಎಪಿಎಂಸಿ ದರಗಳು ಮತ್ತು ಬೆಳೆ ಮುನ್ಸೂಚನೆ.'),
-            'telemetry_badge' => SystemSetting::get('footer_telemetry_badge', '31 Districts • 160+ APMCs'),
+            'description_en' => SystemSetting::get('footer_description_en', 'Karnataka agricultural intelligence network — real-time mandi trading prices, modal rates, and predictive crop guidance.'),
+            'description_kn' => SystemSetting::get('footer_description_kn', 'ಕರ್ನಾಟಕದ ಸ್ವತಂತ್ರ ರೈತ ಮಾರುಕಟ್ಟೆ ಮಾಹಿತಿ ವೇದಿಕೆ — ನೈಜ ಸಮಯದ ಮಂಡಿ ದರಗಳು ಮತ್ತು ಬೆಳೆ ಮುನ್ಸೂಚನೆ.'),
+            'telemetry_badge' => SystemSetting::get('footer_telemetry_badge', '31 Districts • 160+ Mandis'),
             'telemetry_source' => SystemSetting::get('footer_telemetry_source', 'Sourced from KRAMA & Agmarknet Feeds'),
             'disclaimer_en' => SystemSetting::get('footer_disclaimer_en', 'Prices are indicative, sourced from public mandi data — verify before trading. Krushi Baandhava is an independent farmer welfare platform and does not represent any government entity.'),
-            'disclaimer_kn' => SystemSetting::get('footer_disclaimer_kn', 'ದರಗಳು ಸಾರ್ವಜನಿಕ ಎಪಿಎಂಸಿ ದತ್ತಾಂಶವನ್ನು ಆಧರಿಸಿವೆ — ವ್ಯಾಪಾರದ ಮೊದಲು ಮಂಡಿಯಲ್ಲಿ ಪರಿಶೀಲಿಸಿ. ಕೃಷಿ ಬಾಂಧವ ಸ್ವತಂತ್ರ ರೈತ ಕಲ್ಯಾಣ ವೇದಿಕೆಯಾಗಿದ್ದು, ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯನ್ನು ಪ್ರತಿನಿಧಿಸುವುದಿಲ್ಲ.'),
+            'disclaimer_kn' => SystemSetting::get('footer_disclaimer_kn', 'ದರಗಳು ಸಾರ್ವಜನಿಕ ಮಂಡಿ ದತ್ತಾಂಶವನ್ನು ಆಧರಿಸಿವೆ — ವ್ಯಾಪಾರದ ಮೊದಲು ಮಂಡಿಯಲ್ಲಿ ಪರಿಶೀಲಿಸಿ. ಕೃಷಿ ಬಾಂಧವ ಸ್ವತಂತ್ರ ರೈತ ಕಲ್ಯಾಣ ವೇದಿಕೆಯಾಗಿದ್ದು, ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯನ್ನು ಪ್ರತಿನಿಧಿಸುವುದಿಲ್ಲ.'),
             'show_telemetry' => (bool) SystemSetting::get('footer_show_telemetry', true),
             'show_disclaimer' => (bool) SystemSetting::get('footer_show_disclaimer', true),
             

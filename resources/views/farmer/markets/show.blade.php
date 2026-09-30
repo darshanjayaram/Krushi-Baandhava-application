@@ -1,6 +1,11 @@
 @extends('layouts.farmer')
 
-@section('title', $market->name . ' APMC (' . ($market->name_kn ?? '') . ') — ' . (app()->getLocale() === 'en' ? "Today's Market Rates & Arrivals" : 'ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು & ಆವಕ'))
+@php
+    $cleanMarketName = preg_replace('/\s+APMC$/i', '', $market->name);
+    $cleanMarketNameKn = $market->name_kn ? preg_replace('/\s*(?:ಎಪಿಎಂಸಿ|APMC)$/ui', '', $market->name_kn) : $cleanMarketName;
+@endphp
+
+@section('title', $cleanMarketName . ' (' . ($cleanMarketNameKn ?: '') . ') — ' . (app()->getLocale() === 'en' ? "Today's Market Rates & Arrivals" : 'ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು & ಆವಕ'))
 
 @section('content')
 @php
@@ -14,7 +19,7 @@
         <span>&rsaquo;</span>
         <a href="{{ route('farmer.markets.index') }}" class="hover:text-emerald-700">{{ $activeLocale === 'en' ? 'Mandis' : 'ಮಂಡಿಗಳು' }}</a>
         <span>&rsaquo;</span>
-        <span class="text-stone-900 font-bold">{{ $market->name }} APMC</span>
+        <span class="text-stone-900 font-bold">{{ $cleanMarketName }}</span>
     </nav>
 
     <!-- Mandi Header Card -->
@@ -27,15 +32,15 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            {{ $activeLocale === 'en' ? $market->name : ($market->name_kn ?: $market->name) }}
+                            {{ $activeLocale === 'en' ? $cleanMarketName : ($cleanMarketNameKn ?: $cleanMarketName) }}
                         </h1>
                         @if($activeLocale === 'kn')
                             <span class="text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-lg bg-stone-100 text-stone-600 font-sans">
-                                {{ $market->name }} APMC
+                                {{ $cleanMarketName }}
                             </span>
                         @elseif($market->name_kn)
                             <span class="text-sm font-semibold px-2 py-0.5 rounded-lg bg-stone-100 text-stone-500 font-kannada">
-                                {{ $market->name_kn }}
+                                {{ $cleanMarketNameKn }}
                             </span>
                         @endif
                     </div>
@@ -58,8 +63,8 @@
 
             <!-- WhatsApp Share Mandi Rates -->
             @php
-                $shareMandiText = "🏛️ *ಕೃಷಿ ಬಾಂಧವ — APMC ಮಾರುಕಟ್ಟೆ ದರಗಳು*\n"
-                    . "*" . $market->name . " APMC (" . ($market->district ? $market->district->name : 'Karnataka') . ")*\n"
+                $shareMandiText = "🏛️ *ಕೃಷಿ ಬಾಂಧವ — ಮಾರುಕಟ್ಟೆ ದರಗಳು*\n"
+                    . "*" . ($cleanMarketNameKn ?: $cleanMarketName) . " (" . ($market->district ? $market->district->name : 'Karnataka') . ")*\n"
                     . "🌾 ಇಂದಿನ ವಹಿವಾಟು: " . $stats['total_commodities'] . " ಬೆಳೆಗಳು\n"
                     . "📦 ಒಟ್ಟು ಆವಕ: " . number_format($stats['total_arrivals'], 1) . " ಕ್ವಿಂಟಾಲ್\n"
                     . "📅 ದಿನಾಂಕ: " . $stats['date_formatted'] . "\n"
@@ -117,7 +122,7 @@
                 <h2 class="text-lg font-black text-stone-900 tracking-tight flex items-center gap-2">
                     <span>🌾 {{ $activeLocale === 'en' ? "Today's Rates in this Mandi" : 'ಈ ಮಂಡಿಯಲ್ಲಿ ಇಂದಿನ ವಹಿವಾಟು ದರಗಳು' }}</span>
                 </h2>
-                <p class="text-xs text-stone-500">{{ $activeLocale === 'en' ? 'Official APMC daily modal rates and arrivals' : 'ಅಧಿಕೃತ ಎಪಿಎಂಸಿ ದೈನಂದಿನ ಬೆಲೆಗಳು ಮತ್ತು ಆವಕ ಪ್ರಮಾಣ' }}</p>
+                <p class="text-xs text-stone-500">{{ $activeLocale === 'en' ? 'Official daily modal rates and arrivals' : 'ಅಧಿಕೃತ ದೈನಂದಿನ ಬೆಲೆಗಳು ಮತ್ತು ಆವಕ ಪ್ರಮಾಣ' }}</p>
             </div>
             <span class="text-xs text-stone-400">{{ $activeLocale === 'en' ? 'Date:' : 'ದಿನಾಂಕ:' }} {{ $stats['date_formatted'] }}</span>
         </div>
@@ -196,7 +201,7 @@
 
                             @php
                                 $itemShare = "🌾 *ಕೃಷಿ ಬಾಂಧವ*\n"
-                                    . "ಇಂದಿನ *" . $price->crop->name . "* ದರ @" . $market->name . " APMC:\n"
+                                    . "ಇಂದಿನ *" . $price->crop->name . "* ದರ @" . ($cleanMarketNameKn ?: $cleanMarketName) . ":\n"
                                     . "💰 ಮಾದರಿ ದರ: ₹" . number_format($price->modal_price, 0) . " / " . $price->unit . "\n"
                                     . ($price->min_price && $price->max_price ? "📉 ಕನಿಷ್ಠ: ₹" . number_format($price->min_price, 0) . " | ಗರಿಷ್ಠ: ₹" . number_format($price->max_price, 0) . "\n" : "")
                                     . "👉 ವಿವರಗಳಿಗೆ: " . url()->current();

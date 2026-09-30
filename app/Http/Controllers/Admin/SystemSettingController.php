@@ -156,6 +156,9 @@ class SystemSettingController extends Controller
             );
         }
 
+        // Automatically synchronize the PWA manifest.json on disk
+        app(\App\Services\Pwa\PwaManifestService::class)->syncDiskManifest();
+
         $tab = $request->input('tab', 'general');
 
         return redirect()->route('admin.settings.index', ['tab' => $tab])

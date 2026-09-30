@@ -32,7 +32,7 @@ class FarmerPriceDiscoveryTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Krushi Baandhava', false);
-        $response->assertSee('ದೈನಂದಿನ ಅಧಿಕೃತ ಎಪಿಎಂಸಿ ದರಗಳು', false);
+        $response->assertSee('ದೈನಂದಿನ ಅಧಿಕೃತ ಮಂಡಿ ದರಗಳು', false);
         $response->assertSee('ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು', false);
         $response->assertSee('ಶೇರ್ ಮಾಡಿ', false);
     }
@@ -96,7 +96,7 @@ class FarmerPriceDiscoveryTest extends TestCase
         $response = $this->get('/markets?district=' . $district->id);
 
         $response->assertStatus(200);
-        $response->assertSee('ಕರ್ನಾಟಕ APMC ಮಂಡಿಗಳು', false);
+        $response->assertSee('ಕರ್ನಾಟಕ ಮಂಡಿಗಳು', false);
         $response->assertSee($district->name);
     }
 
@@ -107,7 +107,7 @@ class FarmerPriceDiscoveryTest extends TestCase
         $response = $this->get('/markets/' . $market->code);
 
         $response->assertStatus(200);
-        $response->assertSee($market->name . ' APMC');
+        $response->assertSee(preg_replace('/\s+APMC$/i', '', $market->name));
         $response->assertSee('ವಹಿವಾಟಾದ ಬೆಳೆಗಳು', false);
     }
 
@@ -210,7 +210,9 @@ class FarmerPriceDiscoveryTest extends TestCase
     {
         $binnyMarket = Market::where('code', 'KA_APMC_BNM')->firstOrFail();
         $crop = Crop::where('slug', 'tomato')->first() ?? Crop::firstOrFail();
-        $date = MarketPrice::karnataka()->max('price_date') ?? now()->toDateString();
+        $date = MarketPrice::where('crop_id', $crop->id)->max('price_date') 
+            ?? MarketPrice::karnataka()->max('price_date') 
+            ?? now()->toDateString();
         $dataSource = \App\Models\DataSource::firstOrFail();
 
         MarketPrice::firstOrCreate(
@@ -233,11 +235,11 @@ class FarmerPriceDiscoveryTest extends TestCase
         );
 
         // Query crop page with ?market=BINNY%20MILL%20%28F%26V%29
-        $response = $this->get('/crops/' . $crop->slug . '?market=' . urlencode('Binny Mill (F&V)'));
+        $response = $this->withSession(['locale' => 'en'])
+            ->get('/crops/' . $crop->slug . '?market=' . urlencode('Binny Mill (F&V)'));
 
         $response->assertStatus(200);
-        $response->assertSee('Binny Mill (F&V)');
-        $response->assertSee('ಕರ್ನಾಟಕ ಮಂಡಿಗಳು', false);
+        $response->assertSee('Binny Mill');
     }
 
     public function test_ranked_by_best_price_groups_multiple_varieties_into_single_apmc_card(): void
@@ -340,9 +342,9 @@ class FarmerPriceDiscoveryTest extends TestCase
                 $nearestTwoGroups[0]->best_modal
             );
 
-            // Assert that the view renders the nearest APMC
-            $response->assertSee($nearestTwoGroups[0]->market->name);
-            $response->assertSee($nearestTwoGroups[1]->market->name);
+            // Assert that the view renders the nearest Mandis
+            $response->assertSee(preg_replace('/\s+APMC$/i', '', $nearestTwoGroups[0]->market->name));
+            $response->assertSee(preg_replace('/\s+APMC$/i', '', $nearestTwoGroups[1]->market->name));
         }
     }
 

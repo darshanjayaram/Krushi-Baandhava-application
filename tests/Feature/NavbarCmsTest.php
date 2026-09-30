@@ -88,12 +88,18 @@ class NavbarCmsTest extends TestCase
             'navbar_show_location_pill' => '1',
             'navbar_show_language_toggle' => '1',
             'navbar_show_hamburger_button' => '1',
+            'navbar_show_desktop_app_button' => '1',
+            'navbar_show_subtitle' => '1',
+            'navbar_subtitle_en' => 'Custom Subtitle EN',
+            'navbar_subtitle_kn' => 'ಕಸ್ಟಮ್ ಉಪಶೀರ್ಷಿಕೆ',
             'navbar_mobile_dock_style' => 'floating',
             'navbar_mobile_dock_show_labels' => '1',
             'navbar_drawer_show_district' => '1',
             'navbar_drawer_show_whatsapp' => '1',
             'navbar_drawer_whatsapp_url' => 'https://wa.me/919999999999',
             'navbar_drawer_show_pwa' => '1',
+            'navbar_drawer_pwa_label_en' => 'Download Farmer App',
+            'navbar_drawer_pwa_label_kn' => 'ರೈತ ಆ್ಯಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ',
             'navbar_show_feedback_fab' => '1',
             'navbar_feedback_fab_pulse' => '1',
             'navbar_feedback_fab_url' => '/feedback',
@@ -102,16 +108,34 @@ class NavbarCmsTest extends TestCase
         $response->assertRedirect(route('admin.navbar.index'));
         $response->assertSessionHas('success');
 
-        // Check public farmer homepage renders the custom visible link in English
+        // Check public farmer homepage renders the custom visible link and desktop app button in English
         $publicEnResponse = $this->withSession(['locale' => 'en'])->get(route('home'));
         $publicEnResponse->assertStatus(200);
         $publicEnResponse->assertSee('Special Mandi Rates');
         $publicEnResponse->assertDontSee('Hidden Link');
+        $publicEnResponse->assertSee('Custom Subtitle EN');
+        $publicEnResponse->assertSee('Download Farmer App');
+        $publicEnResponse->assertSee('open-install-prompt');
 
         // Check public farmer homepage renders the custom visible link in Kannada
         $publicKnResponse = $this->withSession(['locale' => 'kn'])->get(route('home'));
         $publicKnResponse->assertStatus(200);
         $publicKnResponse->assertSee('ವಿಶೇಷ ಮಾರುಕಟ್ಟೆ ದರ');
+        $publicKnResponse->assertSee('ಕಸ್ಟಮ್ ಉಪಶೀರ್ಷಿಕೆ');
+        $publicKnResponse->assertSee('ರೈತ ಆ್ಯಪ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ');
+
+        // Test hiding Desktop App Button and Subtitle
+        $hideResponse = $this->actingAs($admin)->post(route('admin.navbar.update'), [
+            'navbar_show_desktop_app_button' => '0',
+            'navbar_show_subtitle' => '0',
+            'navbar_drawer_show_pwa' => '0',
+        ]);
+        $hideResponse->assertRedirect(route('admin.navbar.index'));
+
+        $publicHiddenResponse = $this->withSession(['locale' => 'en'])->get(route('home'));
+        $publicHiddenResponse->assertStatus(200);
+        $publicHiddenResponse->assertDontSee('Custom Subtitle EN');
+        $publicHiddenResponse->assertDontSee('Download Farmer App');
     }
 
     /**
@@ -132,5 +156,8 @@ class NavbarCmsTest extends TestCase
 
         $this->assertNotEmpty(SystemSetting::get('navbar_desktop_links'));
         $this->assertNotEmpty(SystemSetting::get('navbar_mobile_dock_links'));
+        $this->assertEquals('1', SystemSetting::get('navbar_show_desktop_app_button'));
+        $this->assertEquals('1', SystemSetting::get('navbar_show_subtitle'));
+        $this->assertEquals('Install App on Phone', SystemSetting::get('navbar_drawer_pwa_label_en'));
     }
 }

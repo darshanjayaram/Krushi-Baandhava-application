@@ -19,6 +19,10 @@
     showLocationPill: @js($settings['show_location_pill']),
     showLanguageToggle: @js($settings['show_language_toggle']),
     showHamburgerButton: @js($settings['show_hamburger_button']),
+    showDesktopAppButton: @js($settings['show_desktop_app_button']),
+    showSubtitle: @js($settings['show_subtitle']),
+    subtitleEn: @js($settings['subtitle_en']),
+    subtitleKn: @js($settings['subtitle_kn']),
 
     // 2. Mobile Bottom Dock State
     mobileDockLinks: (@js($settings['mobile_dock_links']) || []).map(item => ({
@@ -43,6 +47,8 @@
     drawerWhatsappLabelEn: @js($settings['drawer_whatsapp_label_en']),
     drawerWhatsappLabelKn: @js($settings['drawer_whatsapp_label_kn']),
     drawerShowPwa: @js($settings['drawer_show_pwa']),
+    drawerPwaLabelEn: @js($settings['drawer_pwa_label_en']),
+    drawerPwaLabelKn: @js($settings['drawer_pwa_label_kn']),
 
     // 4. Floating Feedback Button State
     showFeedbackFab: @js($settings['show_feedback_fab']),
@@ -250,6 +256,10 @@
                 <input type="hidden" name="navbar_show_location_pill" :value="showLocationPill ? '1' : '0'">
                 <input type="hidden" name="navbar_show_language_toggle" :value="showLanguageToggle ? '1' : '0'">
                 <input type="hidden" name="navbar_show_hamburger_button" :value="showHamburgerButton ? '1' : '0'">
+                <input type="hidden" name="navbar_show_desktop_app_button" :value="showDesktopAppButton ? '1' : '0'">
+                <input type="hidden" name="navbar_show_subtitle" :value="showSubtitle ? '1' : '0'">
+                <input type="hidden" name="navbar_subtitle_en" :value="subtitleEn">
+                <input type="hidden" name="navbar_subtitle_kn" :value="subtitleKn">
                 <input type="hidden" name="navbar_mobile_dock_style" :value="mobileDockStyle">
                 <input type="hidden" name="navbar_mobile_dock_show_labels" :value="mobileDockShowLabels ? '1' : '0'">
                 <input type="hidden" name="navbar_drawer_show_district" :value="drawerShowDistrict ? '1' : '0'">
@@ -258,6 +268,8 @@
                 <input type="hidden" name="navbar_drawer_whatsapp_label_en" :value="drawerWhatsappLabelEn">
                 <input type="hidden" name="navbar_drawer_whatsapp_label_kn" :value="drawerWhatsappLabelKn">
                 <input type="hidden" name="navbar_drawer_show_pwa" :value="drawerShowPwa ? '1' : '0'">
+                <input type="hidden" name="navbar_drawer_pwa_label_en" :value="drawerPwaLabelEn">
+                <input type="hidden" name="navbar_drawer_pwa_label_kn" :value="drawerPwaLabelKn">
                 <input type="hidden" name="navbar_show_feedback_fab" :value="showFeedbackFab ? '1' : '0'">
                 <input type="hidden" name="navbar_feedback_fab_pulse" :value="feedbackFabPulse ? '1' : '0'">
                 <input type="hidden" name="navbar_feedback_fab_url" :value="feedbackFabUrl">
@@ -275,7 +287,7 @@
                             <span class="text-xs text-slate-400">Manage interactive components</span>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <label class="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
                                 <div>
                                     <div class="text-xs font-bold text-slate-200">Location Pill</div>
@@ -299,6 +311,43 @@
                                 </div>
                                 <input type="checkbox" x-model="showHamburgerButton" class="rounded bg-slate-800 border-slate-700 text-emerald-600 focus:ring-0">
                             </label>
+
+                            <label class="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                                <div>
+                                    <div class="text-xs font-bold text-slate-200">Desktop App Button</div>
+                                    <div class="text-[10px] text-slate-400">📲 Install App Pill</div>
+                                </div>
+                                <input type="checkbox" x-model="showDesktopAppButton" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Header Brand Subtitle / Tagline Settings -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <span>🏷️</span>
+                                    <span>Header Tagline / Subtitle Branding</span>
+                                </h3>
+                                <p class="text-xs text-slate-400">Displays underneath the application name in the header.</p>
+                            </div>
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300">
+                                <input type="checkbox" x-model="showSubtitle" class="rounded bg-slate-800 border-slate-700 text-emerald-600 focus:ring-0">
+                                <span>Show Subtitle</span>
+                            </label>
+                        </div>
+
+                        <div x-show="showSubtitle" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-300 mb-1">English Subtitle</label>
+                                <input type="text" x-model="subtitleEn" placeholder="Direct APMC Market Rates & Forecast" class="w-full text-xs bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:border-emerald-500 focus:ring-0">
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-300 mb-1 font-kannada">ಕನ್ನಡ ಉಪಶೀರ್ಷಿಕೆ</label>
+                                <input type="text" x-model="subtitleKn" placeholder="ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ" class="w-full text-xs bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-kannada focus:border-emerald-500 focus:ring-0">
+                            </div>
                         </div>
                     </div>
 
@@ -724,6 +773,20 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- PWA Install Action Details -->
+                        <div x-show="drawerShowPwa" class="pt-3 border-t border-slate-800/80 space-y-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">PWA English Button Label</label>
+                                    <input type="text" x-model="drawerPwaLabelEn" placeholder="Install App on Phone" class="w-full text-xs bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:border-emerald-500 focus:ring-0">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 mb-1 font-kannada">PWA ಕನ್ನಡ ಲೇಬಲ್</label>
+                                    <input type="text" x-model="drawerPwaLabelKn" placeholder="ಆ್ಯಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ" class="w-full text-xs bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-kannada focus:border-emerald-500 focus:ring-0">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Drawer Directory Links Repeater -->
@@ -954,7 +1017,9 @@
                                 </div>
                                 <div>
                                     <div class="text-xs font-black text-[#1C5A2C] leading-none" x-text="previewLang === 'en' ? 'Krushi Baandhava' : 'ಕೃಷಿ ಬಾಂಧವ'"></div>
-                                    <div class="text-[9px] text-stone-500 leading-none mt-0.5" x-text="previewLang === 'en' ? 'Direct APMC Market Rates' : 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರಗಳು'"></div>
+                                    <template x-if="showSubtitle">
+                                        <div class="text-[9px] text-stone-500 leading-none mt-0.5 truncate max-w-[140px]" x-text="previewLang === 'en' ? (subtitleEn || 'Direct APMC Market Rates & Forecast') : (subtitleKn || 'ನೇರ ಮಾರುಕಟ್ಟೆ ದರ ಮತ್ತು ರೈತ ಮುನ್ಸೂಚನೆ')"></div>
+                                    </template>
                                 </div>
                             </div>
 
@@ -993,6 +1058,13 @@
                                     <div class="bg-white rounded-lg p-0.5 border border-stone-200 text-[10px] font-bold flex">
                                         <span class="px-1.5 py-0.5 rounded bg-[#1C5A2C] text-white">EN</span>
                                         <span class="px-1.5 py-0.5 text-stone-500 font-kannada">ಕನ್ನಡ</span>
+                                    </div>
+                                </template>
+
+                                <template x-if="showDesktopAppButton">
+                                    <div class="bg-amber-500/15 border border-amber-300 rounded-lg px-2 py-0.5 text-[10px] font-bold text-amber-900 flex items-center gap-1 shadow-2xs">
+                                        <span>📲</span>
+                                        <span x-text="previewLang === 'en' ? 'App' : 'ಆ್ಯಪ್'"></span>
                                     </div>
                                 </template>
 
@@ -1095,6 +1167,14 @@
                                 <template x-if="drawerShowWhatsapp">
                                     <div class="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-900 text-center">
                                         <span x-text="previewLang === 'en' ? (drawerWhatsappLabelEn || 'Join WhatsApp Helpdesk') : (drawerWhatsappLabelKn || 'ವಾಟ್ಸಾಪ್ ಸಹಾಯವಾಣಿ')"></span>
+                                    </div>
+                                </template>
+
+                                <!-- PWA Install CTA in Drawer -->
+                                <template x-if="drawerShowPwa">
+                                    <div class="p-2 rounded-lg bg-white border border-stone-200 text-[10px] font-bold text-stone-800 text-center flex items-center justify-center gap-1.5 shadow-2xs">
+                                        <span>📲</span>
+                                        <span x-text="previewLang === 'en' ? (drawerPwaLabelEn || 'Install App on Phone') : (drawerPwaLabelKn || 'ಆ್ಯಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ')"></span>
                                     </div>
                                 </template>
                             </div>
