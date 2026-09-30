@@ -114,26 +114,34 @@
         }
 
         /* 2. Top Navigation Links (Rates / ದರಗಳು, Schemes / ಯೋಜನೆಗಳು, etc.) */
-        html[lang="kn"] #siteHeader nav a {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+        html[lang="kn"] #siteHeader nav:not(.hidden) a {
             padding-top: 10px !important;
             padding-bottom: 6px !important;
             line-height: 1.2 !important;
         }
 
         /* 3. Header Location Pill (📍 ಬೆಂಗಳೂರು ನಗರ) */
-        html[lang="kn"] #siteHeader button {
-            display: inline-flex !important;
-            align-items: center !important;
+        html[lang="kn"] #siteHeader .header-location-pill:not(.hidden) {
             padding-top: 7px !important;
             padding-bottom: 5px !important;
         }
-        html[lang="kn"] #siteHeader button span:not(.text-rose-500) {
+        html[lang="kn"] #siteHeader .header-location-pill span:not(.text-rose-500) {
             position: relative;
             top: 1.5px;
             line-height: 1.2;
+        }
+
+        /* Strict Responsive Visibility Guarantee: never display hidden elements on mobile */
+        html[lang="kn"] .hidden,
+        html[lang="kn"] #siteHeader .hidden {
+            display: none !important;
+        }
+        @media (max-width: 1023px) {
+            html[lang="kn"] #siteHeader .hidden,
+            html[lang="kn"] #siteHeader .lg\:flex,
+            html[lang="kn"] #siteHeader .xl\:inline-flex {
+                display: none !important;
+            }
         }
 
         /* 4. Header Language Switcher Toggle (EN | ಕನ್ನಡ) */
@@ -512,7 +520,7 @@
                     <button type="button" 
                             x-data
                             @click="$dispatch('open-location-modal')" 
-                            class="hidden lg:flex items-center gap-1.5 bg-[#FAF8F5] border border-[#DDD2BE] rounded-full px-3 py-1.5 text-xs font-bold text-stone-800 transition hover:bg-stone-100 active:scale-95 cursor-pointer shadow-2xs shrink-0"
+                            class="header-location-pill hidden lg:flex items-center gap-1.5 bg-[#FAF8F5] border border-[#DDD2BE] rounded-full px-3 py-1.5 text-xs font-bold text-stone-800 transition hover:bg-stone-100 active:scale-95 cursor-pointer shadow-2xs shrink-0"
                             title="{{ $activeLocale === 'en' ? 'Click to change location' : 'ಸ್ಥಳ ಬದಲಾಯಿಸಲು ಕ್ಲಿಕ್ ಮಾಡಿ' }}">
                         <span class="text-rose-500 text-xs">📍</span>
                         <span class="max-w-[100px] truncate {{ $activeLocale === 'kn' ? 'font-kannada pt-0.5 leading-normal' : '' }}">
