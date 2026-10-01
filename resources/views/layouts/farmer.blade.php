@@ -284,6 +284,9 @@
     <!-- Top Navigation Progress Indicator (Silky Smooth Instant Page Feedback) -->
     <div id="globalPageProgressBar" aria-hidden="true"></div>
 
+    <!-- Full-Screen Glassmorphic Navigation Loading Window -->
+    <x-navigation-loader />
+
     <!-- Connectivity Status Indicator -->
     <div x-data="{
         isOnline: navigator.onLine,

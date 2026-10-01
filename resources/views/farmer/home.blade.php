@@ -591,7 +591,7 @@
 
     </div>
 
-    <!-- ==================== 3. KARNATAKA IMD WEATHER RADAR SUMMARY STRIP ==================== -->
+    {{-- ==================== 3. KARNATAKA IMD WEATHER RADAR SUMMARY STRIP (HIDDEN UNTIL OFFICIAL IMD API IS CONFIGURED) ====================
     <section class="bg-white rounded-2xl p-3.5 sm:p-4 border-2 border-[#E2DAC8] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-[#EAF4EC] border border-[#B8DEC0] flex items-center justify-center text-lg text-[#1C5A2C] shrink-0">
@@ -623,6 +623,7 @@
             </span>
         </div>
     </section>
+    --}}
 
     <!-- ==================== 4. ALL CROPS DIRECTORY (ALL MANDIS) ==================== -->
     <section id="allCropsSection" class="p-2 sm:p-6 bg-[#FAF8F5] rounded-2xl sm:rounded-3xl border-2 border-[#E5DECE] shadow-sm space-y-3 sm:space-y-4 w-full max-w-full min-w-0 overflow-hidden">

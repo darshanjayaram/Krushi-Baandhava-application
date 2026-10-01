@@ -254,7 +254,7 @@
                             {{ $isEn ? 'Select Location' : 'ನಿಮ್ಮ ಸ್ಥಳ ಆಯ್ಕೆಮಾಡಿ' }}
                         </h3>
                         <p class="text-[10.5px] sm:text-xs text-emerald-100 font-semibold mt-0.5 {{ $isEn ? 'font-sans' : 'font-kannada' }}">
-                            {{ $isEn ? 'Live APMC market rates & weather forecast' : 'ಕರ್ನಾಟಕ ಎಪಿಎಂಸಿ ದರಗಳು & ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ' }}
+                            {{ $isEn ? 'Live market rates & weather forecast' : 'ಕರ್ನಾಟಕ ಮಂಡಿ ದರಗಳು & ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ' }}
                         </p>
                     </div>
                 </div>
@@ -293,7 +293,7 @@
                             </span>
                         </div>
                         <div class="text-[10.5px] sm:text-xs text-stone-600 font-medium mt-0.5 {{ $isEn ? 'font-sans' : 'font-kannada' }}">
-                            <span x-show="!isDetecting">{{ $isEn ? 'Automatically locates closest Karnataka APMC mandi' : 'ಜಿಪಿಎಸ್ ಮೂಲಕ ಹತ್ತಿರದ ಮಂಡಿ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಹೊಂದಿಸುತ್ತದೆ' }}</span>
+                            <span x-show="!isDetecting">{{ $isEn ? 'Automatically locates closest Karnataka mandi' : 'ಜಿಪಿಎಸ್ ಮೂಲಕ ಹತ್ತಿರದ ಮಂಡಿ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಹೊಂದಿಸುತ್ತದೆ' }}</span>
                             <span x-show="isDetecting" class="text-[#1C5A2C] font-bold" x-text="detectingMessage"></span>
                         </div>
                     </div>
@@ -530,7 +530,7 @@
                           x-text="'(' + updatingDistrictNameKn + ')'"></span>
                 </h4>
                 <p class="text-xs text-stone-600 font-medium">
-                    {{ $isEn ? 'Loading latest APMC market rates & weather...' : 'ತಾಜಾ ಎಪಿಎಂಸಿ ದರಗಳು & ಹವಾಮಾನವನ್ನು ನವೀಕರಿಸಲಾಗುತ್ತಿದೆ...' }}
+                    {{ $isEn ? 'Loading latest market rates & weather...' : 'ತಾಜಾ ಮಂಡಿ ದರಗಳು & ಹವಾಮಾನವನ್ನು ನವೀಕರಿಸಲಾಗುತ್ತಿದೆ...' }}
                 </p>
             </div>
 
