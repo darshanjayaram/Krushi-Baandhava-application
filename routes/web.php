@@ -43,6 +43,7 @@ Route::get('/locale/{lang}', function (string $lang, \Illuminate\Http\Request $r
     return redirect($redirectUrl)->withCookie(cookie()->forever('locale', $lang));
 })->name('locale.switch');
 Route::get('/crops', [FarmerCropController::class, 'index'])->name('farmer.crops.index');
+Route::get('/crops/{slug}/trend-ajax', [FarmerCropController::class, 'trendAjax'])->name('farmer.crops.trend-ajax');
 Route::get('/crops/{slug}', [FarmerCropController::class, 'show'])->name('farmer.crops.show');
 Route::get('/crop/{crop}', [FarmerCropController::class, 'show'])->name('farmer.crop.detail');
 Route::get('/markets', [MarketProfileController::class, 'index'])->name('farmer.markets.index');
@@ -177,7 +178,16 @@ Route::prefix('admin')->group(function () {
         Route::post('/news/{news}/toggle', [\App\Http\Controllers\Admin\NewsController::class, 'toggle'])->name('admin.news.toggle');
         Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)->names('admin.news');
 
+        Route::post('/videos/fetch-metadata', [\App\Http\Controllers\Admin\VideoController::class, 'fetchMetadata'])->name('admin.videos.fetch-metadata');
+        Route::post('/videos/settings', [\App\Http\Controllers\Admin\VideoController::class, 'updateSettings'])->name('admin.videos.settings');
+        Route::post('/videos/bulk', [\App\Http\Controllers\Admin\VideoController::class, 'bulkAction'])->name('admin.videos.bulk');
         Route::post('/videos/{video}/toggle', [\App\Http\Controllers\Admin\VideoController::class, 'toggle'])->name('admin.videos.toggle');
+        Route::post('/videos/{video}/toggle-featured', [\App\Http\Controllers\Admin\VideoController::class, 'toggleFeatured'])->name('admin.videos.toggle-featured');
+        Route::get('/videos/taxonomies', [\App\Http\Controllers\Admin\VideoTaxonomyController::class, 'index'])->name('admin.videos.taxonomies.index');
+        Route::post('/videos/taxonomies', [\App\Http\Controllers\Admin\VideoTaxonomyController::class, 'store'])->name('admin.videos.taxonomies.store');
+        Route::put('/videos/taxonomies/{taxonomy}', [\App\Http\Controllers\Admin\VideoTaxonomyController::class, 'update'])->name('admin.videos.taxonomies.update');
+        Route::delete('/videos/taxonomies/{taxonomy}', [\App\Http\Controllers\Admin\VideoTaxonomyController::class, 'destroy'])->name('admin.videos.taxonomies.destroy');
+        Route::post('/videos/taxonomies/{taxonomy}/toggle', [\App\Http\Controllers\Admin\VideoTaxonomyController::class, 'toggle'])->name('admin.videos.taxonomies.toggle');
         Route::resource('videos', \App\Http\Controllers\Admin\VideoController::class)->names('admin.videos');
 
         Route::post('/articles/{article}/toggle', [\App\Http\Controllers\Admin\ArticleController::class, 'toggle'])->name('admin.articles.toggle');

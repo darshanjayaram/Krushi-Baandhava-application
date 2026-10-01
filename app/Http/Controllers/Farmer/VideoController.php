@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Farmer;
 use App\Http\Controllers\Controller;
 use App\Models\Crop;
 use App\Models\CuratedVideo;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -14,12 +15,31 @@ class VideoController extends Controller
     {
         $cropId = $request->query('crop_id');
         $category = $request->query('category');
+        $growthStage = $request->query('growth_stage');
         $search = $request->query('search');
+
+        // Admin-configured max videos per page (defaults to 12)
+        $perPage = (int) SystemSetting::get('farmer_video_per_page', 12);
+        if ($perPage < 3 || $perPage > 60) {
+            $perPage = 12;
+        }
+
+        // Hero spotlight video (featured video) when no specific filters/search applied and on first page
+        $featuredVideo = null;
+        if (!$cropId && !$category && !$growthStage && !$search && $request->query('page', 1) == 1) {
+            $featuredVideo = CuratedVideo::active()
+                ->featured()
+                ->with('crop')
+                ->latest()
+                ->first();
+        }
 
         $videos = CuratedVideo::active()
             ->with('crop')
+            ->when($featuredVideo, fn($q) => $q->where('id', '!=', $featuredVideo->id))
             ->when($cropId, fn($q) => $q->where('crop_id', $cropId))
             ->when($category, fn($q) => $q->where('category', $category))
+            ->when($growthStage, fn($q) => $q->byStage($growthStage))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('title', 'like', "%{$search}%")
@@ -27,21 +47,27 @@ class VideoController extends Controller
                         ->orWhere('channel_name', 'like', "%{$search}%");
                 });
             })
+            ->orderByDesc('is_featured')
             ->orderBy('display_order')
             ->latest()
-            ->paginate(12)
+            ->paginate($perPage)
             ->withQueryString();
 
         $crops = Crop::orderBy('name')->get(['id', 'name', 'name_kn']);
+        $categories = CuratedVideo::getCategories();
+        $growthStages = CuratedVideo::getGrowthStages();
 
-        $categories = [
-            'farming_tips' => ['name_en' => 'Farming Tips & Techniques', 'name_kn' => 'ಕೃಷಿ ತಂತ್ರಜ್ಞಾನ & ಸಲಹೆಗಳು', 'icon' => '🌾'],
-            'pest_control' => ['name_en' => 'Pest & Disease Control', 'name_kn' => 'ಕೀಟ ಹಾಗೂ ರೋಗ ನಿರ್ವಹಣೆ', 'icon' => '🐛'],
-            'irrigation' => ['name_en' => 'Irrigation Management', 'name_kn' => 'ನೀರಾವರಿ ಪದ್ಧತಿಗಳು', 'icon' => '💧'],
-            'success_stories' => ['name_en' => 'Success Stories', 'name_kn' => 'ಯಶಸ್ವಿ ರೈತರ ಕಥೆಗಳು', 'icon' => '🏆'],
-            'machinery' => ['name_en' => 'Farm Machinery & Tools', 'name_kn' => 'ಕೃಷಿ ಯಂತ್ರಗಳು', 'icon' => '🚜'],
-        ];
-
-        return view('farmer.videos.index', compact('videos', 'crops', 'categories', 'cropId', 'category', 'search'));
+        return view('farmer.videos.index', compact(
+            'videos', 
+            'crops', 
+            'categories', 
+            'growthStages',
+            'cropId', 
+            'category', 
+            'growthStage',
+            'search',
+            'featuredVideo',
+            'perPage'
+        ));
     }
 }

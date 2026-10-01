@@ -534,9 +534,13 @@ class HistoricalAnalyticsService
                 if ($item['avg_price'] > 0) {
                     if ($priceSpread > 0) {
                         $ratio = ($item['avg_price'] - $minRecordedAvg) / $priceSpread;
-                        $item['bar_height_percent'] = (int) round(18 + (82 * $ratio));
+                        if (($item['tier'] ?? '') === 'lo') {
+                            $item['bar_height_percent'] = (int) round(6 + (19 * $ratio)); // 6–25%
+                        } else {
+                            $item['bar_height_percent'] = (int) round(18 + (82 * $ratio)); // 18–100%
+                        }
                     } else {
-                        $item['bar_height_percent'] = 100;
+                        $item['bar_height_percent'] = ($item['tier'] ?? '') === 'lo' ? 15 : 100;
                     }
                 } else {
                     $item['bar_height_percent'] = 0;
@@ -825,9 +829,15 @@ class HistoricalAnalyticsService
             if ($item['observations'] > 0 && $item['avg_price'] > 0) {
                 if ($priceSpread > 0) {
                     $ratio = ($item['avg_price'] - $minRecordedAvg) / $priceSpread;
-                    $item['bar_height_percent'] = (int) round(18 + (82 * $ratio));
+                    // Lean months get a capped low bar (max 25%) so farmers clearly see them as bad periods.
+                    // Peak/normal months get the full 18–100% normalized range for visual contrast.
+                    if (($item['tier'] ?? '') === 'lo') {
+                        $item['bar_height_percent'] = (int) round(6 + (19 * $ratio)); // 6–25% range
+                    } else {
+                        $item['bar_height_percent'] = (int) round(18 + (82 * $ratio)); // 18–100% range
+                    }
                 } else {
-                    $item['bar_height_percent'] = 100;
+                    $item['bar_height_percent'] = ($item['tier'] ?? '') === 'lo' ? 15 : 100;
                 }
             } else {
                 $item['bar_height_percent'] = 0;
@@ -842,15 +852,18 @@ class HistoricalAnalyticsService
             ->take(3)
             ->values()
             ->map(function ($item, $rank) {
+                $pct = round(($item['seasonal_index'] - 1.0) * 100, 1);
                 return [
-                    'rank' => $rank + 1,
-                    'month_name_kn' => $item['name_kn'],
-                    'month_name_en' => $item['name_en'],
-                    'short_name_kn' => $item['short_name_kn'],
-                    'short_name_en' => $item['short_name_en'],
-                    'avg_price' => $item['avg_price'],
+                    'rank'           => $rank + 1,
+                    'month_name_kn'  => $item['name_kn'],
+                    'month_name_en'  => $item['name_en'],
+                    'short_name_kn'  => $item['short_name_kn'],
+                    'short_name_en'  => $item['short_name_en'],
+                    'avg_price'      => $item['avg_price'],
                     'seasonal_index' => $item['seasonal_index'],
-                    'premium_percent' => round(($item['seasonal_index'] - 1.0) * 100, 1),
+                    'premium_percent'=> $pct,
+                    'badge_en'       => $pct >= 10 ? 'Best Time to Sell' : ($pct >= 0 ? 'Good Time to Sell' : 'Average Period'),
+                    'badge_kn'       => $pct >= 10 ? 'ಮಾರಾಟಕ್ಕೆ ಅತ್ಯುತ್ತಮ' : ($pct >= 0 ? 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ' : 'ಸಾಮಾನ್ಯ ಅವಧಿ'),
                 ];
             })->toArray();
 

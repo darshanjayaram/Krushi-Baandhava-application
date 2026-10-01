@@ -690,7 +690,7 @@ class MarketPriceIngestionService
         $market = Market::karnataka()
             ->where(function ($q) use ($clean) {
                 $q->where('name', $clean)
-                    ->orWhere('name', 'like', "{$clean} APMC%")
+                    ->orWhere('name', 'like', "{$clean}%")
                     ->orWhere('name_kn', $clean);
             })
             ->first();
@@ -1029,9 +1029,9 @@ class MarketPriceIngestionService
             ]);
         }
 
-        // Clean market name (e.g. "Tumkur" -> "Tumkur APMC")
+        // Clean market name (strip APMC/mandi/market noise, store plain town name)
         $baseName = trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $cleanMandi));
-        $marketName = $baseName . ' APMC';
+        $marketName = $baseName;
 
         $market = Market::where('district_id', $district->id)
             ->where(function ($q) use ($baseName, $marketName) {
@@ -1046,7 +1046,7 @@ class MarketPriceIngestionService
                 'name' => $marketName,
                 'name_kn' => $marketName,
                 'code' => substr('KA_APMC_' . strtoupper(Str::slug($baseName, '_')), 0, 50),
-                'market_type' => 'APMC Mandi',
+                'market_type' => 'APMC',
                 'latitude' => $district->latitude ?? 13.9299,
                 'longitude' => $district->longitude ?? 75.5681,
                 'is_active' => true,

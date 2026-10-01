@@ -153,7 +153,7 @@
         <!-- Mobile: Order 2 | Desktop: Right Column Rows 1-2 (Cols 6-12)              -->
         <!-- ========================================================================= -->
         <div class="order-2 lg:order-none lg:col-span-7 lg:col-start-6 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-5 sm:p-7 border-2 border-[#D9CEB8] shadow-sm flex flex-col justify-between space-y-4 h-full"
-             x-data="{ activeSort: '{{ $defaultMarketSort ?? 'nearest_first' }}', showAllRadius: false, showAllGrades: false }">
+             x-data="{ activeSort: '{{ $defaultMarketSort ?? 'nearest_first' }}', showAllRadius: false, showAllGrades: true }">
             
             <!-- 1. Current Price Section -->
             <div class="space-y-2">
@@ -161,8 +161,10 @@
                     <span class="font-extrabold tracking-wider text-stone-400 uppercase text-[11px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                         {{ $activeLocale === 'en' ? 'CURRENT PRICE' : 'ಇಂದಿನ ದರ' }}
                     </span>
-                    <span class="text-xs font-semibold text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? 'Updated:' : 'ನವೀಕರಿಸಲಾಗಿದೆ:' }} {{ \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M Y') }}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold text-[11px] sm:text-xs shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                        <span class="text-emerald-700 font-semibold">{{ $activeLocale === 'en' ? 'Updated:' : 'ನವೀಕರಿಸಲಾಗಿದೆ:' }}</span>
+                        <span class="font-black text-[#1C5A2C]">{{ \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M Y') }}</span>
                     </span>
                 </div>
 
@@ -217,22 +219,28 @@
 
                     @if(!empty($isSelectedActualNearest) && !empty($nearestDistanceKm))
                         <span class="text-stone-300">•</span>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#fff4e5] text-[#9a5b00] border border-[#ffe0b2] text-[11px] font-extrabold whitespace-nowrap shadow-2xs"
+                        <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[#fff4e5] text-[#9a5b00] border border-[#ffe0b2] text-[11px] font-extrabold whitespace-nowrap shadow-2xs leading-none"
                               title="{{ $activeLocale === 'en' ? 'Closest mandi to your location' : 'ನಿಮ್ಮ ಸ್ಥಳಕ್ಕೆ ಅತ್ಯಂತ ಸಮೀಪದ ಮಾರುಕಟ್ಟೆ' }}">
-                            📍 {{ $activeLocale === 'en' ? 'nearest market' : 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆ' }} • {{ round($nearestDistanceKm) }} km
+                            <span class="inline-flex items-center leading-none">📍</span>
+                            <span class="inline-flex items-center leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">{{ $activeLocale === 'en' ? 'nearest market' : 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆ' }} • {{ round($nearestDistanceKm) }} km</span>
                         </span>
                     @elseif(!empty($nearestDistanceKm))
                         <span class="text-stone-300">•</span>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold whitespace-nowrap">
-                            📍 {{ round($nearestDistanceKm) }} km {{ $activeLocale === 'en' ? 'away' : 'ದೂರ' }}
+                        <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold whitespace-nowrap leading-none">
+                            <span class="inline-flex items-center leading-none">📍</span>
+                            <span class="inline-flex items-center leading-none">{{ round($nearestDistanceKm) }} km {{ $activeLocale === 'en' ? 'away' : 'ದೂರ' }}</span>
                             @if(!empty($actualNearestMarket) && $actualNearestMarket->id !== $selectedMarket?->id)
-                                <span class="text-[10px] text-emerald-600 font-medium">({{ $activeLocale === 'en' ? 'Nearest: ' : 'ಸಮೀಪ: ' }}{{ $activeLocale === 'en' ? $actualNearestMarket->name : ($actualNearestMarket->name_kn ?? $actualNearestMarket->name) }} {{ round($actualNearestMarket->distance_km) }}km)</span>
+                                <span class="text-[10px] text-emerald-600 font-medium leading-none">({{ $activeLocale === 'en' ? 'Nearest: ' : 'ಸಮೀಪ: ' }}{{ $activeLocale === 'en' ? $actualNearestMarket->name : ($actualNearestMarket->name_kn ?? $actualNearestMarket->name) }} {{ round($actualNearestMarket->distance_km) }}km)</span>
                             @endif
                         </span>
                     @endif
 
                     <span class="text-stone-300">•</span>
-                    <span class="text-stone-700 font-bold">{{ $activeLocale === 'en' ? 'as of ' . \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M') : 'ದಿನಾಂಕ ' . \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M') }}</span>
+                    <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-950 border border-amber-300 text-[11px] font-bold whitespace-nowrap shadow-2xs leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="inline-flex items-center leading-none text-xs">📅</span>
+                        <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'as of' : 'ದಿನಾಂಕ:' }}</span>
+                        <span class="font-black text-amber-900 underline decoration-amber-400 decoration-1 leading-none">{{ \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M') }}</span>
+                    </span>
 
                     @if($boardMeta)
                         <span class="text-amber-900 font-bold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} text-[11px]">({{ $activeLocale === 'en' ? $boardMeta['badge_en'] : $boardMeta['badge_kn'] }})</span>
@@ -444,25 +452,37 @@
         <!-- ELEMENT 3: BOX 2 (ADVISORY & ACTION BUTTONS)                              -->
         <!-- Mobile: Order 3 (Directly Below Box 1) | Desktop: Left Column Row 2       -->
         <!-- ========================================================================= -->
-        <div class="order-3 lg:order-none lg:col-span-5 lg:col-start-1 lg:row-start-2 bg-white rounded-3xl p-5 border-2 border-[#D9CEB8] shadow-sm space-y-4">
-            
+        <div class="order-3 lg:order-none lg:col-span-5 lg:col-start-1 lg:row-start-2 bg-white rounded-2xl sm:rounded-3xl border-2 border-[#D9CEB8] shadow-sm overflow-hidden">
+
             <!-- Market Advisory / Sentiment Banner -->
-            <div class="rounded-2xl p-4 border transition {{ $forecastDir === 'down' ? 'bg-amber-50/80 border-amber-200/90 text-amber-950' : ($forecastDir === 'up' ? 'bg-emerald-50/80 border-emerald-200/90 text-emerald-950' : 'bg-stone-50 border-stone-200 text-stone-800') }}">
-                <div class="flex items-start gap-3">
-                    <span class="text-2xl shrink-0">
-                        {{ $forecastDir === 'down' ? '⏰' : ($forecastDir === 'up' ? '📈' : '💡') }}
-                    </span>
-                    <div class="space-y-0.5 text-xs">
-                        <div class="font-extrabold text-sm flex items-center gap-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            @if($forecastDir === 'down')
-                                <span>{{ $activeLocale === 'en' ? 'Optimal Time to Sell (Sell now)' : 'ಮಾರಾಟಕ್ಕೆ ಸೂಕ್ತ ಸಮಯ' }}</span>
-                            @elseif($forecastDir === 'up')
-                                <span>{{ $activeLocale === 'en' ? 'Price Rise Expected (Hold / Watch)' : 'ಧಾರಣೆ ಏರಿಕೆಯ ಮುನ್ಸೂಚನೆ' }}</span>
-                            @else
-                                <span>{{ $activeLocale === 'en' ? 'Market Advisory (Stable)' : 'ಮಾರುಕಟ್ಟೆ ಸಲಹೆ' }}</span>
-                            @endif
+            @php
+                $h7Horizon = collect($forecast['horizons'] ?? [])->firstWhere('horizon_days', 7);
+                $advisoryPct = $h7Horizon ? abs($h7Horizon['percentage_change']) : null;
+                $advisoryConf = $h7Horizon ? (int)($h7Horizon['confidence_score'] ?? 0) : null;
+                $advisoryDir = $h7Horizon['direction'] ?? $forecastDir;
+            @endphp
+            <div class="px-3.5 py-2.5 sm:px-4 sm:py-3 {{ $forecastDir === 'down' ? 'bg-amber-50/90' : ($forecastDir === 'up' ? 'bg-emerald-50/90' : 'bg-stone-50') }}">
+                <div class="flex items-start gap-2.5">
+                    <!-- Left accent stripe -->
+                    <div class="w-1 self-stretch rounded-full shrink-0 {{ $forecastDir === 'down' ? 'bg-amber-400' : ($forecastDir === 'up' ? 'bg-emerald-500' : 'bg-stone-400') }}"></div>
+
+                    <div class="flex-1 space-y-1">
+                        <!-- Title row -->
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-base sm:text-lg leading-none">{{ $forecastDir === 'down' ? '⏰' : ($forecastDir === 'up' ? '📈' : '💡') }}</span>
+                            <div class="font-extrabold text-xs sm:text-sm {{ $forecastDir === 'down' ? 'text-amber-950' : ($forecastDir === 'up' ? 'text-emerald-950' : 'text-stone-800') }} {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                @if($forecastDir === 'down')
+                                    {{ $activeLocale === 'en' ? 'Optimal Time to Sell (Sell Now)' : 'ಮಾರಾಟಕ್ಕೆ ಸೂಕ್ತ ಸಮಯ' }}
+                                @elseif($forecastDir === 'up')
+                                    {{ $activeLocale === 'en' ? 'Price Rise Expected (Hold / Watch)' : 'ಧಾರಣೆ ಏರಿಕೆಯ ಮುನ್ಸೂಚನೆ' }}
+                                @else
+                                    {{ $activeLocale === 'en' ? 'Market Stable (Monitor)' : 'ಮಾರುಕಟ್ಟೆ ಸ್ಥಿರ — ಗಮನಿಸಿ' }}
+                                @endif
+                            </div>
                         </div>
-                        <p class="leading-relaxed {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} text-stone-600">
+
+                        <!-- Body text -->
+                        <p class="text-[11px] sm:text-xs leading-snug {{ $forecastDir === 'down' ? 'text-amber-800' : ($forecastDir === 'up' ? 'text-emerald-800' : 'text-stone-600') }} {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                             @if($forecastDir === 'down')
                                 {{ $activeLocale === 'en' ? 'Arrivals are expected to increase over the coming weeks, which may cause prices to soften. Selling at current favorable rates is advisable.' : 'ಮುಂದಿನ ವಾರಗಳಲ್ಲಿ ಮಾರುಕಟ್ಟೆಗೆ ಆವಕ ಹೆಚ್ಚಾಗುವ ಮುನ್ಸೂಚನೆ ಇದ್ದು, ದರಗಳು ಕೊಂಚ ಇಳಿಕೆಯಾಗುವ ಸಾಧ್ಯತೆಯಿದೆ. ಸದ್ಯದ ಉತ್ತಮ ಬೆಲೆಯಲ್ಲಿ ಮಾರಾಟ ಮಾಡುವುದು ಸೂಕ್ತ.' }}
                             @elseif($forecastDir === 'up')
@@ -471,9 +491,36 @@
                                 {{ $activeLocale === 'en' ? 'Market rates are steady. Consider transportation costs and arrival volumes of nearby mandis before selling.' : 'ಮಾರುಕಟ್ಟೆ ದರಗಳು ಸ್ಥಿರವಾಗಿದ್ದು, ಹತ್ತಿರದ ಮಂಡಿಗಳ ಸಾರಿಗೆ ವೆಚ್ಚ ಮತ್ತು ಆವಕ ಗಮನಿಸಿ ಮಾರಾಟ ನಿರ್ಧಾರ ಕೈಗೊಳ್ಳಿ.' }}
                             @endif
                         </p>
+
+                        <!-- Live forecast stat pills with clear high-contrast numbers -->
+                        @if($advisoryPct !== null && !empty($forecast['is_sufficient']))
+                            <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border shadow-2xs leading-none {{ $forecastDir === 'up' ? 'bg-emerald-100/90 border-emerald-300' : ($forecastDir === 'down' ? 'bg-amber-100/90 border-amber-300' : 'bg-stone-100 border-stone-300') }}">
+                                    <span class="inline-flex items-center text-[10px] sm:text-[11px] font-bold text-stone-600 leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                        {{ $activeLocale === 'en' ? '7-day forecast:' : '7 ದಿನ:' }}
+                                    </span>
+                                    <span class="inline-flex items-center text-xs sm:text-[13px] font-black font-sans tracking-tight leading-none {{ $forecastDir === 'up' ? 'text-emerald-700' : ($forecastDir === 'down' ? 'text-red-700' : 'text-stone-800') }}">
+                                        {{ $forecastDir === 'up' ? '↑ +' : ($forecastDir === 'down' ? '↓ -' : '→ ±') }}{{ $advisoryPct }}%
+                                    </span>
+                                </span>
+                                @if($advisoryConf > 0)
+                                    <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border border-slate-300 bg-slate-100/90 text-slate-900 shadow-2xs leading-none">
+                                        <span class="inline-flex items-center text-[10px] sm:text-[11px] font-bold text-slate-500 leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                            {{ $activeLocale === 'en' ? 'Confidence:' : 'ವಿಶ್ವಾಸ:' }}
+                                        </span>
+                                        <span class="inline-flex items-center text-xs sm:text-[13px] font-black font-sans text-slate-900 tracking-tight leading-none">
+                                            {{ $advisoryConf }}%
+                                        </span>
+                                    </span>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
+
+            <!-- Divider -->
+            <div class="h-px bg-[#EAE3D2]"></div>
 
             <!-- Action Buttons: WhatsApp Share & Where to Sell Simulator -->
             @php
@@ -487,26 +534,30 @@
                 $whatsappDetailUrl = "https://wa.me/?text=" . rawurlencode($sharePriceText);
             @endphp
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
-                <!-- Bright WhatsApp Button -->
+            <div class="grid grid-cols-2 p-2 sm:p-2.5 gap-2">
+                <!-- WhatsApp Share Button -->
                 <a href="{{ $whatsappDetailUrl }}"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="w-full py-3 px-3 rounded-2xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-extrabold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer active:scale-95">
-                    <span class="text-base">💬</span>
+                   class="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2.5 rounded-xl sm:rounded-2xl bg-[#25D366] hover:bg-[#1db954] active:scale-95 text-white font-extrabold text-xs shadow-2xs transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.524 5.847L.057 23.882a.5.5 0 00.613.612l6.101-1.463A11.942 11.942 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.866 9.866 0 01-5.03-1.378l-.36-.214-3.733.896.927-3.63-.235-.374A9.867 9.867 0 012.1 12c0-5.464 4.436-9.9 9.9-9.9 5.464 0 9.9 4.436 9.9 9.9 0 5.464-4.436 9.9-9.9 9.9z"/>
+                    </svg>
                     <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Share Price' : 'ದರ ಶೇರ್ ಮಾಡಿ' }}</span>
                 </a>
 
-                <!-- Net Profit Simulator Button (Where to Sell) -->
+                <!-- Where to Sell Button -->
                 <a href="{{ route('farmer.decision.where-to-sell', ['crop' => $crop->slug]) }}"
-                   class="w-full py-3 px-3 rounded-2xl bg-[#1C5A2C] hover:bg-[#154622] text-white font-extrabold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer active:scale-95">
-                    <span>⚖️</span>
-                    <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Where to Sell?' : 'ಎಲ್ಲಿ ಮಾರಾಟ ಮಾಡಬೇಕು?' }}</span>
-                    <span class="text-xs">&rarr;</span>
+                   class="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2.5 rounded-xl sm:rounded-2xl bg-[#1C5A2C] hover:bg-[#154622] active:scale-95 text-white font-extrabold text-xs shadow-2xs transition-all cursor-pointer">
+                    <span class="text-xs sm:text-sm leading-none">⚖️</span>
+                    <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Where to Sell?' : 'ಎಲ್ಲಿ ಮಾರಾಟ?' }}</span>
+                    <span class="text-xs opacity-80">&rarr;</span>
                 </a>
             </div>
 
         </div>
+
 
     </div>
 
@@ -568,32 +619,29 @@
     <!-- 4. "What's next" Forecast Horizons (Compact Classic 2-Column Mobile & 4-Column Desktop) -->
     <div class="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-6 border-2 border-[#D9CEB8] shadow-sm space-y-3.5 sm:space-y-5 overflow-hidden">
         
-        <!-- Section Header with Green Pillar -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 sm:pb-3 border-b-2 border-[#F0EAE1]">
-            <div class="flex flex-wrap items-center gap-1.5 sm:gap-3">
-                <span class="w-1.5 sm:w-2 h-4 sm:h-6 rounded-full bg-[#1C5A2C]"></span>
-                <h2 class="text-base sm:text-xl font-black text-stone-950 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    {{ $activeLocale === 'en' ? "What's next" : 'ಮುಂದೇನು?' }}
-                </h2>
-                @if($activePriceItem && $activePriceItem->variety)
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-[#FAF6EE] text-[#1C5A2C] border border-[#D9CEB8] shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                        <span>🏷️</span>
-                        <span>{{ $activePriceItem->getDisplayVarietyGrade($activeLocale) }}</span>
-                    </span>
-                @endif
-                @if($activeLocale === 'en')
-                    <span class="text-xs font-bold text-stone-500 font-sans hidden md:inline">
-                        • Price Forecast & Movement Trends
-                    </span>
-                @else
-                    <span class="text-xs font-bold text-stone-500 font-kannada hidden md:inline">
-                        • ದರ ಮುನ್ಸೂಚನೆ & ನಿರೀಕ್ಷಿತ ಶ್ರೇಣಿ
-                    </span>
-                @endif
+        <!-- Section Header with Classic Editorial Layout -->
+        <div class="flex items-center justify-between gap-3 pb-3 border-b-2 border-[#F0EAE1]">
+            <div class="flex items-start gap-2.5">
+                <span class="w-1.5 h-8 sm:h-9 rounded-full bg-[#1C5A2C] shrink-0 mt-0.5"></span>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'When to Sell? — Price Forecast' : 'ಯಾವಾಗ ಮಾರಬೇಕು? — ಬೆಲೆ ಮುನ್ಸೂಚನೆ' }}
+                        </h2>
+                        @if($activePriceItem && $activePriceItem->variety)
+                            <span class="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-black bg-[#FAF6EE] text-[#1C5A2C] border border-[#D9CEB8] shadow-2xs leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
+                                <span class="inline-flex items-center leading-none">{{ $activePriceItem->getDisplayVarietyGrade($activeLocale) }}</span>
+                            </span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-stone-500 font-medium mt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? '1 to 15-day projected price movement & market direction' : 'ಮುಂದಿನ 15 ದಿನಗಳ ನಿರೀಕ್ಷಿತ ದರ ಶ್ರೇಣಿ ಮತ್ತು ಮಾರುಕಟ್ಟೆ ಪ್ರವೃತ್ತಿ' }}
+                    </p>
+                </div>
             </div>
-            <div class="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-[10px] sm:text-[11px] font-black shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#1C5A2C] animate-pulse"></span>
-                <span>{{ $activeLocale === 'en' ? 'Updated daily' : 'ದೈನಂದಿನ ಅಪ್ಡೇಟ್' }}</span>
+            <div class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0 leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#1C5A2C] animate-pulse shrink-0"></span>
+                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'Updated daily' : 'ದೈನಂದಿನ ಅಪ್ಡೇಟ್' }}</span>
             </div>
         </div>
 
@@ -656,11 +704,11 @@
 
                         <!-- Card Header: Brand Green Horizon Pill & Short Target Date -->
                         <div class="flex items-center justify-between gap-1 pt-0.5">
-                            <span class="px-1.5 sm:px-2 py-0.5 rounded bg-[#1C5A2C] text-white text-[9px] sm:text-[11px] font-black tracking-wider uppercase font-sans shadow-2xs border border-[#1C5A2C] {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                                {{ $activeLocale === 'en' ? $horizonMeta['en'] : $horizonMeta['kn'] }}
+                            <span class="inline-flex items-center justify-center px-2 py-1 rounded bg-[#1C5A2C] text-white text-[9px] sm:text-[11px] font-black tracking-wider uppercase font-sans shadow-2xs border border-[#1C5A2C] leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
+                                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? $horizonMeta['en'] : $horizonMeta['kn'] }}</span>
                             </span>
                             
-                            <span class="text-[9px] sm:text-xs font-bold text-stone-500 font-sans whitespace-nowrap">
+                            <span class="text-[9px] sm:text-xs font-bold text-stone-500 font-sans whitespace-nowrap leading-none inline-flex items-center">
                                 {{ $shortDate }}
                             </span>
                         </div>
@@ -731,24 +779,7 @@
                 </div>
             @endif
 
-            <!-- Actionable "Why" Explanatory Card (Compact High-Contrast Intelligence Card) -->
-            @if(!empty($forecast['why_summary_en']) || !empty($forecast['why_summary_kn']))
-                <div class="rounded-2xl p-3 sm:p-4 bg-[#FAF6EE] border-2 border-[#D9CEB8] text-stone-900 flex items-start gap-2.5 sm:gap-3.5 shadow-2xs">
-                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 text-base sm:text-lg shadow-2xs">
-                        💡
-                    </div>
-                    <div class="space-y-0.5 text-xs sm:text-sm">
-                        <div class="font-black text-stone-950 flex items-center gap-2 {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                            <span>{{ $activeLocale === 'en' ? 'Market Intelligence & Analysis' : 'ಮಾರುಕಟ್ಟೆ ಒಳನೋಟ & ವಿಶ್ಲೇಷಣೆ' }}</span>
-                            <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#1C5A2C] text-white font-sans">AI INSIGHT</span>
-                        </div>
-                        <p class="text-stone-700 leading-snug font-medium text-[11px] sm:text-xs {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                            <strong class="font-bold text-stone-950">{{ $activeLocale === 'en' ? 'Why: ' : 'ಕಾರಣ: ' }}</strong>
-                            <span>{{ $activeLocale === 'en' ? $forecast['why_summary_en'] : $forecast['why_summary_kn'] }}</span>
-                        </p>
-                    </div>
-                </div>
-            @endif
+
         @else
             <!-- Data Insufficiency Notice -->
             <div class="p-4 rounded-2xl bg-amber-50/80 border-2 border-amber-200 text-amber-950 flex items-start gap-3">
@@ -797,7 +828,7 @@
         .khc-lead{color:rgba(255,255,255,0.72);font-size:13px;font-weight:600;line-height:1.65;margin:10px 0 16px;}
         .khc-lead strong{color:#FDE68A;font-weight:900;}
         /* Peak month chip badges */
-        .khc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+        .khc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:35px;}
         .khc-chip{background:linear-gradient(135deg,#7C2D12,#C2410C,#F59E0B);border-radius:14px;padding:5px 13px 5px 8px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 14px rgba(245,158,11,0.28);animation:chipPulse 3.5s ease-in-out infinite;}
         @keyframes chipPulse{0%,100%{transform:scale(1);box-shadow:0 3px 14px rgba(245,158,11,0.28);}50%{transform:scale(1.03);box-shadow:0 5px 22px rgba(245,158,11,0.48);}}
         /* Bar chart */
@@ -867,9 +898,17 @@
                             📍 {{ $activeLocale === 'kn' && !empty($seasonalAnalysis['market_name_kn']) ? $seasonalAnalysis['market_name_kn'] : $seasonalAnalysis['market_name'] }}
                         </span>
                     @endif
+                    @if(($seasonalAnalysis['scope'] ?? '') === 'market_calibrated')
+                        <span style="background:rgba(99,102,241,0.18);padding:2px 8px;border-radius:12px;font-size:9.5px;color:rgba(196,198,255,0.85);border:1px solid rgba(99,102,241,0.3);" title="{{ $activeLocale === 'en' ? 'State seasonal pattern scaled to this mandi\'s actual price level' : 'ರಾಜ್ಯ ಋತುಮಾನ ಮಾದರಿ — ಈ ಮಂಡಿ ದರ ಮಟ್ಟಕ್ಕೆ ಹೊಂದಿಸಲಾಗಿದೆ' }}">
+                            {{ $activeLocale === 'en' ? '🔄 State pattern · local price' : '🔄 ರಾಜ್ಯ ಮಾದರಿ · ಸ್ಥಳೀಯ ಬೆಲೆ' }}
+                        </span>
+                    @endif
                 </div>
                 <div class="khc-title {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     {{ $activeLocale === 'en' ? 'Best Months to Sell' : 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು' }}
+                </div>
+                <div class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.72);margin-top:2px;">
+                    {{ $activeLocale === 'en' ? '5-year historical price seasonality & peak harvest window' : '5 ವರ್ಷಗಳ ಮಂಡಿ ಇತಿಹಾಸದ ಆಧಾರದ ಮೇಲೆ ಗರಿಷ್ಠ ಧಾರಣೆ ಸಿಗುವ ತಿಂಗಳುಗಳು' }}
                 </div>
             </div>
             <div class="khc-badge-5y {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="margin-top:2px;">
@@ -886,12 +925,18 @@
             @if($activeLocale === 'en')
                 @if(!empty($seasonalAnalysis['peak_months_en']))
                     Prices in <strong>{{ $seasonalAnalysis['market_name'] ?? 'Karnataka' }}</strong> are usually highest around <strong>{{ implode(', ', $seasonalAnalysis['peak_months_en']) }}</strong> — plan your harvest and sale for those months.
+                    @if(($seasonalAnalysis['scope'] ?? '') === 'market_calibrated')
+                        <span style="font-size:11px;font-weight:600;color:rgba(196,198,255,0.7);"> (Seasonal shape from statewide data, prices calibrated to this mandi's level.)</span>
+                    @endif
                 @else
                     {{ $seasonalAnalysis['lead_summary_en'] ?? 'Seasonal price variations based on historical mandi arrivals.' }}
                 @endif
             @else
                 @if(!empty($seasonalAnalysis['peak_months_kn']))
                     <strong>{{ !empty($seasonalAnalysis['market_name_kn']) ? $seasonalAnalysis['market_name_kn'] : ($seasonalAnalysis['market_name'] ?? 'ಕರ್ನಾಟಕ') }}</strong> ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಸಾಮಾನ್ಯವಾಗಿ <strong>{{ implode(', ', $seasonalAnalysis['peak_months_kn']) }}</strong> ತಿಂಗಳಲ್ಲಿ ಬೆಲೆ ಹೆಚ್ಚು — ಆ ಸಮಯಕ್ಕೆ ಬೆಳೆ ಮಾರಲು ಸಿದ್ಧರಾಗಿ.
+                    @if(($seasonalAnalysis['scope'] ?? '') === 'market_calibrated')
+                        <span style="font-size:11px;font-weight:600;color:rgba(196,198,255,0.7);"> (ರಾಜ್ಯ ಋತುಮಾನ ಮಾದರಿ — ಈ ಮಂಡಿ ಬೆಲೆಗೆ ಹೊಂದಿಸಲಾಗಿದೆ.)</span>
+                    @endif
                 @else
                     {{ $seasonalAnalysis['lead_summary_kn'] ?? 'ಮಾರುಕಟ್ಟೆ ಇತಿಹಾಸ ಆಧಾರದ ಮೇಲೆ ಬೆಲೆ ವ್ಯತ್ಯಾಸ ತೋರಿಸಲಾಗಿದೆ.' }}
                 @endif
@@ -1022,14 +1067,19 @@
     {{-- Insufficient data: light header + amber notice --}}
     <div class="space-y-3">
         <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span class="w-1.5 h-6 rounded-full bg-[#1C5A2C]"></span>
-                <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    {{ $activeLocale === 'en' ? 'Best Months to Sell' : 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು' }}
-                </h2>
+            <div class="flex items-start gap-2.5">
+                <span class="w-1.5 h-8 sm:h-9 rounded-full bg-[#1C5A2C] shrink-0 mt-0.5"></span>
+                <div>
+                    <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? 'Best Months to Sell' : 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು' }}
+                    </h2>
+                    <p class="text-xs text-stone-500 font-medium mt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? '5-year historical price seasonality & peak harvest window' : '5 ವರ್ಷಗಳ ಮಂಡಿ ಇತಿಹಾಸದ ಆಧಾರದ ಮೇಲೆ ಗರಿಷ್ಠ ಧಾರಣೆ ಸಿಗುವ ತಿಂಗಳುಗಳು' }}
+                    </p>
+                </div>
             </div>
-            <div class="text-xs font-bold text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} bg-stone-100 px-3 py-1 rounded-full border border-stone-200/60">
-                {{ $activeLocale === 'en' ? 'Last 5 Years' : 'ಕಳೆದ 5 ವರ್ಷ' }}
+            <div class="inline-flex items-center justify-center leading-none text-xs font-bold text-stone-600 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} bg-stone-100 px-3 py-1.5 rounded-full border border-stone-200/80 shadow-2xs shrink-0">
+                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'Last 5 Years' : 'ಕಳೆದ 5 ವರ್ಷ' }}</span>
             </div>
         </div>
         <div class="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-950 flex items-start gap-3">
@@ -1047,32 +1097,38 @@
     @endif
 
     <!-- 6. Mandi / Board Rates Comparison List (Ranked Highest to Lowest) -->
-    <div class="space-y-4" x-data="{ showAllMandis: false }">
+    <div class="space-y-3 sm:space-y-4" x-data="{ showAllMandis: false }">
         <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="w-1.5 h-6 rounded-full {{ $boardMeta ? ($boardMeta['theme'] === 'coffee' ? 'bg-amber-800' : 'bg-emerald-700') : 'bg-[#1C5A2C]' }}"></span>
+            <div class="flex items-center gap-2.5">
+                <span class="w-1.5 h-8 sm:h-9 rounded-full {{ $boardMeta ? ($boardMeta['theme'] === 'coffee' ? 'bg-amber-800' : 'bg-emerald-700') : 'bg-[#1C5A2C]' }} shrink-0 mt-0.5"></span>
                 <div>
-                    <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        @if($boardMeta)
-                            {{ $activeLocale === 'en' ? $boardMeta['rates_heading_en'] : $boardMeta['rates_heading_kn'] }}
-                        @else
-                            {{ $activeLocale === 'en' ? 'Mandi Price Comparison (Ranked by Best Price)' : 'ಮಂಡಿವಾರು ದರ ಹೋಲಿಕೆ (ಅತ್ಯುತ್ತಮ ದರ)' }}
-                        @endif
-                    </h2>
-                    <p class="text-xs text-stone-500 font-sans">
-                        @if($boardMeta)
-                            {{ $boardMeta['authority'] }} {{ $activeLocale === 'en' ? 'Official Centres Near You' : 'ನಿಮ್ಮ ಹತ್ತಿರದ ಅಧಿಕೃತ ಕೇಂದ್ರಗಳ ದರ ಹೋಲಿಕೆ' }}
-                        @else
-                            @if(isset($userDistrict) && $userDistrict)
-                                📍 {{ $activeLocale === 'en' ? 'Showing 2 nearest mandis to ' . $userDistrict->name . ' ranked by best price' : 'ನಿಮ್ಮ ಸ್ಥಳಕ್ಕೆ (' . ($userDistrict->name_kn ?? $userDistrict->name) . ') ಹತ್ತಿರವಿರುವ 2 ಮಂಡಿಗಳ ದರ ಹೋಲಿಕೆ' }}
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h2 class="text-xl sm:text-2xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            @if($boardMeta)
+                                {{ $activeLocale === 'en' ? $boardMeta['rates_heading_en'] : $boardMeta['rates_heading_kn'] }}
                             @else
-                                📍 {{ $activeLocale === 'en' ? 'Showing 2 nearest mandis to your location ranked by best price' : 'ನಿಮ್ಮ ಸ್ಥಳಕ್ಕೆ ಹತ್ತಿರವಿರುವ 2 ಮಂಡಿಗಳ ದರ ಹೋಲಿಕೆ' }}
+                                {{ $activeLocale === 'en' ? 'Where to Sell Today? — Mandi Rates' : 'ಇಂದು ಎಲ್ಲಿ ಮಾರಬೇಕು? — ಮಂಡಿ ದರಗಳು' }}
+                            @endif
+                        </h2>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-stone-500 font-medium mt-0.5 flex-wrap {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        @if($boardMeta)
+                            <span>{{ $boardMeta['authority'] }} {{ $activeLocale === 'en' ? 'Official Centres Near You' : 'ನಿಮ್ಮ ಹತ್ತಿರದ ಅಧಿಕೃತ ಕೇಂದ್ರಗಳ ದರ ಹೋಲಿಕೆ' }}</span>
+                        @else
+                            <span>{{ $activeLocale === 'en' ? 'Ranked by highest modal price near your location' : 'ನಿಮ್ಮ ಸಮೀಪದ ಮಾರುಕಟ್ಟೆಗಳಲ್ಲಿ ಇಂದಿನ ಗರಿಷ್ಠ ದರಗಳ ಆಧಾರದಲ್ಲಿ' }}</span>
+                            @if(isset($displayMarketName))
+                                <span class="text-stone-300">•</span>
+                                <span class="inline-flex items-center gap-1 font-bold text-stone-700 bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#D9CEB8] text-[11px]">
+                                    📍 {{ $activeLocale === 'en' ? 'Currently: ' : 'ಪ್ರಸ್ತುತ: ' }}{{ $displayMarketName }}
+                                </span>
                             @endif
                         @endif
-                    </p>
+                    </div>
                 </div>
             </div>
-            <span class="text-xs text-stone-500 font-sans">{{ $activeLocale === 'en' ? 'Date: ' : 'ದಿನಾಂಕ: ' }}{{ $stats['date_formatted'] }}</span>
+            <span class="inline-flex items-center justify-center leading-none text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1.5 rounded-full border border-stone-200 shadow-2xs shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'Date: ' : 'ದಿನಾಂಕ: ' }}{{ $stats['date_formatted'] }}</span>
+            </span>
         </div>
 
         @php
@@ -1119,7 +1175,7 @@
             </div>
         @else
             <!-- 2 Mandis Near to Current User Location (Ranked by Best Price) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 @foreach($nearestTwoGroups as $index => $group)
                     @include('farmer.crops.partials.mandi-card', [
                         'group' => $group,
@@ -1156,7 +1212,7 @@
                             <span>🏛️ {{ $activeLocale === 'en' ? 'All Other Karnataka Mandis (Ranked by Best Price):' : 'ಕರ್ನಾಟಕದ ಇತರ ಎಲ್ಲಾ ಮಂಡಿಗಳು (ಅತ್ಯಧಿಕ ದರದಿಂದ ಇಳಿಕೆ ಕ್ರಮದಲ್ಲಿ):' }}</span>
                             <span class="text-stone-400 text-[11px]">{{ $allOtherMandiGroups->count() }} {{ $activeLocale === 'en' ? 'Mandis' : 'ಮಂಡಿಗಳು' }}</span>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                             @foreach($allOtherMandiGroups as $otherIndex => $group)
                                 @include('farmer.crops.partials.mandi-card', [
                                     'group' => $group,
@@ -1189,210 +1245,445 @@
         $volRating = $statisticalSummary['volatility_rating'] ?? 'ಕಡಿಮೆ (Low)';
         $volColor = $statisticalSummary['volatility_color'] ?? 'emerald';
         $volPercent = $statisticalSummary['volatility_percent'] ?? 0;
+        $displayVolRating = $activeLocale === 'en'
+            ? ($statisticalSummary['volatility_rating_en'] ?? 'Stable / Low Volatility')
+            : ($statisticalSummary['volatility_rating_kn'] ?? $volRating);
+
+        $initialChartData = [
+            'labels' => $dailyTrends['labels'] ?? [],
+            'modalPrices' => $dailyTrends['modal_prices'] ?? [],
+            'minPrices' => $dailyTrends['min_prices'] ?? [],
+            'maxPrices' => $dailyTrends['max_prices'] ?? [],
+            'arrivals' => $dailyTrends['arrivals'] ?? [],
+            'has_data' => !empty($dailyTrends['has_data']),
+            'locale' => $activeLocale,
+        ];
+
+        $initialInsightText = '';
+        if ($activeLocale === 'en') {
+            if ($trendDir === 'up') {
+                $initialInsightText = "Over the last {$rangeDays} days, modal rates rose from <strong>₹" . number_format($firstPrice) . "</strong> to <strong>₹" . number_format($lastPrice) . "</strong> <strong>(+{$changePct}%)</strong>. Market demand remains strong with favorable selling momentum.";
+            } elseif ($trendDir === 'down') {
+                $initialInsightText = "Over the last {$rangeDays} days, modal rates softened from <strong>₹" . number_format($firstPrice) . "</strong> to <strong>₹" . number_format($lastPrice) . "</strong> <strong>(-" . abs($changePct) . "%)</strong>. Local arrivals may be elevated; check the price forecast before committing volume.";
+            } else {
+                $initialInsightText = "Over the last {$rangeDays} days, prices held steady with an average of <strong>₹" . number_format($avgPrice) . "/quintal</strong>. Trading spread between high and low is <strong>₹" . number_format($priceSpread) . "</strong>.";
+            }
+        } else {
+            if ($trendDir === 'up') {
+                $initialInsightText = "ಕಳೆದ {$rangeDays} ದಿನಗಳಲ್ಲಿ ಬೆಲೆಯು <strong>₹" . number_format($firstPrice) . "</strong> ರಿಂದ <strong>₹" . number_format($lastPrice) . "</strong> ಕ್ಕೆ <strong>(+{$changePct}%) ಏರಿಕೆಯಾಗಿದೆ</strong>. ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಬೇಡಿಕೆ ಉತ್ತಮವಾಗಿದ್ದು ಮಾರಾಟಕ್ಕೆ ಅನುಕೂಲಕರ ಪ್ರವೃತ್ತಿಯಿದೆ.";
+            } elseif ($trendDir === 'down') {
+                $initialInsightText = "ಕಳೆದ {$rangeDays} ದಿನಗಳಲ್ಲಿ ಬೆಲೆಯು <strong>₹" . number_format($firstPrice) . "</strong> ರಿಂದ <strong>₹" . number_format($lastPrice) . "</strong> ಕ್ಕೆ <strong>(-" . abs($changePct) . "%) ಇಳಿಕೆಯಾಗಿದೆ</strong>. ಸ್ಥಳೀಯ ಆವಕ ಹೆಚ್ಚಾಗಿರಬಹುದು, ಬೆಲೆ ಮುನ್ಸೂಚನೆ ಗಮನಿಸಿ ಮಾರಾಟ ನಿರ್ಧರಿಸಿ.";
+            } else {
+                $initialInsightText = "ಕಳೆದ {$rangeDays} ದಿನಗಳಲ್ಲಿ ದರವು ಸರಾಸರಿ <strong>₹" . number_format($avgPrice) . "/ಕ್ವಿಂಟಾಲ್</strong> ನೊಂದಿಗೆ ಸ್ಥಿರವಾಗಿದೆ. ಗರಿಷ್ಠ ಮತ್ತು ಕನಿಷ್ಠ ದರದ ಅಂತರ <strong>₹" . number_format($priceSpread) . "</strong> ಆಗಿದೆ.";
+            }
+        }
+
+        $initialMetrics = [
+            'max_price' => $maxPrice,
+            'min_price' => $minPrice,
+            'avg_price' => $avgPrice,
+            'price_spread' => $priceSpread,
+            'diff_high_avg' => max(0, $maxPrice - $avgPrice),
+            'diff_avg_low' => max(0, $avgPrice - $minPrice),
+            'observations_count' => $statisticalSummary['observations_count'] ?? count($dailyTrends['labels'] ?? []),
+            'trend_dir' => $trendDir,
+            'change_pct' => $changePct,
+            'abs_change_pct' => abs($changePct),
+            'vol_rating' => $displayVolRating,
+            'vol_percent' => $volPercent,
+            'vol_color' => $volColor,
+            'sum_arrivals' => $sumArrivals,
+            'insight_text' => $initialInsightText,
+        ];
     @endphp
 
-    <div class="bg-white border border-[#E8DFC8] rounded-3xl p-5 sm:p-7 shadow-sm space-y-5 relative overflow-hidden">
-        <!-- Subtle Ambient Glow -->
-        <div class="absolute -top-20 -right-20 w-64 h-64 bg-emerald-100/30 rounded-full blur-3xl pointer-events-none"></div>
+    <script>
+        /**
+         * Alpine.js Reactive Component for Seamless AJAX Historical Price Trends & Shimmer Effects
+         */
+        function historicalPriceTrend(config) {
+            const rangeMap = {
+                '7d': 7,
+                '15d': 15,
+                '30d': 30,
+                '90d': 90,
+                '365d': 365,
+                '1y': 365
+            };
+
+            return {
+                cropSlug: config.cropSlug || '',
+                marketId: config.marketId || '',
+                varietyId: config.varietyId || '',
+                activeRange: config.activeRange || '30d',
+                activeLocale: config.activeLocale || 'kn',
+                standardUnit: config.standardUnit || 'Quintal',
+                rangeDays: rangeMap[config.activeRange] || 30,
+                isLoading: false,
+                metrics: config.initialMetrics || {},
+                chartData: config.initialChartData || {},
+
+                init() {
+                    this.renderChart();
+                },
+
+                renderChart() {
+                    let attempts = 0;
+                    const tryRender = () => {
+                        if (this.chartData && this.chartData.has_data && typeof window.initPriceTrendChart === 'function') {
+                            window.initPriceTrendChart('priceTrendCanvas', this.chartData);
+                        } else if (attempts < 25) {
+                            attempts++;
+                            setTimeout(tryRender, 80);
+                        }
+                    };
+                    this.$nextTick(() => {
+                        tryRender();
+                    });
+                },
+
+                formatCurrency(val) {
+                    if (val === null || val === undefined || isNaN(val) || val <= 0) return '—';
+                    return '₹' + Math.round(Number(val)).toLocaleString('en-IN');
+                },
+
+                formatNumber(val) {
+                    if (val === null || val === undefined || isNaN(val) || val <= 0) return '0';
+                    return Math.round(Number(val)).toLocaleString('en-IN');
+                },
+
+                async selectRange(rangeKey) {
+                    if (this.activeRange === rangeKey || this.isLoading) return;
+
+                    this.activeRange = rangeKey;
+                    this.rangeDays = rangeMap[rangeKey] || 30;
+                    this.isLoading = true;
+
+                    try {
+                        const ajaxUrl = new URL('{{ route('farmer.crops.trend-ajax', ['slug' => $crop->slug]) }}', window.location.origin);
+                        ajaxUrl.searchParams.set('range', rangeKey);
+                        if (this.marketId) ajaxUrl.searchParams.set('market_id', this.marketId);
+                        if (this.varietyId) ajaxUrl.searchParams.set('variety', this.varietyId);
+                        ajaxUrl.searchParams.set('lang', this.activeLocale);
+
+                        const res = await fetch(ajaxUrl.toString(), {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const data = await res.json();
+
+                        if (data && data.success) {
+                            this.metrics = data.metrics || {};
+                            this.chartData = data.chart_data || {};
+                            this.$nextTick(() => {
+                                this.renderChart();
+                            });
+                        }
+                    } catch (err) {
+                        console.error('[HistoricalPriceTrend] Failed to load trend data:', err);
+                    } finally {
+                        setTimeout(() => {
+                            this.isLoading = false;
+                        }, 120);
+                    }
+                }
+            };
+        }
+        window.priceTrendInitialConfig = {
+            cropSlug: @json($crop->slug),
+            marketId: @json($selectedMarket?->id ?? ''),
+            varietyId: @json($activeVarietyId ?? ''),
+            activeRange: @json($rangeParam),
+            activeLocale: @json($activeLocale),
+            standardUnit: @json($crop->standard_unit ?? 'Quintal'),
+            initialChartData: @json($initialChartData),
+            initialMetrics: @json($initialMetrics)
+        };
+        window.historicalPriceTrend = historicalPriceTrend;
+        if (window.Alpine) {
+            window.Alpine.data('historicalPriceTrend', historicalPriceTrend);
+        } else {
+            document.addEventListener('alpine:init', () => {
+                window.Alpine.data('historicalPriceTrend', historicalPriceTrend);
+            });
+        }
+    </script>
+
+    <div x-data="historicalPriceTrend(window.priceTrendInitialConfig)"
+        x-init="init()"
+        class="bg-white border-2 border-[#D9CEB8] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-sm space-y-3 sm:space-y-4 relative overflow-hidden transition-all duration-300">
+
+        <!-- Subtle Ambient Background Accent -->
+        <div class="absolute -top-24 -right-24 w-72 h-72 bg-[#1C5A2C]/5 rounded-full blur-3xl pointer-events-none"></div>
 
         <!-- Section Header Row -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-            <div>
-                <div class="flex items-center gap-2.5 flex-wrap">
-                    <div class="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 flex items-center justify-center text-base shadow-2xs">
-                        📈
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3 relative z-10 pb-2.5 sm:pb-3 border-b border-[#F0EAE1]">
+            <div class="flex items-start gap-2.5">
+                <span class="w-1.5 h-8 sm:h-9 rounded-full bg-[#1C5A2C] shrink-0 mt-0.5"></span>
+                <div>
+                    <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                        <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Price Trend & Market History' : 'ದರ ಪ್ರವೃತ್ತಿ & ಮಾರುಕಟ್ಟೆ ಇತಿಹಾಸ' }}
+                        </h2>
+
+                        <!-- Dynamic Trend Momentum Pill (Reactive via Alpine) -->
+                        <template x-if="isLoading">
+                            <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] bg-stone-100 border border-stone-200 text-stone-400 animate-pulse font-sans leading-none">
+                                <span class="w-1.5 h-1.5 rounded-full bg-stone-300 shrink-0"></span>
+                                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'Updating...' : 'ನವೀಕರಿಸಲಾಗುತ್ತಿದೆ...' }}</span>
+                            </span>
+                        </template>
+                        <template x-if="!isLoading">
+                            <span>
+                                <template x-if="metrics.trend_dir === 'up'">
+                                    <span class="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] sm:text-[11px] font-black bg-emerald-50 text-[#16803C] border border-emerald-300 shadow-2xs leading-none">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-[#16803C] animate-pulse shrink-0"></span>
+                                        <span class="inline-flex items-center leading-none font-sans">▲ +<span x-text="metrics.abs_change_pct"></span>%</span>
+                                        <span class="inline-flex items-center leading-none {{ $activeLocale === 'kn' ? 'font-kannada text-[10px]' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Rising' : 'ಏರಿಕೆ' }}</span>
+                                    </span>
+                                </template>
+                                <template x-if="metrics.trend_dir === 'down'">
+                                    <span class="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] sm:text-[11px] font-black bg-rose-50 text-[#C0392B] border border-rose-300 shadow-2xs leading-none">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-[#C0392B] animate-pulse shrink-0"></span>
+                                        <span class="inline-flex items-center leading-none font-sans">▼ -<span x-text="metrics.abs_change_pct"></span>%</span>
+                                        <span class="inline-flex items-center leading-none {{ $activeLocale === 'kn' ? 'font-kannada text-[10px]' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Falling' : 'ಇಳಿಕೆ' }}</span>
+                                    </span>
+                                </template>
+                                <template x-if="metrics.trend_dir === 'stable'">
+                                    <span class="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] sm:text-[11px] font-black bg-amber-50 text-[#B45309] border border-amber-300 shadow-2xs leading-none">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                                        <span class="inline-flex items-center leading-none font-sans">⟷ 0%</span>
+                                        <span class="inline-flex items-center leading-none {{ $activeLocale === 'kn' ? 'font-kannada text-[10px]' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Stable' : 'ಸ್ಥಿರ' }}</span>
+                                    </span>
+                                </template>
+                            </span>
+                        </template>
                     </div>
-                    <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        @if($activeLocale === 'en')
-                            Historical Price Trend
+
+                    <div class="flex items-center gap-1.5 mt-0.5 text-xs text-stone-500 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex-wrap">
+                        @if($selectedMarket)
+                            <span class="font-bold text-stone-700">
+                                📍 {{ preg_replace('/\s+APMC$/i', '', $displayMarketName) }}
+                            </span>
+                            <span>
+                                — <span x-text="rangeDays"></span>{{ $activeLocale === 'en' ? '-day modal auctions & arrival volume' : ' ದಿನಗಳ ಹರಾಜು ದರಗಳು & ಆವಕ ದಾಖಲೆ' }}
+                            </span>
                         @else
-                            ಬೆಲೆ ಇತಿಹಾಸ & ಪ್ರವೃತ್ತಿ
+                            <span class="font-bold text-stone-700">
+                                🌐 {{ $activeLocale === 'en' ? ($boardMeta ? 'Karnataka Board Average' : 'Karnataka State Average') : ('ಕರ್ನಾಟಕ ' . ($boardMeta ? 'ಮಂಡಳಿ' : 'ರಾಜ್ಯ') . ' ಸರಾಸರಿ') }}
+                            </span>
+                            <span>
+                                — <span x-text="rangeDays"></span>{{ $activeLocale === 'en' ? '-day statewide trend' : ' ದಿನಗಳ ರಾಜ್ಯ ಸರಾಸರಿ ವರದಿ' }}
+                            </span>
                         @endif
-                    </h2>
-
-                    <!-- Dynamic Trend Momentum Pill -->
-                    @if($trendDir === 'up')
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span>▲ +{{ abs($changePct) }}% {{ $activeLocale === 'en' ? 'Rising Trend' : 'ಏರಿಕೆಯ ಪ್ರವೃತ್ತಿ' }}</span>
-                        </span>
-                    @elseif($trendDir === 'down')
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200/90 shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                            <span>▼ -{{ abs($changePct) }}% {{ $activeLocale === 'en' ? 'Falling Trend' : 'ಇಳಿಕೆಯ ಪ್ರವೃತ್ತಿ' }}</span>
-                        </span>
-                    @else
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-100 text-stone-700 border border-stone-200/80 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            <span class="w-2 h-2 rounded-full bg-stone-400"></span>
-                            <span>⟷ {{ $activeLocale === 'en' ? 'Stable Trend' : 'ಸ್ಥಿರ ಪ್ರವೃತ್ತಿ' }}</span>
-                        </span>
-                    @endif
-                </div>
-
-                <div class="flex items-center gap-2 mt-1.5 text-xs text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex-wrap">
-                    @if($selectedMarket)
-                        <span class="inline-flex items-center gap-1 font-semibold text-stone-800 bg-stone-100/80 px-2 py-0.5 rounded-md border border-stone-200/60 font-sans">
-                            🏛️ {{ preg_replace('/\s+APMC$/i', '', $displayMarketName) }}
-                        </span>
-                        <span>{{ $activeLocale === 'en' ? "— {$rangeDays} days price and market arrival report" : "ಯ {$rangeDays} ದಿನಗಳ ದರ ಮತ್ತು ಮಾರುಕಟ್ಟೆ ಆವಕ ವರದಿ" }}</span>
-                    @else
-                        <span class="inline-flex items-center gap-1 font-semibold text-stone-800 bg-stone-100/80 px-2 py-0.5 rounded-md border border-stone-200/60 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            🌐 {{ $activeLocale === 'en' ? ($boardMeta ? 'Karnataka Board Average' : 'Karnataka State Benchmark') : ('ಕರ್ನಾಟಕ ' . ($boardMeta ? 'ಮಂಡಳಿ' : 'ರಾಜ್ಯ') . ' ಸರಾಸರಿ') }}
-                        </span>
-                        <span>{{ $activeLocale === 'en' ? "— {$rangeDays} days price and arrival report" : "ಯ {$rangeDays} ದಿನಗಳ ದರ ಮತ್ತು ಆವಕ ವರದಿ" }}</span>
-                    @endif
+                    </div>
                 </div>
             </div>
 
-            <!-- Timeframe Filter Chips with Negilu Krushi styling -->
-            <div class="flex items-center gap-1 bg-stone-100/90 p-1.5 rounded-2xl border border-stone-200/70 self-start lg:self-auto font-sans shadow-2xs overflow-x-auto no-scrollbar">
+            <!-- Timeframe Filter Chips with Smooth AJAX Toggle (No Full Page Reload) -->
+            <div class="flex items-center gap-1 bg-[#F4EFE6] p-1 rounded-xl border border-[#D9CEB8] self-start lg:self-auto font-sans shadow-2xs overflow-x-auto no-scrollbar">
                 @php
                     $ranges = [
-                        '7d' => ['kn' => '7 ದಿನ', 'en' => '7 Days (7D)'],
-                        '15d' => ['kn' => '15 ದಿನ', 'en' => '15 Days (15D)'],
-                        '30d' => ['kn' => '30 ದಿನ', 'en' => '30 Days (30D)'],
-                        '90d' => ['kn' => '3 ತಿಂಗಳು', 'en' => '3 Months (90D)'],
-                        '365d' => ['kn' => '1 ವರ್ಷ', 'en' => '1 Year (1Y)'],
+                        '7d' => ['kn' => '7 ದಿನ', 'en' => '7D', 'full_en' => '7 Days'],
+                        '15d' => ['kn' => '15 ದಿನ', 'en' => '15D', 'full_en' => '15 Days'],
+                        '30d' => ['kn' => '30 ದಿನ', 'en' => '30D', 'full_en' => '30 Days'],
+                        '90d' => ['kn' => '3 ತಿಂಗಳು', 'en' => '90D', 'full_en' => '3 Months'],
+                        '365d' => ['kn' => '1 ವರ್ಷ', 'en' => '1Y', 'full_en' => '1 Year'],
                     ];
                 @endphp
                 @foreach($ranges as $rKey => $rMeta)
-                    @php $isActiveRange = ($rangeParam === $rKey); @endphp
-                    <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'variety' => $varietyId, 'market' => $marketParam, 'range' => $rKey])) }}"
-                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1 text-xs whitespace-nowrap {{ $isActiveRange ? 'bg-[#1C5A2C] text-white shadow-xs font-black' : 'text-stone-600 hover:text-stone-900 hover:bg-white/80 font-bold' }}">
-                        <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} font-bold">{{ $activeLocale === 'en' ? $rMeta['en'] : $rMeta['kn'] }}</span>
-                    </a>
+                    <button type="button"
+                            @click="selectRange('{{ $rKey }}')"
+                            :class="activeRange === '{{ $rKey }}' ? 'bg-[#1C5A2C] text-white shadow-xs font-black' : 'text-stone-700 hover:text-stone-950 hover:bg-white/90 font-bold'"
+                            class="px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1 text-[11px] sm:text-xs whitespace-nowrap cursor-pointer tap-feedback active:scale-95">
+                        <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? $rMeta['en'] : $rMeta['kn'] }}</span>
+                    </button>
                 @endforeach
             </div>
         </div>
 
-        <!-- 4 Key Statistical Metric Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+        <!-- 4 Classic Metric Intelligence Cards in High-Contrast Compact Grid with Shimmer Skeletons -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
             <!-- 1. Period High -->
-            <div class="p-4 rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-emerald-50/20 border border-emerald-200/80 shadow-2xs relative overflow-hidden group hover:border-emerald-300 transition">
-                <div class="flex items-center justify-between gap-1 mb-1">
-                    <span class="text-[10.5px] font-black uppercase tracking-wider text-emerald-800 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
-                        <span>▲</span>
-                        <span>{{ $activeLocale === 'en' ? 'Period High' : 'ಅವಧಿಯ ಗರಿಷ್ಠ' }}</span>
-                    </span>
-                    <span class="w-2 h-2 rounded-full bg-emerald-500/60"></span>
-                </div>
-                <div class="flex items-baseline gap-1 mt-1 font-sans">
-                    <span class="text-xl sm:text-2xl font-black text-emerald-950 font-sans tracking-tight">
-                        {{ $maxPrice > 0 ? '₹' . number_format($maxPrice, 0) : '—' }}
-                    </span>
-                    @if($maxPrice > 0)
-                        <span class="text-[11px] font-bold text-emerald-700 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">/{{ $activeLocale === 'en' ? strtolower($crop->standard_unit ?? 'quintal') : 'ಕ್ವಿಂಟಾಲ್' }}</span>
-                    @endif
-                </div>
-                @if($maxPrice > 0 && $avgPrice > 0)
-                    <div class="text-[11px] font-bold text-emerald-700 mt-1.5 flex items-center gap-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        <span>+₹{{ number_format($maxPrice - $avgPrice, 0) }}</span>
-                        <span class="text-stone-400 font-normal">{{ $activeLocale === 'en' ? 'above average' : 'ಸರಾಸರಿಗಿಂತ ಹೆಚ್ಚು' }}</span>
+            <div class="bg-[#FAF8F5] rounded-xl p-2.5 sm:p-3 border-2 border-[#E5DECE] hover:border-[#16803C] shadow-2xs transition-all relative overflow-hidden group flex flex-col justify-between">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-[#16803C]"></div>
+                <!-- Shimmer Overlay during AJAX fetch -->
+                <div x-show="isLoading" class="absolute inset-0 bg-[#FAF8F5]/85 backdrop-blur-[1px] flex items-center justify-center z-10 transition-opacity">
+                    <div class="w-full h-full p-2.5 space-y-2 animate-pulse">
+                        <div class="h-3 w-16 bg-stone-200 rounded"></div>
+                        <div class="h-5 w-24 bg-stone-200 rounded"></div>
+                        <div class="h-2.5 w-20 bg-stone-200 rounded"></div>
                     </div>
-                @else
-                    <div class="text-[11px] text-stone-400 mt-1.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Highest recorded rate' : 'ಅತ್ಯಧಿಕ ದಾಖಲಾದ ದರ' }}</div>
-                @endif
+                </div>
+                <div>
+                    <div class="flex items-center justify-between gap-1 mb-1">
+                        <span class="text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider text-[#16803C] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
+                            <span class="text-[11px] leading-none">▲</span>
+                            <span>{{ $activeLocale === 'en' ? 'Period High' : 'ಅವಧಿಯ ಗರಿಷ್ಠ' }}</span>
+                        </span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#16803C]"></span>
+                    </div>
+                    <div class="flex items-baseline gap-1 font-sans">
+                        <span class="text-lg sm:text-xl font-black text-stone-950 tracking-tight" x-text="formatCurrency(metrics.max_price)">
+                            {{ $maxPrice > 0 ? '₹' . number_format($maxPrice, 0) : '—' }}
+                        </span>
+                        <span class="text-[10px] font-bold text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">/{{ $activeLocale === 'en' ? strtolower($crop->standard_unit ?? 'quintal') : 'ಕ್ವಿಂ' }}</span>
+                    </div>
+                </div>
+                <div class="pt-1.5 border-t border-[#EAE3D2] mt-1.5">
+                    <template x-if="metrics.max_price > 0 && metrics.avg_price > 0">
+                        <div class="text-[10px] sm:text-[10.5px] font-bold text-[#16803C] flex items-center gap-1 font-sans">
+                            <span class="font-black">+₹<span x-text="formatNumber(metrics.diff_high_avg)"></span></span>
+                            <span class="text-stone-400 font-semibold {{ $activeLocale === 'kn' ? 'font-kannada text-[9.5px]' : '' }}">{{ $activeLocale === 'en' ? 'above average' : 'ಸರಾಸರಿಗಿಂತ ಹೆಚ್ಚು' }}</span>
+                        </div>
+                    </template>
+                    <template x-if="!(metrics.max_price > 0 && metrics.avg_price > 0)">
+                        <div class="text-[10px] text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Peak recorded rate' : 'ಗರಿಷ್ಠ ದಾಖಲಾದ ದರ' }}</div>
+                    </template>
+                </div>
             </div>
 
             <!-- 2. Period Low -->
-            <div class="p-4 rounded-2xl bg-gradient-to-br from-amber-50/60 via-white to-orange-50/20 border border-amber-200/70 shadow-2xs relative overflow-hidden group hover:border-amber-300 transition">
-                <div class="flex items-center justify-between gap-1 mb-1">
-                    <span class="text-[10.5px] font-black uppercase tracking-wider text-amber-800 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
-                        <span>▼</span>
-                        <span>{{ $activeLocale === 'en' ? 'Period Low' : 'ಅವಧಿಯ ಕನಿಷ್ಠ' }}</span>
-                    </span>
-                    <span class="w-2 h-2 rounded-full bg-amber-500/60"></span>
-                </div>
-                <div class="flex items-baseline gap-1 mt-1 font-sans">
-                    <span class="text-xl sm:text-2xl font-black text-stone-900 font-sans tracking-tight">
-                        {{ $minPrice > 0 ? '₹' . number_format($minPrice, 0) : '—' }}
-                    </span>
-                    @if($minPrice > 0)
-                        <span class="text-[11px] font-bold text-amber-700 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">/{{ $activeLocale === 'en' ? strtolower($crop->standard_unit ?? 'quintal') : 'ಕ್ವಿಂಟಾಲ್' }}</span>
-                    @endif
-                </div>
-                @if($minPrice > 0 && $avgPrice > 0)
-                    <div class="text-[11px] font-bold text-amber-800 mt-1.5 flex items-center gap-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        <span>-₹{{ number_format($avgPrice - $minPrice, 0) }}</span>
-                        <span class="text-stone-400 font-normal">{{ $activeLocale === 'en' ? 'below average' : 'ಸರಾಸರಿಗಿಂತ ಕಡಿಮೆ' }}</span>
+            <div class="bg-[#FAF8F5] rounded-xl p-2.5 sm:p-3 border-2 border-[#E5DECE] hover:border-[#C0392B] shadow-2xs transition-all relative overflow-hidden group flex flex-col justify-between">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-[#C0392B]"></div>
+                <!-- Shimmer Overlay -->
+                <div x-show="isLoading" class="absolute inset-0 bg-[#FAF8F5]/85 backdrop-blur-[1px] flex items-center justify-center z-10 transition-opacity">
+                    <div class="w-full h-full p-2.5 space-y-2 animate-pulse">
+                        <div class="h-3 w-16 bg-stone-200 rounded"></div>
+                        <div class="h-5 w-24 bg-stone-200 rounded"></div>
+                        <div class="h-2.5 w-20 bg-stone-200 rounded"></div>
                     </div>
-                @else
-                    <div class="text-[11px] text-stone-400 mt-1.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Lowest recorded rate' : 'ಕನಿಷ್ಠ ದಾಖಲಾದ ದರ' }}</div>
-                @endif
+                </div>
+                <div>
+                    <div class="flex items-center justify-between gap-1 mb-1">
+                        <span class="text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider text-[#C0392B] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
+                            <span class="text-[11px] leading-none">▼</span>
+                            <span>{{ $activeLocale === 'en' ? 'Period Low' : 'ಅವಧಿಯ ಕನಿಷ್ಠ' }}</span>
+                        </span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#C0392B]"></span>
+                    </div>
+                    <div class="flex items-baseline gap-1 font-sans">
+                        <span class="text-lg sm:text-xl font-black text-stone-950 tracking-tight" x-text="formatCurrency(metrics.min_price)">
+                            {{ $minPrice > 0 ? '₹' . number_format($minPrice, 0) : '—' }}
+                        </span>
+                        <span class="text-[10px] font-bold text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">/{{ $activeLocale === 'en' ? strtolower($crop->standard_unit ?? 'quintal') : 'ಕ್ವಿಂ' }}</span>
+                    </div>
+                </div>
+                <div class="pt-1.5 border-t border-[#EAE3D2] mt-1.5">
+                    <template x-if="metrics.min_price > 0 && metrics.avg_price > 0">
+                        <div class="text-[10px] sm:text-[10.5px] font-bold text-[#C0392B] flex items-center gap-1 font-sans">
+                            <span class="font-black">-₹<span x-text="formatNumber(metrics.diff_avg_low)"></span></span>
+                            <span class="text-stone-400 font-semibold {{ $activeLocale === 'kn' ? 'font-kannada text-[9.5px]' : '' }}">{{ $activeLocale === 'en' ? 'below average' : 'ಸರಾಸರಿಗಿಂತ ಕಡಿಮೆ' }}</span>
+                        </div>
+                    </template>
+                    <template x-if="!(metrics.min_price > 0 && metrics.avg_price > 0)">
+                        <div class="text-[10px] text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Lowest recorded rate' : 'ಕನಿಷ್ಠ ದಾಖಲಾದ ದರ' }}</div>
+                    </template>
+                </div>
             </div>
 
             <!-- 3. Period Average -->
-            <div class="p-4 rounded-2xl bg-gradient-to-br from-blue-50/50 via-white to-slate-50 border border-blue-200/70 shadow-2xs relative overflow-hidden group hover:border-blue-300 transition">
-                <div class="flex items-center justify-between gap-1 mb-1">
-                    <span class="text-[10.5px] font-black uppercase tracking-wider text-blue-800 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
-                        <span>⚖️</span>
-                        <span>{{ $activeLocale === 'en' ? 'Period Average' : 'ಅವಧಿಯ ಸರಾಸರಿ' }}</span>
-                    </span>
-                    <span class="w-2 h-2 rounded-full bg-blue-500/60"></span>
+            <div class="bg-[#FAF8F5] rounded-xl p-2.5 sm:p-3 border-2 border-[#E5DECE] hover:border-[#1C5A2C] shadow-2xs transition-all relative overflow-hidden group flex flex-col justify-between">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-[#1C5A2C]"></div>
+                <!-- Shimmer Overlay -->
+                <div x-show="isLoading" class="absolute inset-0 bg-[#FAF8F5]/85 backdrop-blur-[1px] flex items-center justify-center z-10 transition-opacity">
+                    <div class="w-full h-full p-2.5 space-y-2 animate-pulse">
+                        <div class="h-3 w-16 bg-stone-200 rounded"></div>
+                        <div class="h-5 w-24 bg-stone-200 rounded"></div>
+                        <div class="h-2.5 w-20 bg-stone-200 rounded"></div>
+                    </div>
                 </div>
-                <div class="flex items-baseline gap-1 mt-1 font-sans">
-                    <span class="text-xl sm:text-2xl font-black text-stone-900 font-sans tracking-tight">
-                        {{ $avgPrice > 0 ? '₹' . number_format($avgPrice, 0) : '—' }}
-                    </span>
-                    @if($avgPrice > 0)
-                        <span class="text-[11px] font-bold text-blue-700 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">/{{ $activeLocale === 'en' ? strtolower($crop->standard_unit ?? 'quintal') : 'ಕ್ವಿಂಟಾಲ್' }}</span>
-                    @endif
+                <div>
+                    <div class="flex items-center justify-between gap-1 mb-1">
+                        <span class="text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider text-stone-700 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
+                            <span class="text-[11px] leading-none">⚖️</span>
+                            <span>{{ $activeLocale === 'en' ? 'Period Average' : 'ಅವಧಿಯ ಸರಾಸರಿ' }}</span>
+                        </span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#1C5A2C]"></span>
+                    </div>
+                    <div class="flex items-baseline gap-1 font-sans">
+                        <span class="text-lg sm:text-xl font-black text-stone-950 tracking-tight" x-text="formatCurrency(metrics.avg_price)">
+                            {{ $avgPrice > 0 ? '₹' . number_format($avgPrice, 0) : '—' }}
+                        </span>
+                        <span class="text-[10px] font-bold text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">/{{ $activeLocale === 'en' ? strtolower($crop->standard_unit ?? 'quintal') : 'ಕ್ವಿಂ' }}</span>
+                    </div>
                 </div>
-                <div class="text-[11px] font-bold text-blue-900 mt-1.5 flex items-center gap-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <span>{{ $statisticalSummary['observations_count'] ?? count($dailyTrends['labels'] ?? []) }} {{ $activeLocale === 'en' ? 'days recorded' : 'ದಿನಗಳ ದಾಖಲೆ' }}</span>
-                    <span class="text-stone-400 font-normal">{{ $activeLocale === 'en' ? 'benchmark' : 'ಮೌಲ್ಯಾಂಕನ' }}</span>
+                <div class="pt-1.5 border-t border-[#EAE3D2] mt-1.5">
+                    <div class="text-[10px] sm:text-[10.5px] font-bold text-stone-600 flex items-center gap-1 font-sans">
+                        <span class="font-black text-stone-900" x-text="metrics.observations_count"></span>
+                        <span class="text-stone-400 font-semibold {{ $activeLocale === 'kn' ? 'font-kannada text-[9.5px]' : '' }}">{{ $activeLocale === 'en' ? 'days logged' : 'ದಿನಗಳ ದಾಖಲೆ' }}</span>
+                    </div>
                 </div>
             </div>
 
             <!-- 4. Volatility & Spread -->
-            @php
-                $volBgClass = match($volColor) {
-                    'rose' => 'from-rose-50/60 via-white to-red-50/20 border-rose-200/70 text-rose-800',
-                    'amber' => 'from-amber-50/60 via-white to-yellow-50/20 border-amber-200/70 text-amber-800',
-                    default => 'from-emerald-50/50 via-white to-teal-50/20 border-emerald-200/70 text-emerald-800',
-                };
-                $dotColorClass = match($volColor) {
-                    'rose' => 'bg-rose-500',
-                    'amber' => 'bg-amber-500',
-                    default => 'bg-emerald-500',
-                };
-                $displayVolRating = $activeLocale === 'en' 
-                    ? ($statisticalSummary['volatility_rating_en'] ?? 'Stable / Low Volatility') 
-                    : ($statisticalSummary['volatility_rating_kn'] ?? $volRating);
-            @endphp
-            <div class="p-4 rounded-2xl bg-gradient-to-br {{ $volBgClass }} border shadow-2xs relative overflow-hidden group transition">
-                <div class="flex items-center justify-between gap-1 mb-1">
-                    <span class="text-[10.5px] font-black uppercase tracking-wider {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full {{ $dotColorClass }}"></span>
-                        <span>{{ $activeLocale === 'en' ? 'Price Volatility' : 'ಬೆಲೆ ಏರಿಳಿತ' }}</span>
-                    </span>
+            <div class="bg-[#FAF8F5] rounded-xl p-2.5 sm:p-3 border-2 border-[#E5DECE] hover:border-stone-400 shadow-2xs transition-all relative overflow-hidden group flex flex-col justify-between">
+                <div class="absolute top-0 left-0 right-0 h-1"
+                     :class="metrics.vol_color === 'rose' ? 'bg-[#C0392B]' : (metrics.vol_color === 'amber' ? 'bg-amber-600' : 'bg-[#16803C]')"></div>
+                <!-- Shimmer Overlay -->
+                <div x-show="isLoading" class="absolute inset-0 bg-[#FAF8F5]/85 backdrop-blur-[1px] flex items-center justify-center z-10 transition-opacity">
+                    <div class="w-full h-full p-2.5 space-y-2 animate-pulse">
+                        <div class="h-3 w-16 bg-stone-200 rounded"></div>
+                        <div class="h-5 w-24 bg-stone-200 rounded"></div>
+                        <div class="h-2.5 w-20 bg-stone-200 rounded"></div>
+                    </div>
                 </div>
-                <div class="flex items-baseline gap-1 mt-1">
-                    <span class="text-base sm:text-lg font-black text-stone-900 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} tracking-tight line-clamp-1">
-                        {{ $displayVolRating }}
-                    </span>
+                <div>
+                    <div class="flex items-center justify-between gap-1 mb-1">
+                        <span class="text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider text-stone-700 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full"
+                                  :class="metrics.vol_color === 'rose' ? 'bg-[#C0392B]' : (metrics.vol_color === 'amber' ? 'bg-amber-600' : 'bg-[#16803C]')"></span>
+                            <span>{{ $activeLocale === 'en' ? 'Volatility' : 'ಏರಿಳಿತ' }}</span>
+                        </span>
+                        <span class="text-[9.5px] font-black font-sans px-1 py-0.2 rounded bg-[#E5DECE] text-stone-700">
+                            <span x-text="metrics.vol_percent"></span>%
+                        </span>
+                    </div>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-xs sm:text-sm font-black text-stone-950 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} tracking-tight line-clamp-1 leading-snug"
+                              x-text="metrics.vol_rating">
+                            {{ $displayVolRating }}
+                        </span>
+                    </div>
                 </div>
-                <div class="text-[11px] font-bold text-stone-600 mt-1.5 flex items-center gap-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <span>{{ $activeLocale === 'en' ? 'Spread: ' : 'ವ್ಯತ್ಯಾಸ: ' }}<strong>₹{{ number_format($priceSpread, 0) }}</strong></span>
-                    <span class="text-stone-400 font-sans">({{ $volPercent }}%)</span>
+                <div class="pt-1.5 border-t border-[#EAE3D2] mt-1.5">
+                    <div class="text-[10px] sm:text-[10.5px] font-bold text-stone-600 flex items-center gap-1 font-sans">
+                        <span class="text-stone-400 font-semibold {{ $activeLocale === 'kn' ? 'font-kannada text-[9.5px]' : '' }}">{{ $activeLocale === 'en' ? 'Spread:' : 'ಅಂತರ:' }}</span>
+                        <span class="font-black text-stone-900" x-text="formatCurrency(metrics.price_spread)"></span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Actionable Farmer Market Intelligence Callout Strip -->
-        @if(!empty($dailyTrends['has_data']))
-            <div class="bg-gradient-to-r from-[#FBF8EF] to-emerald-50/40 border border-[#E8DFC8] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                <div class="flex items-start gap-2.5">
-                    <span class="text-xl shrink-0 mt-0.5">💡</span>
-                    <div class="text-xs text-stone-700 leading-relaxed">
-                        <span class="font-black text-stone-900">{{ $activeLocale === 'en' ? 'Farmer Insight:' : 'ದರ ಪ್ರವೃತ್ತಿ ಒಳನೋಟ:' }}</span>
+        <div x-show="chartData.has_data" class="bg-[#FAF6EE] border-2 border-[#D9CEB8] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5 shadow-2xs relative overflow-hidden {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+            <!-- Shimmer Bar -->
+            <div x-show="isLoading" class="absolute inset-0 bg-[#FAF6EE]/90 backdrop-blur-[1px] flex items-center px-4 z-10 transition-opacity">
+                <div class="w-full space-y-2 animate-pulse">
+                    <div class="h-3 w-32 bg-amber-200/80 rounded"></div>
+                    <div class="h-3 w-3/4 bg-amber-200/50 rounded"></div>
+                </div>
+            </div>
+            <div class="flex items-start gap-2 sm:gap-2.5">
+                <div class="w-6 h-6 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 text-xs shadow-2xs">
+                    💡
+                </div>
+                <div class="text-xs text-stone-800 leading-snug space-y-0.5">
+                    <div class="font-black text-stone-950 flex items-center gap-1.5 text-[11.5px] sm:text-xs">
+                        <span>{{ $activeLocale === 'en' ? 'Market Movement Analysis' : 'ದರ ಪ್ರವೃತ್ತಿ ವಿಶ್ಲೇಷಣೆ' }}</span>
+                    </div>
+                    <p class="text-[11px] sm:text-[11.5px] text-stone-700 font-medium" x-html="metrics.insight_text">
                         @if($activeLocale === 'en')
                             @if($trendDir === 'up')
                                 Over the last {{ $rangeDays }} days, modal rates rose from <strong>₹{{ number_format($firstPrice) }}</strong> to <strong>₹{{ number_format($lastPrice) }}</strong> <strong>(+{{ abs($changePct) }}%)</strong>. Market demand remains strong with favorable selling momentum.
                             @elseif($trendDir === 'down')
                                 Over the last {{ $rangeDays }} days, modal rates softened from <strong>₹{{ number_format($firstPrice) }}</strong> to <strong>₹{{ number_format($lastPrice) }}</strong> <strong>(-{{ abs($changePct) }}%)</strong>. Local arrivals may be elevated; check the price forecast before committing volume.
                             @else
-                                Over the last {{ $rangeDays }} days, prices held steady with an average of <strong>₹{{ number_format($avgPrice) }}/{{ strtolower($crop->standard_unit ?? 'quintal') }}</strong>. The trading spread between high and low is <strong>₹{{ number_format($priceSpread) }}</strong>.
+                                Over the last {{ $rangeDays }} days, prices held steady with an average of <strong>₹{{ number_format($avgPrice) }}/{{ strtolower($crop->standard_unit ?? 'quintal') }}</strong>. Trading spread between high and low is <strong>₹{{ number_format($priceSpread) }}</strong>.
                             @endif
                         @else
                             @if($trendDir === 'up')
@@ -1403,74 +1694,84 @@
                                 ಕಳೆದ {{ $rangeDays }} ದಿನಗಳಲ್ಲಿ ದರವು ಸರಾಸರಿ <strong>₹{{ number_format($avgPrice) }}/ಕ್ವಿಂಟಾಲ್</strong> ನೊಂದಿಗೆ ಸ್ಥಿರವಾಗಿದೆ. ಗರಿಷ್ಠ ಮತ್ತು ಕನಿಷ್ಠ ದರದ ಅಂತರ <strong>₹{{ number_format($priceSpread) }}</strong> ಆಗಿದೆ.
                             @endif
                         @endif
-                    </div>
+                    </p>
                 </div>
-                @if($sumArrivals > 0)
-                    <div class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E8DFC8] text-[11px] font-bold text-stone-700 self-start md:self-auto shadow-2xs font-sans">
-                        <span class="text-emerald-700">📦</span>
-                        <span>{{ $activeLocale === 'en' ? 'Total Arrivals: ' : 'ಒಟ್ಟು ಆವಕ: ' }}<strong>{{ number_format($sumArrivals) }} {{ $activeLocale === 'en' ? 'Quintals' : 'ಕ್ವಿಂಟಾಲ್' }}</strong></span>
-                    </div>
-                @endif
             </div>
-        @endif
+            <div x-show="metrics.sum_arrivals > 0" class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-[#D9CEB8] text-[10.5px] sm:text-[11px] font-extrabold text-stone-800 self-start md:self-auto shadow-2xs font-sans">
+                <span class="text-[#1C5A2C]">📦</span>
+                <span>{{ $activeLocale === 'en' ? 'Arrivals: ' : 'ಆವಕ: ' }}<strong><span x-text="formatNumber(metrics.sum_arrivals)"></span> {{ $activeLocale === 'en' ? 'Qtl' : 'ಕ್ವಿಂ' }}</strong></span>
+            </div>
+        </div>
 
-        <!-- Chart Canvas Container with Modern Toolbar & Framing -->
-        <div class="rounded-2xl bg-stone-50/70 border border-stone-200/70 p-3 sm:p-4 space-y-3">
+        <!-- Chart Canvas Container with Modern Classic Framing -->
+        <div class="rounded-xl sm:rounded-2xl bg-[#FAF8F5] border-2 border-[#E5DECE] p-2.5 sm:p-3.5 space-y-2.5 relative">
             <!-- Toolbar above Chart -->
             <div class="flex flex-wrap items-center justify-between gap-2 text-xs px-1">
-                <div class="flex items-center gap-4 flex-wrap">
-                    <div class="flex items-center gap-1.5 text-stone-800 font-bold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        <span class="w-3.5 h-1.5 rounded-full bg-emerald-600 inline-block"></span>
+                <div class="flex items-center gap-3.5 flex-wrap">
+                    <div class="flex items-center gap-1.5 text-stone-900 font-extrabold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="w-3 h-1.5 rounded-full bg-[#16803C] inline-block"></span>
                         @if($activeLocale === 'en')
                             <span>Modal Rate (₹)</span>
                         @else
                             <span>ಮಾದರಿ ದರ (₹)</span>
                         @endif
                     </div>
-                    @if($sumArrivals > 0)
-                        <div class="flex items-center gap-1.5 text-stone-600 font-semibold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            <span class="w-3 h-3 rounded-xs bg-slate-300 inline-block"></span>
-                            @if($activeLocale === 'en')
-                                <span>Daily Arrivals (Qtl)</span>
-                            @else
-                                <span>ದೈನಂದಿನ ಆವಕ (ಕ್ವಿಂಟಾಲ್)</span>
-                            @endif
-                        </div>
-                    @endif
+                    <div x-show="metrics.sum_arrivals > 0" class="flex items-center gap-1.5 text-stone-600 font-bold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="w-2.5 h-2.5 rounded-xs bg-slate-300 inline-block border border-slate-400/50"></span>
+                        @if($activeLocale === 'en')
+                            <span>Daily Arrivals (Qtl)</span>
+                        @else
+                            <span>ದೈನಂದಿನ ಆವಕ (ಕ್ವಿಂಟಾಲ್)</span>
+                        @endif
+                    </div>
                 </div>
-                <div class="text-[11px] text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
-                    <span>👆 {{ $activeLocale === 'en' ? 'Touch or hover on graph for details' : 'ಗ್ರಾಫ್ ಮೇಲೆ ಸ್ಪರ್ಶಿಸಿ ವಿವರ ನೋಡಿ' }}</span>
+                <div class="text-[10.5px] font-semibold text-stone-500 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-1">
+                    <span>👆 {{ $activeLocale === 'en' ? 'Hover or tap chart points for details' : 'ಗ್ರಾಫ್ ಮೇಲೆ ಸ್ಪರ್ಶಿಸಿ ವಿವರ ನೋಡಿ' }}</span>
                 </div>
             </div>
 
-            <!-- Canvas Wrapper -->
-            <div class="relative w-full h-72 sm:h-84 md:h-96 bg-white rounded-xl p-2 sm:p-3 border border-stone-100 shadow-2xs">
-                @if(!empty($dailyTrends['has_data']))
-                    <canvas id="priceTrendCanvas"></canvas>
-                @else
-                    <div class="h-full flex flex-col items-center justify-center text-center p-6 text-stone-400">
-                        <span class="text-4xl mb-2">📊</span>
-                        <span class="font-bold text-stone-700 text-sm {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            {{ $activeLocale === 'en' ? 'Insufficient price history recorded for this period' : 'ಈ ಅವಧಿಗೆ ಸಾಕಷ್ಟು ದರ ಇತಿಹಾಸ ದಾಖಲಾಗಿಲ್ಲ' }}
-                        </span>
-                        <span class="text-xs text-stone-400 mt-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} max-w-sm">
-                            {{ $activeLocale === 'en' ? 'As more trading days are recorded by mandis, trend and arrival charts will activate automatically.' : 'ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಹೆಚ್ಚಿನ ದಿನಗಳ ವಹಿವಾಟು ದಾಖಲಾದಂತೆ ಪ್ರವೃತ್ತಿ ಮತ್ತು ಆವಕ ನಕ್ಷೆ ಸಕ್ರಿಯಗೊಳ್ಳುತ್ತದೆ.' }}
-                        </span>
+            <!-- Canvas Wrapper (Compact Height: h-64 sm:h-72 md:h-80) with Subtle Shimmer Loader -->
+            <div class="relative w-full h-64 sm:h-72 md:h-80 bg-white rounded-xl p-2 border border-[#EAE3D2] shadow-2xs overflow-hidden">
+                <!-- Loading Shimmer Effect for Chart -->
+                <div x-show="isLoading" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     class="absolute inset-0 bg-white/80 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-6 space-y-3">
+                    <div class="w-10 h-10 rounded-full border-3 border-[#1C5A2C]/20 border-t-[#1C5A2C] animate-spin"></div>
+                    <div class="text-xs font-bold text-stone-600 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? 'Updating price trends...' : 'ದರ ಇತಿಹಾಸ ನವೀಕರಿಸಲಾಗುತ್ತಿದೆ...' }}
                     </div>
-                @endif
+                </div>
+
+                <div x-show="chartData.has_data" class="w-full h-full">
+                    <canvas id="priceTrendCanvas"></canvas>
+                </div>
+
+                <div x-show="!chartData.has_data && !isLoading" class="h-full flex flex-col items-center justify-center text-center p-6 text-stone-400">
+                    <span class="text-4xl mb-2">📊</span>
+                    <span class="font-bold text-stone-700 text-sm {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        {{ $activeLocale === 'en' ? 'Insufficient price history recorded for this period' : 'ಈ ಅವಧಿಗೆ ಸಾಕಷ್ಟು ದರ ಇತಿಹಾಸ ದಾಖಲಾಗಿಲ್ಲ' }}
+                    </span>
+                    <span class="text-xs text-stone-400 mt-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} max-w-sm">
+                        {{ $activeLocale === 'en' ? 'As more trading days are recorded by mandis, trend and arrival charts will activate automatically.' : 'ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಹೆಚ್ಚಿನ ದಿನಗಳ ವಹಿವಾಟು ದಾಖಲಾದಂತೆ ಪ್ರವೃತ್ತಿ ಮತ್ತು ಆವಕ ನಕ್ಷೆ ಸಕ್ರಿಯಗೊಳ್ಳುತ್ತದೆ.' }}
+                    </span>
+                </div>
             </div>
 
             <!-- Chart Footer Meta -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-stone-400 px-1 pt-1 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} border-t border-stone-200/50">
-                <div class="flex items-center gap-1.5">
-                    <span>{{ $activeLocale === 'en' ? '🟢 Green line: Modal rate (₹/Qtl)' : '🟢 ಹಸಿರು ಗೆರೆ: ದರ (₹/ಕ್ವಿಂಟಾಲ್)' }}</span>
-                    @if($sumArrivals > 0)
-                        <span>&bull;</span>
-                        <span>{{ $activeLocale === 'en' ? '🩶 Grey bar: Daily arrival volume' : '🩶 ಬೂದು ಬಾರ್: ಮಾರುಕಟ್ಟೆ ಆವಕ ಪ್ರಮಾಣ' }}</span>
-                    @endif
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-[10.5px] text-stone-500 px-1 pt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} border-t border-[#EAE3D2]">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-medium">{{ $activeLocale === 'en' ? '🟢 Green curve: Modal rate (₹/Qtl)' : '🟢 ಹಸಿರು ಗೆರೆ: ದರ (₹/ಕ್ವಿಂಟಾಲ್)' }}</span>
+                    <template x-if="metrics.sum_arrivals > 0">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span>&bull;</span>
+                            <span class="font-medium">{{ $activeLocale === 'en' ? '🩶 Grey bars: Daily arrival volume' : '🩶 ಬೂದು ಬಾರ್: ಮಾರುಕಟ್ಟೆ ಆವಕ' }}</span>
+                        </span>
+                    </template>
                 </div>
-                <div class="text-stone-400 font-sans text-[10.5px]">
-                    {{ $activeLocale === 'en' ? 'Source: Mandi / Agmarknet Karnataka' : 'ಮೂಲ: ಮಂಡಿ / Agmarknet Karnataka' }}
+                <div class="text-stone-400 font-sans text-[10px] font-semibold">
+                    {{ $activeLocale === 'en' ? 'Source: Mandi Daily Ingestion / Agmarknet Karnataka' : 'ಮೂಲ: ಮಂಡಿ ದೈನಂದಿನ ದರ / Agmarknet Karnataka' }}
                 </div>
             </div>
         </div>
@@ -1608,26 +1909,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        @if(!empty($dailyTrends['has_data']))
-            const trendData = {
-                labels: @json($dailyTrends['labels']),
-                modalPrices: @json($dailyTrends['modal_prices']),
-                minPrices: @json($dailyTrends['min_prices']),
-                maxPrices: @json($dailyTrends['max_prices']),
-                arrivals: @json($dailyTrends['arrivals']),
-                locale: '{{ $activeLocale }}',
-            };
-            let attempts = 0;
-            const initTrend = () => {
-                if (typeof window.initPriceTrendChart === 'function') {
-                    window.initPriceTrendChart('priceTrendCanvas', trendData);
-                } else if (attempts < 10) {
-                    attempts++;
-                    setTimeout(initTrend, 100);
-                }
-            };
-            initTrend();
-        @endif
 
         @if(!empty($seasonalAnalysis['is_sufficient']) && !empty($seasonalAnalysis['best_months']))
             const barFills = document.querySelectorAll('.season-bar-fill');

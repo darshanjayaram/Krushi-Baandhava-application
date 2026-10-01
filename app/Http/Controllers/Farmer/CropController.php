@@ -566,6 +566,7 @@ class CropController extends Controller
                 $q->where('crop_id', $crop->id)
                   ->orWhereNull('crop_id');
             })
+            ->orderByDesc('is_featured')
             ->orderBy('display_order')
             ->take(3)
             ->get();
@@ -628,5 +629,112 @@ class CropController extends Controller
             'activeVarietyId',
             'activeLocale'
         ));
+    }
+
+    /**
+     * AJAX endpoint to return historical price trend data, metrics, and insight without page reload.
+     */
+    public function trendAjax(string $cropIdentifier, Request $request): \Illuminate\Http\JsonResponse
+    {
+        $crop = Crop::where('slug', $cropIdentifier)
+            ->orWhere('id', is_numeric($cropIdentifier) ? (int)$cropIdentifier : 0)
+            ->firstOrFail();
+
+        $rangeParam = $request->query('range', '30d');
+        $rangeDays = match ($rangeParam) {
+            '7d' => 7,
+            '15d' => 15,
+            '90d' => 90,
+            '365d', '1y' => 365,
+            default => 30,
+        };
+
+        $marketId = $request->filled('market_id') ? (int) $request->query('market_id') : null;
+        if (!$marketId && $request->filled('market')) {
+            $mktName = trim((string) $request->query('market'));
+            $market = Market::karnataka()->where(function ($mq) use ($mktName) {
+                $mq->where('name', $mktName)
+                   ->orWhere('name_kn', $mktName)
+                   ->orWhere('code', $mktName);
+            })->first();
+            $marketId = $market?->id;
+        }
+
+        $varietyId = $request->filled('variety') ? (int) $request->query('variety') : null;
+        $activeLocale = $request->query('lang') ?: ($request->session()->get('locale') ?: ($request->cookie('locale') ?: app()->getLocale()));
+
+        $dailyTrends = $this->analyticsService->getDailyTrends($crop->id, $marketId, $rangeDays, $varietyId);
+        $statisticalSummary = $this->analyticsService->getStatisticalSummary($crop->id, $marketId, $rangeDays, $varietyId);
+
+        $firstPrice = (float) ($statisticalSummary['first_price'] ?? 0);
+        $lastPrice = (float) ($statisticalSummary['last_price'] ?? 0);
+        $avgPrice = (float) ($statisticalSummary['avg_price'] ?? 0);
+        $minPrice = (float) ($statisticalSummary['min_price'] ?? 0);
+        $maxPrice = (float) ($statisticalSummary['max_price'] ?? 0);
+        $priceSpread = max(0, $maxPrice - $minPrice);
+        $changePct = (float) ($statisticalSummary['price_change_percent'] ?? 0);
+        $trendDir = $statisticalSummary['trend_direction'] ?? 'stable';
+        $volPercent = $statisticalSummary['volatility_percent'] ?? 0;
+        $volColor = $statisticalSummary['volatility_color'] ?? 'emerald';
+        $volRating = $statisticalSummary['volatility_rating'] ?? 'ಕಡಿಮೆ (Low)';
+        $displayVolRating = $activeLocale === 'en'
+            ? ($statisticalSummary['volatility_rating_en'] ?? 'Stable / Low Volatility')
+            : ($statisticalSummary['volatility_rating_kn'] ?? $volRating);
+
+        $sumArrivals = !empty($dailyTrends['arrivals']) ? array_sum(array_filter($dailyTrends['arrivals'], fn($v) => is_numeric($v) && $v > 0)) : 0;
+        $unit = strtolower($crop->standard_unit ?? 'quintal');
+        $unitKn = 'ಕ್ವಿಂಟಾಲ್';
+
+        // Precompute localized insight text
+        $insightText = '';
+        if ($activeLocale === 'en') {
+            if ($trendDir === 'up') {
+                $insightText = "Over the last {$rangeDays} days, modal rates rose from <strong>₹" . number_format($firstPrice) . "</strong> to <strong>₹" . number_format($lastPrice) . "</strong> <strong>(+{$changePct}%)</strong>. Market demand remains strong with favorable selling momentum.";
+            } elseif ($trendDir === 'down') {
+                $insightText = "Over the last {$rangeDays} days, modal rates softened from <strong>₹" . number_format($firstPrice) . "</strong> to <strong>₹" . number_format($lastPrice) . "</strong> <strong>(-" . abs($changePct) . "%)</strong>. Local arrivals may be elevated; check the price forecast before committing volume.";
+            } else {
+                $insightText = "Over the last {$rangeDays} days, prices held steady with an average of <strong>₹" . number_format($avgPrice) . "/{$unit}</strong>. Trading spread between high and low is <strong>₹" . number_format($priceSpread) . "</strong>.";
+            }
+        } else {
+            if ($trendDir === 'up') {
+                $insightText = "ಕಳೆದ {$rangeDays} ದಿನಗಳಲ್ಲಿ ಬೆಲೆಯು <strong>₹" . number_format($firstPrice) . "</strong> ರಿಂದ <strong>₹" . number_format($lastPrice) . "</strong> ಕ್ಕೆ <strong>(+{$changePct}%) ಏರಿಕೆಯಾಗಿದೆ</strong>. ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಬೇಡಿಕೆ ಉತ್ತಮವಾಗಿದ್ದು ಮಾರಾಟಕ್ಕೆ ಅನುಕೂಲಕರ ಪ್ರವೃತ್ತಿಯಿದೆ.";
+            } elseif ($trendDir === 'down') {
+                $insightText = "ಕಳೆದ {$rangeDays} ದಿನಗಳಲ್ಲಿ ಬೆಲೆಯು <strong>₹" . number_format($firstPrice) . "</strong> ರಿಂದ <strong>₹" . number_format($lastPrice) . "</strong> ಕ್ಕೆ <strong>(-" . abs($changePct) . "%) ಇಳಿಕೆಯಾಗಿದೆ</strong>. ಸ್ಥಳೀಯ ಆವಕ ಹೆಚ್ಚಾಗಿರಬಹುದು, ಬೆಲೆ ಮುನ್ಸೂಚನೆ ಗಮನಿಸಿ ಮಾರಾಟ ನಿರ್ಧರಿಸಿ.";
+            } else {
+                $insightText = "ಕಳೆದ {$rangeDays} ದಿನಗಳಲ್ಲಿ ದರವು ಸರಾಸರಿ <strong>₹" . number_format($avgPrice) . "/{$unitKn}</strong> ನೊಂದಿಗೆ ಸ್ಥಿರವಾಗಿದೆ. ಗರಿಷ್ಠ ಮತ್ತು ಕನಿಷ್ಠ ದರದ ಅಂತರ <strong>₹" . number_format($priceSpread) . "</strong> ಆಗಿದೆ.";
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'range' => $rangeParam,
+            'range_days' => $rangeDays,
+            'chart_data' => [
+                'labels' => $dailyTrends['labels'] ?? [],
+                'modalPrices' => $dailyTrends['modal_prices'] ?? [],
+                'minPrices' => $dailyTrends['min_prices'] ?? [],
+                'maxPrices' => $dailyTrends['max_prices'] ?? [],
+                'arrivals' => $dailyTrends['arrivals'] ?? [],
+                'has_data' => !empty($dailyTrends['has_data']),
+                'locale' => $activeLocale,
+            ],
+            'metrics' => [
+                'max_price' => $maxPrice,
+                'min_price' => $minPrice,
+                'avg_price' => $avgPrice,
+                'price_spread' => $priceSpread,
+                'diff_high_avg' => max(0, $maxPrice - $avgPrice),
+                'diff_avg_low' => max(0, $avgPrice - $minPrice),
+                'observations_count' => $statisticalSummary['observations_count'] ?? count($dailyTrends['labels'] ?? []),
+                'trend_dir' => $trendDir,
+                'change_pct' => $changePct,
+                'abs_change_pct' => abs($changePct),
+                'vol_rating' => $displayVolRating,
+                'vol_percent' => $volPercent,
+                'vol_color' => $volColor,
+                'sum_arrivals' => $sumArrivals,
+                'insight_text' => $insightText,
+            ],
+        ]);
     }
 }

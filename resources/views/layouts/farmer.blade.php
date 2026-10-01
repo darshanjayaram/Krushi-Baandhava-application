@@ -72,10 +72,10 @@
     <link rel="icon" type="{{ $logoMime }}" href="{{ $appLogoUrl }}">
     <link rel="shortcut icon" href="{{ $appLogoUrl }}">
 
-    <!-- Google Fonts: Inter / Plus Jakarta Sans & Noto Sans Kannada (Negilu Krushi Alignment) -->
+    <!-- Google Fonts: Noto Sans Kannada, Manrope & Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
@@ -99,17 +99,29 @@
         /* ============================================================== */
         /* KANNADA OPTICAL TYPOGRAPHY & VERTICAL BASELINE ALIGNMENT SYSTEM */
         /* ============================================================== */
+        /* 0. Noto Sans Kannada Optical Metric Rebalance: overrides oversized descender to prevent text uplifting */
+        @font-face {
+            font-family: 'Noto Sans Kannada';
+            src: local('Noto Sans Kannada'),
+                 url('https://fonts.gstatic.com/s/notosanskannada/v32/8vIh7xs32H97qzQKnzfeXycxXZyUmySvZWItmf1fe6TVmgoD4F-Yo3w.woff2') format('woff2');
+            unicode-range: U+0951-0952, U+0964-0965, U+0C80-0CF3, U+1CD0, U+1CD2-1CD3, U+1CDA, U+1CF2, U+1CF4, U+200C-200D, U+20B9, U+25CC, U+A830-A835;
+            ascent-override: 90%;
+            descent-override: 22%;
+            line-gap-override: 0%;
+        }
+
         html[lang="kn"],
         html[lang="kn"] body,
+        html[lang="kn"] *,
         html[lang="kn"] input,
         html[lang="kn"] button,
         html[lang="kn"] select,
         html[lang="kn"] textarea,
         .font-kannada {
-            font-family: 'Noto Sans Kannada', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+            font-family: 'Noto Sans Kannada', 'Manrope', sans-serif !important;
         }
 
-        /* 1. Base line-height relaxation for Kannada (prevents top clipping) */
+        /* 1. Base line-height relaxation for Kannada script vowels/matras */
         html[lang="kn"] .leading-none {
             line-height: 1.25 !important;
         }
@@ -117,27 +129,17 @@
             line-height: 1.35 !important;
         }
 
-        /* 2. Top Navigation Links (Rates / ದರಗಳು, Schemes / ಯೋಜನೆಗಳು, etc.) */
-        html[lang="kn"] #siteHeader nav:not(.hidden) a {
-            padding-top: 10px !important;
-            padding-bottom: 6px !important;
-            line-height: 1.2 !important;
+        html[lang="kn"] #siteHeader nav:not(.hidden) a,
+        html[lang="kn"] #siteHeader a.font-kannada,
+        html[lang="kn"] .category-filter-btn,
+        html[lang="kn"] .btn-mandi-change,
+        html[lang="kn"] button.btn-mandi-change {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
 
-        /* 3. Header Location Pill (📍 ಬೆಂಗಳೂರು ನಗರ) */
-        html[lang="kn"] #siteHeader .header-location-pill:not(.hidden) {
-            padding-top: 7px !important;
-            padding-bottom: 5px !important;
-        }
-        html[lang="kn"] #siteHeader .header-location-pill span:not(.text-rose-500) {
-            position: relative;
-            top: 1.5px;
-            line-height: 1.2;
-        }
-
-        /* Strict Responsive Visibility Guarantee: never display hidden elements on mobile/tablet only.
-           IMPORTANT: Do NOT add unconditional html[lang="kn"] .hidden rules here — that breaks desktop
-           responsive variants like lg:flex and md:flex which rely on Tailwind's cascade to override .hidden. */
+        /* Strict Responsive Visibility Guarantee: never display hidden elements on mobile/tablet only */
         @media (max-width: 1023px) {
             html[lang="kn"] #siteHeader .hidden,
             html[lang="kn"] #siteHeader .lg\:flex,
@@ -146,83 +148,11 @@
             }
         }
 
-        /* 4. Header Language Switcher Toggle (EN | ಕನ್ನಡ) */
-        html[lang="kn"] #siteHeader a.font-kannada {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding-top: 5.5px !important;
-            padding-bottom: 2.5px !important;
-            line-height: 1 !important;
-        }
-
-        /* 5. Command Dock "Change ▾" / "ಬದಲಿಸಿ ▾" Button */
-        html[lang="kn"] .btn-mandi-change,
-        html[lang="kn"] button[type="button"].btn-mandi-change {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding-top: 8.5px !important;
-            padding-bottom: 4.5px !important;
-            line-height: 1 !important;
-        }
-
-        /* 6. Command Dock Search Input Text & Placeholder */
-        html[lang="kn"] .search-input-kn,
-        html[lang="kn"] input.home-search-input,
-        html[lang="kn"] input[type="text"] {
-            padding-top: 14px !important;
-            padding-bottom: 6px !important;
-            line-height: normal !important;
-        }
-        @media (min-width: 640px) {
-            html[lang="kn"] .search-input-kn,
-            html[lang="kn"] input.home-search-input,
-            html[lang="kn"] input[type="text"] {
-                padding-top: 17px !important;
-                padding-bottom: 7px !important;
-                line-height: normal !important;
-            }
-        }
-        html[lang="kn"] input::placeholder {
-            line-height: normal !important;
-            vertical-align: middle !important;
-        }
-
-        /* 7. Category Filter Pills (🌾 ಎಲ್ಲಾ, 🌿 ವಾಣಿಜ್ಯ ಮತ್ತು ಕ್ಷೇತ್ರ ಬೆಳೆಗಳು, etc.) */
-        html[lang="kn"] .category-filter-btn {
-            display: inline-flex !important;
-            align-items: center !important;
-            padding-top: 10px !important;
-            padding-bottom: 6px !important;
-            line-height: 1.2 !important;
-        }
-
-        /* 8. Crop Card Reliability & Benchmark Badges (• ವಿಶ್ವಾಸಾರ್ಹ, • ಮೌಲ್ಯಾಂಕನ) */
-        html[lang="kn"] .crop-article .rounded-full {
-            display: inline-flex !important;
-            align-items: center !important;
-            padding-top: 3px !important;
-            padding-bottom: 2px !important;
-        }
-        html[lang="kn"] .crop-article .rounded-full span:last-child {
-            position: relative;
-            top: 1px;
-            line-height: 1;
-        }
-
-        /* 9. Section Titles with Emoji (🌟 ಇಂದಿನ ಪ್ರಮುಖ ದರಗಳು) */
+        /* 3. Section Titles with Emoji or badges */
         html[lang="kn"] h1,
         html[lang="kn"] h2,
         html[lang="kn"] h3 {
             line-height: 1.35 !important;
-        }
-
-        /* 8. Mobile Bottom Navigation Bar (ಮುಖಪುಟ, ದರಗಳು, ಯೋಜನೆಗಳು, ಹವಾಮಾನ) */
-        html[lang="kn"] #mobileBottomNav a span:last-child {
-            position: relative;
-            top: 1.5px;
-            line-height: 1.2;
         }
         .no-scrollbar::-webkit-scrollbar {
             display: none;

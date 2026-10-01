@@ -6,7 +6,7 @@
 
 @section('title', $activeLocale === 'en' 
     ? 'Karnataka Crops Directory & Mandi Rates — Krushi Baandhava' 
-    : 'ಕರ್ನಾಟಕದ ಪ್ರಮುಖ ಕೃಷಿ ಬೆಳೆಗಳು ಮತ್ತು ಎಪಿಎಂಸಿ ದರಗಳು — ಕೃಷಿ ಬಾಂಧವ'
+    : 'ಕರ್ನಾಟಕದ ಪ್ರಮುಖ ಕೃಷಿ ಬೆಳೆಗಳು ಮತ್ತು ಮಂಡಿ ದರಗಳು — ಕೃಷಿ ಬಾಂಧವ'
 )
 
 @section('content')

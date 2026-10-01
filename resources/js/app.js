@@ -21,9 +21,9 @@ window.initPriceTrendChart = function (canvasId, options = {}) {
     const ctx = canvas.getContext('2d');
     const chartHeight = canvas.clientHeight || 320;
     const gradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
-    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.28)'); // emerald-500
-    gradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.08)');
-    gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+    gradient.addColorStop(0, 'rgba(28, 90, 44, 0.22)'); // brand forest green
+    gradient.addColorStop(0.5, 'rgba(28, 90, 44, 0.06)');
+    gradient.addColorStop(1, 'rgba(28, 90, 44, 0.0)');
 
     const labels = options.labels || [];
     const modalPrices = options.modalPrices || [];
@@ -37,17 +37,17 @@ window.initPriceTrendChart = function (canvasId, options = {}) {
             type: 'line',
             label: isEn ? 'Modal Rate (₹)' : 'ಮಾದರಿ ದರ (₹)',
             data: modalPrices,
-            borderColor: '#059669', // emerald-600
+            borderColor: '#1C5A2C', // classic brand forest green
             backgroundColor: gradient,
             borderWidth: 2.8,
             fill: true,
             tension: 0.35,
             pointRadius: labels.length > 35 ? 0 : 3.5,
             pointHoverRadius: 6,
-            pointBackgroundColor: '#047857',
+            pointBackgroundColor: '#16803C',
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2,
-            pointHoverBackgroundColor: '#059669',
+            pointHoverBackgroundColor: '#1C5A2C',
             pointHoverBorderColor: '#ffffff',
             pointHoverBorderWidth: 3,
             yAxisID: 'y',
@@ -146,8 +146,8 @@ window.initPriceTrendChart = function (canvasId, options = {}) {
                         borderDash: [4, 4],
                     },
                     ticks: {
-                        color: '#059669',
-                        font: { size: 11, weight: '700' },
+                        color: '#1C5A2C',
+                        font: { size: 11, weight: '800' },
                         callback: function (val) {
                             return '₹' + Number(val).toLocaleString('en-IN');
                         }

@@ -77,7 +77,7 @@ class PriceApiController extends Controller
                 'price_spread' => $price->price_spread,
                 'arrival_quantity' => $price->arrival_quantity ? (float) $price->arrival_quantity : null,
                 'unit' => $price->unit,
-                'source' => $price->dataSource ? $price->dataSource->name : 'APMC Mandi Feed',
+                'source' => $price->dataSource ? $price->dataSource->name : 'Mandi Feed',
             ];
         });
 
