@@ -236,6 +236,10 @@
                         </svg>
                         <span>Sync Logs History</span>
                     </a>
+                    <a href="{{ route('admin.weather.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium {{ request()->routeIs('admin.weather.*') ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">
+                        <span class="text-base leading-none">🌤️</span>
+                        <span>Weather Engine</span>
+                    </a>
                 </div>
             <div>
                 <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Helpdesk & Community</div>

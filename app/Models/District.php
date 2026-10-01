@@ -41,4 +41,9 @@ class District extends Model
     {
         return $this->hasMany(Market::class);
     }
+
+    public function weatherForecasts(): HasMany
+    {
+        return $this->hasMany(WeatherForecast::class);
+    }
 }

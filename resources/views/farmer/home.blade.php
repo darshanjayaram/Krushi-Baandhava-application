@@ -362,9 +362,46 @@
 
         </div>
 
-        <!-- Right Column: Classic Atmospheric Topographic Weather Card (4 Cols Desktop) -->
+        <!-- Right Column: Classic Atmospheric Topographic Weather Card (4 Cols Desktop with Shimmer Loading) -->
+        <style>
+            @keyframes kbWeatherShimmer {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(100%); }
+            }
+            .kb-weather-shimmer {
+                position: relative;
+                overflow: hidden;
+            }
+            .kb-weather-shimmer::after {
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                transform: translateX(-100%);
+                background: linear-gradient(
+                    90deg,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0.12) 35%,
+                    rgba(255, 255, 255, 0.26) 50%,
+                    rgba(255, 255, 255, 0.12) 65%,
+                    rgba(255, 255, 255, 0) 100%
+                );
+                animation: kbWeatherShimmer 1.5s infinite ease-in-out;
+                content: '';
+            }
+        </style>
+
         <aside class="lg:col-span-4 relative overflow-hidden rounded-3xl p-4 sm:p-5 border border-emerald-500/30 shadow-xl flex flex-col gap-3.5 text-white"
-               style="contain: paint; background: radial-gradient(circle at 85% 15%, #257044 0%, #154D2B 45%, #0B2B17 100%);">
+               style="contain: paint; background: radial-gradient(circle at 85% 15%, #257044 0%, #154D2B 45%, #0B2B17 100%);"
+               x-data="{
+                   isLoading: true,
+                   init() {
+                       // Initial elegant shimmer load animation (reveals after 450ms)
+                       setTimeout(() => { this.isLoading = false; }, 450);
+
+                       // Listen for location changes or weather updates
+                       window.addEventListener('weather-updating', () => { this.isLoading = true; });
+                       window.addEventListener('weather-updated', () => { this.isLoading = false; });
+                   }
+               }">
             
             <!-- Classic Topographic Concentric Contour Lines (Top-Right Atmospheric Arcs) -->
             <svg class="absolute -top-6 -right-6 w-52 h-52 sm:w-60 sm:h-60 pointer-events-none text-white select-none z-0" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -374,105 +411,181 @@
                 <circle cx="200" cy="0" r="65" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.08" />
             </svg>
 
-            <!-- Header: Location & Live Status -->
-            <div class="flex items-center justify-between z-10 relative border-b border-white/15 pb-2.5">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl sm:text-2xl filter drop-shadow">🌤️</span>
-                    <div>
-                        <h3 class="font-extrabold text-sm sm:text-base text-white tracking-wide {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
-                        </h3>
+            <!-- ==================== 1. SHIMMER SKELETON LOADER STATE ==================== -->
+            <div x-show="isLoading" 
+                 x-transition:leave="transition ease-out duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="space-y-3.5 z-10 relative flex flex-col gap-3.5 w-full select-none">
+                
+                <!-- Skeleton Header -->
+                <div class="flex items-center justify-between border-b border-white/15 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-lg bg-white/15 kb-weather-shimmer shrink-0"></div>
+                        <div class="w-28 h-5 rounded-md bg-white/20 kb-weather-shimmer"></div>
+                    </div>
+                    <div class="w-12 h-4 rounded-full bg-white/15 kb-weather-shimmer"></div>
+                </div>
+
+                <!-- Skeleton Main Metric (Temperature & Condition) -->
+                <div class="flex items-baseline justify-between my-0.5">
+                    <div class="w-24 h-12 rounded-2xl bg-white/20 kb-weather-shimmer"></div>
+                    <div class="flex flex-col items-end gap-1.5">
+                        <div class="w-20 h-4 rounded-md bg-white/15 kb-weather-shimmer"></div>
+                        <div class="w-28 h-3 rounded-md bg-white/10 kb-weather-shimmer"></div>
                     </div>
                 </div>
-                <span class="bg-black/30 backdrop-blur-sm text-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-full border border-white/10">
-                    LIVE
-                </span>
+
+                <!-- Skeleton Glassmorphic Rain Probability Card -->
+                <div class="bg-white/[0.08] backdrop-blur-md border border-white/15 rounded-2xl p-3 flex items-center gap-3 shadow-inner">
+                    <div class="w-8 h-8 rounded-xl bg-white/20 kb-weather-shimmer shrink-0"></div>
+                    <div class="space-y-1.5 flex-1 min-w-0">
+                        <div class="w-32 h-3 rounded-md bg-white/15 kb-weather-shimmer"></div>
+                        <div class="w-24 h-5 rounded-md bg-white/25 kb-weather-shimmer"></div>
+                    </div>
+                </div>
+
+                <!-- Skeleton Farm Advisory -->
+                <div class="pt-2 border-t border-white/15 flex flex-col gap-1.5">
+                    <div class="w-24 h-3.5 rounded-md bg-white/20 kb-weather-shimmer"></div>
+                    <div class="w-full h-3 rounded-md bg-white/15 kb-weather-shimmer"></div>
+                    <div class="w-4/5 h-3 rounded-md bg-white/10 kb-weather-shimmer"></div>
+                </div>
+
+                <!-- Skeleton 3-Day Micro Outlook -->
+                <div class="grid grid-cols-3 gap-1.5 pt-1 border-t border-white/15">
+                    <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-2 rounded-xl flex flex-col items-center gap-1.5">
+                        <div class="w-8 h-2.5 rounded bg-white/15 kb-weather-shimmer"></div>
+                        <div class="w-5 h-5 rounded-full bg-white/20 kb-weather-shimmer my-0.5"></div>
+                        <div class="w-10 h-3 rounded bg-white/15 kb-weather-shimmer"></div>
+                    </div>
+                    <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-2 rounded-xl flex flex-col items-center gap-1.5">
+                        <div class="w-8 h-2.5 rounded bg-white/15 kb-weather-shimmer"></div>
+                        <div class="w-5 h-5 rounded-full bg-white/20 kb-weather-shimmer my-0.5"></div>
+                        <div class="w-10 h-3 rounded bg-white/15 kb-weather-shimmer"></div>
+                    </div>
+                    <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-2 rounded-xl flex flex-col items-center gap-1.5">
+                        <div class="w-8 h-2.5 rounded bg-white/15 kb-weather-shimmer"></div>
+                        <div class="w-5 h-5 rounded-full bg-white/20 kb-weather-shimmer my-0.5"></div>
+                        <div class="w-10 h-3 rounded bg-white/15 kb-weather-shimmer"></div>
+                    </div>
+                </div>
+
+                <!-- Skeleton View Full Forecast Link -->
+                <div class="flex justify-center pt-1">
+                    <div class="w-44 h-3 rounded-md bg-white/15 kb-weather-shimmer"></div>
+                </div>
             </div>
 
-            <!-- Main Metric: Large Temperature & Condition -->
-            <div class="flex items-baseline justify-between z-10 relative my-0.5">
-                <div class="flex items-start">
-                    <span class="text-4xl sm:text-5xl font-black tracking-tight text-white leading-none">
-                        {{ round($todayWeather->current_temperature ?? $todayWeather->temp_max ?? 28) }}
+            <!-- ==================== 2. LIVE LOADED WEATHER CONTENT ==================== -->
+            <div x-show="!isLoading" 
+                 x-cloak
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-1"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 class="space-y-3.5 z-10 relative flex flex-col gap-3.5">
+
+                <!-- Header: Location & Live Status -->
+                <div class="flex items-center justify-between border-b border-white/15 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl sm:text-2xl filter drop-shadow">🌤️</span>
+                        <div>
+                            <h3 class="font-extrabold text-sm sm:text-base text-white tracking-wide {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
+                            </h3>
+                        </div>
+                    </div>
+                    <span class="bg-black/30 backdrop-blur-sm text-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-full border border-white/10">
+                        LIVE
                     </span>
-                    <span class="text-xl sm:text-2xl font-black text-white/90 ml-0.5">°C</span>
                 </div>
-                <div class="text-right">
-                    <div class="font-bold text-xs sm:text-sm text-emerald-100 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+
+                <!-- Main Metric: Large Temperature & Condition -->
+                <div class="flex items-baseline justify-between my-0.5">
+                    <div class="flex items-start">
+                        <span class="text-4xl sm:text-5xl font-black tracking-tight text-white leading-none">
+                            {{ round($todayWeather->current_temperature ?? $todayWeather->temp_max ?? 28) }}
+                        </span>
+                        <span class="text-xl sm:text-2xl font-black text-white/90 ml-0.5">°C</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-xs sm:text-sm text-emerald-100 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $todayWeather 
+                                ? ($activeLocale === 'en' 
+                                    ? ($todayWeather->weather_condition_en ?? 'Partly Cloudy') 
+                                    : ($todayWeather->weather_condition_kn ?? 'ಭಾಗಶಃ ಮೋಡ')) 
+                                : ($activeLocale === 'en' ? 'Partly Cloudy' : 'ಭಾಗಶಃ ಮೋಡ') }}
+                        </div>
+                        <div class="text-[10px] sm:text-[11px] text-emerald-200/90 mt-0.5 font-medium">
+                            {{ $activeLocale === 'en' ? 'Max' : 'ಗರಿಷ್ಠ' }} {{ round($todayWeather->temp_max ?? 31) }}°C · {{ $activeLocale === 'en' ? 'Min' : 'ಕನಿಷ್ಠ' }} {{ round($todayWeather->temp_min ?? 22) }}°C
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Glassmorphic Rain Probability Card (Exact match to screenshot) -->
+                <div class="bg-white/[0.08] backdrop-blur-md border border-white/15 rounded-2xl p-3 flex items-center gap-3 shadow-inner">
+                    <div class="text-2xl sm:text-3xl shrink-0 filter drop-shadow">
+                        🌧️
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-[11px] text-emerald-100/90 font-semibold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'Chance of rain today' : 'ಇಂದು ಮಳೆ ಸಾಧ್ಯತೆ' }}
+                        </div>
+                        <div class="text-lg sm:text-2xl font-black text-white leading-tight flex items-baseline gap-1.5">
+                            @php
+                                $precipProb = (int) round($todayWeather->precipitation_probability ?? 0);
+                            @endphp
+                            <span>{{ $precipProb }}%</span>
+                            <span class="text-[10px] sm:text-xs text-emerald-200 font-medium">
+                                ({{ $precipProb > 50 ? ($activeLocale === 'en' ? 'Rain Likely' : 'ಮಳೆ ಸಂಭವ') : ($activeLocale === 'en' ? 'Dry / Fair' : 'ಒಣ ಹವೆ') }})
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agricultural Spray & Field Advisory -->
+                <div class="pt-2 border-t border-white/15 flex flex-col gap-1">
+                    <div class="flex items-center gap-1.5 text-[11px] font-bold text-amber-300 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="shrink-0">🌾</span>
+                        <span>{{ $activeLocale === 'en' ? 'Farm Advisory' : 'ಕೃಷಿ ಸಲಹೆ' }}</span>
+                    </div>
+                    <p class="text-[11px] sm:text-xs text-white/95 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} leading-relaxed">
                         {{ $todayWeather 
                             ? ($activeLocale === 'en' 
-                                ? ($todayWeather->weather_condition_en ?? 'Partly Cloudy') 
-                                : ($todayWeather->weather_condition_kn ?? 'ಭಾಗಶಃ ಮೋಡ')) 
-                            : ($activeLocale === 'en' ? 'Partly Cloudy' : 'ಭಾಗಶಃ ಮೋಡ') }}
-                    </div>
-                    <div class="text-[10px] sm:text-[11px] text-emerald-200/90 mt-0.5 font-medium">
-                        {{ $activeLocale === 'en' ? 'Max' : 'ಗರಿಷ್ಠ' }} {{ round($todayWeather->temp_max ?? 31) }}°C · {{ $activeLocale === 'en' ? 'Min' : 'ಕನಿಷ್ಠ' }} {{ round($todayWeather->temp_min ?? 22) }}°C
-                    </div>
+                                ? ($todayWeather->farming_advisory_en ?? 'Good day to dry and move produce; suitable for field spraying.') 
+                                : ($todayWeather->farming_advisory_kn ?? 'ಒಣ ಹವೆ: ಕೀಟನಾಶಕ ಸಿಂಪಡಣೆ, ಅಡಿಕೆ ಕೊಯ್ಲು ಹಾಗೂ ಅಂಗಳದಲ್ಲಿ ಕಾಳುಮೆಣಸು ಒಣಗಿಸಲು ಸೂಕ್ತ.'))
+                            : ($activeLocale === 'en' 
+                                ? 'Good day to dry and move produce; suitable for field spraying.' 
+                                : 'ಒಣ ಹವೆ: ಕೀಟನಾಶಕ ಸಿಂಪಡಣೆ, ಅಡಿಕೆ ಕೊಯ್ಲು ಹಾಗೂ ಅಂಗಳದಲ್ಲಿ ಕಾಳುಮೆಣಸು ಒಣಗಿಸಲು ಸೂಕ್ತ.') }}
+                    </p>
                 </div>
-            </div>
 
-            <!-- Glassmorphic Rain Probability Card (Exact match to screenshot) -->
-            <div class="bg-white/[0.08] backdrop-blur-md border border-white/15 rounded-2xl p-3 flex items-center gap-3 z-10 relative shadow-inner">
-                <div class="text-2xl sm:text-3xl shrink-0 filter drop-shadow">
-                    🌧️
-                </div>
-                <div class="min-w-0">
-                    <div class="text-[11px] text-emerald-100/90 font-semibold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? 'Chance of rain today' : 'ಇಂದು ಮಳೆ ಸಾಧ್ಯತೆ' }}
+                <!-- 3-Day Micro Outlook -->
+                <div class="grid grid-cols-3 gap-1.5 pt-1 text-center text-xs border-t border-white/15">
+                    <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-1.5 rounded-xl">
+                        <span class="block text-[10px] text-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Today' : 'ಇಂದು' }}</span>
+                        <span class="block text-sm my-0.5">🌤️</span>
+                        <span class="font-bold text-[11px] text-white">{{ round($todayWeather->temp_max ?? 28) }}°C</span>
                     </div>
-                    <div class="text-lg sm:text-2xl font-black text-white leading-tight flex items-baseline gap-1.5">
-                        @php
-                            $precipProb = (int) round($todayWeather->precipitation_probability ?? 0);
-                        @endphp
-                        <span>{{ $precipProb }}%</span>
-                        <span class="text-[10px] sm:text-xs text-emerald-200 font-medium">
-                            ({{ $precipProb > 50 ? ($activeLocale === 'en' ? 'Rain Likely' : 'ಮಳೆ ಸಂಭವ') : ($activeLocale === 'en' ? 'Dry / Fair' : 'ಒಣ ಹವೆ') }})
-                        </span>
+                    <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-1.5 rounded-xl">
+                        <span class="block text-[10px] text-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Tomorrow' : 'ನಾಳೆ' }}</span>
+                        <span class="block text-sm my-0.5">⛅</span>
+                        <span class="font-bold text-[11px] text-white">{{ round(($todayWeather->temp_max ?? 28) - 1) }}°C</span>
+                    </div>
+                    <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-1.5 rounded-xl">
+                        <span class="block text-[10px] text-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Day 3' : '3ನೇ ದಿನ' }}</span>
+                        <span class="block text-sm my-0.5">🌧️</span>
+                        <span class="font-bold text-[11px] text-white">{{ round(($todayWeather->temp_max ?? 28) - 2) }}°C</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Agricultural Spray & Field Advisory -->
-            <div class="pt-2 border-t border-white/15 z-10 relative flex flex-col gap-1">
-                <div class="flex items-center gap-1.5 text-[11px] font-bold text-amber-300 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <span class="shrink-0">🌾</span>
-                    <span>{{ $activeLocale === 'en' ? 'Farm Advisory' : 'ಕೃಷಿ ಸಲಹೆ' }}</span>
-                </div>
-                <p class="text-[11px] sm:text-xs text-white/95 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} leading-relaxed">
-                    {{ $todayWeather 
-                        ? ($activeLocale === 'en' 
-                            ? ($todayWeather->farming_advisory_en ?? 'Good day to dry and move produce; suitable for field spraying.') 
-                            : ($todayWeather->farming_advisory_kn ?? 'ಒಣ ಹವೆ: ಕೀಟನಾಶಕ ಸಿಂಪಡಣೆ, ಅಡಿಕೆ ಕೊಯ್ಲು ಹಾಗೂ ಅಂಗಳದಲ್ಲಿ ಕಾಳುಮೆಣಸು ಒಣಗಿಸಲು ಸೂಕ್ತ.'))
-                        : ($activeLocale === 'en' 
-                            ? 'Good day to dry and move produce; suitable for field spraying.' 
-                            : 'ಒಣ ಹವೆ: ಕೀಟನಾಶಕ ಸಿಂಪಡಣೆ, ಅಡಿಕೆ ಕೊಯ್ಲು ಹಾಗೂ ಅಂಗಳದಲ್ಲಿ ಕಾಳುಮೆಣಸು ಒಣಗಿಸಲು ಸೂಕ್ತ.') }}
-                </p>
-            </div>
+                <!-- View Full Forecast Link -->
+                <a href="{{ route('farmer.weather.index') }}" 
+                   class="text-center text-xs font-bold text-emerald-200 hover:text-white pt-1 z-10 relative {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    {{ $activeLocale === 'en' ? 'View 7-Day District Forecast ›' : '7 ದಿನಗಳ ಸಂಪೂರ್ಣ ಹವಾಮಾನ ವರದಿ ನೋಡಿ ›' }}
+                </a>
 
-            <!-- 3-Day Micro Outlook -->
-            <div class="grid grid-cols-3 gap-1.5 pt-1 text-center text-xs border-t border-white/15 z-10 relative">
-                <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-1.5 rounded-xl">
-                    <span class="block text-[10px] text-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Today' : 'ಇಂದು' }}</span>
-                    <span class="block text-sm my-0.5">🌤️</span>
-                    <span class="font-bold text-[11px] text-white">{{ round($todayWeather->temp_max ?? 28) }}°C</span>
-                </div>
-                <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-1.5 rounded-xl">
-                    <span class="block text-[10px] text-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Tomorrow' : 'ನಾಳೆ' }}</span>
-                    <span class="block text-sm my-0.5">⛅</span>
-                    <span class="font-bold text-[11px] text-white">{{ round(($todayWeather->temp_max ?? 28) - 1) }}°C</span>
-                </div>
-                <div class="bg-black/25 backdrop-blur-sm border border-white/10 p-1.5 rounded-xl">
-                    <span class="block text-[10px] text-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Day 3' : '3ನೇ ದಿನ' }}</span>
-                    <span class="block text-sm my-0.5">🌧️</span>
-                    <span class="font-bold text-[11px] text-white">{{ round(($todayWeather->temp_max ?? 28) - 2) }}°C</span>
-                </div>
             </div>
-
-            <!-- View Full Forecast Link -->
-            <a href="{{ route('farmer.weather.index') }}" 
-               class="text-center text-xs font-bold text-emerald-200 hover:text-white pt-1 z-10 relative {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                {{ $activeLocale === 'en' ? 'View 7-Day District Forecast ›' : '7 ದಿನಗಳ ಸಂಪೂರ್ಣ ಹವಾಮಾನ ವರದಿ ನೋಡಿ ›' }}
-            </a>
 
         </aside>
 

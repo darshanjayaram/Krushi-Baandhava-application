@@ -68,20 +68,19 @@ Schedule::command('krushi:sync-market-prices')
 
 /*
 |--------------------------------------------------------------------------
-| Weather Scheduling (Open-Meteo 7-Day Hyperlocal & Agricultural Advisory)
+| Weather Scheduling (Open-Meteo On-Demand Sync)
 |--------------------------------------------------------------------------
+| Statewide batch sync across all 31 districts has been retired in favor of
+| on-demand 15-minute TTL caching based on active farmer location coordinates.
+| Scheduled commands can still be run manually if needed: `php artisan krushi:sync-weather`
 */
-Schedule::command('krushi:sync-weather')
-    ->dailyAt('05:30')
-    ->withoutOverlapping(30)
-    ->runInBackground()
-    ->appendOutputTo(storage_path('logs/weather_morning.log'));
+// Schedule::command('krushi:sync-weather')->dailyAt('05:30');
+// Schedule::command('krushi:sync-weather')->dailyAt('14:30');
 
-Schedule::command('krushi:sync-weather')
-    ->dailyAt('14:30')
-    ->withoutOverlapping(30)
-    ->runInBackground()
-    ->appendOutputTo(storage_path('logs/weather_afternoon.log'));
+// Nightly automatic cleanup of expired weather forecasts (keeps records from piling up)
+Schedule::call(function () {
+    \App\Services\Weather\WeatherSyncService::pruneForecasts(7);
+})->dailyAt('03:30')->name('prune-weather-forecasts');
 
 /*
 |--------------------------------------------------------------------------

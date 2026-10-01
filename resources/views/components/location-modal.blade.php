@@ -776,6 +776,9 @@ function locationModalHandler() {
         },
 
         saveAndRedirect(districtId, districtName, lat = null, lon = null) {
+            // Instantly notify homepage weather widget to show shimmer effect
+            window.dispatchEvent(new CustomEvent('weather-updating'));
+
             // Persist in cookie (1 year)
             document.cookie = "selected_district_id=" + districtId + "; path=/; max-age=31536000; SameSite=Lax";
             if (window.localStorage) {

@@ -210,23 +210,30 @@ class HomeController extends Controller
             'latest_date_formatted' => Carbon::parse($latestPriceDate)->format('d M Y'),
         ];
 
-        // 8. Today's Weather & Advisory for Active District
+        // 8. Today's Weather & Advisory for Active District (On-Demand 15-Minute Dynamic TTL)
         $todayWeather = null;
         if ($activeDistrict) {
+            $weatherService = app(\App\Services\Weather\WeatherSyncService::class);
+            $ttlMinutes = $weatherService->getCacheTtlMinutes();
+
             $todayWeather = \App\Models\WeatherForecast::forDistrict($activeDistrict->id)
                 ->where('forecast_date', '>=', Carbon::today()->toDateString())
                 ->orderBy('forecast_date', 'asc')
                 ->first();
 
-            if (!$todayWeather && $activeDistrict->latitude && $activeDistrict->longitude) {
+            $isExpiredOrMissing = !$todayWeather 
+                || !$todayWeather->fetched_at 
+                || Carbon::parse($todayWeather->fetched_at)->lt(Carbon::now()->subMinutes($ttlMinutes));
+
+            if ($isExpiredOrMissing && $activeDistrict->latitude && $activeDistrict->longitude) {
                 try {
-                    app(\App\Services\Weather\WeatherSyncService::class)->syncDistrict($activeDistrict);
+                    $weatherService->syncDistrict($activeDistrict, true);
                     $todayWeather = \App\Models\WeatherForecast::forDistrict($activeDistrict->id)
                         ->where('forecast_date', '>=', Carbon::today()->toDateString())
                         ->orderBy('forecast_date', 'asc')
                         ->first();
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning("Weather auto-sync failed for district {$activeDistrict->name}: {$e->getMessage()}");
+                    \Illuminate\Support\Facades\Log::warning("Weather on-demand sync failed for district {$activeDistrict->name}: {$e->getMessage()}");
                 }
             }
         }
@@ -298,11 +305,43 @@ class HomeController extends Controller
             session(['selected_district_id' => $district->id]);
             cookie()->queue('selected_district_id', $district->id, 525600);
 
+            // If farmer gave GPS coordinates, sync farm-level weather on demand
+            if ($lat && $lon) {
+                try {
+                    \App\Services\Weather\WeatherSyncService::syncCoordinates((float) $lat, (float) $lon, $district, false);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('GPS weather sync failed in setLocation: ' . $e->getMessage());
+                }
+            } else {
+                // If farmer selected a district, ensure fresh weather exists within TTL
+                try {
+                    $ttl = \App\Services\Weather\WeatherSyncService::getCacheTtlMinutes();
+                    $freshWeather = \App\Models\WeatherForecast::forDistrict($district->id)->today()->first();
+                    if (!$freshWeather || \Carbon\Carbon::parse($freshWeather->fetched_at)->lt(\Carbon\Carbon::now()->subMinutes($ttl))) {
+                        \App\Services\Weather\WeatherSyncService::syncDistrict($district, true);
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('District weather sync failed in setLocation: ' . $e->getMessage());
+                }
+            }
+
+            $todayWeather = \App\Models\WeatherForecast::forDistrict($district->id)->today()->first();
+
             return response()->json([
                 'success' => true,
                 'district_id' => $district->id,
                 'district_name' => $district->name,
                 'district_name_kn' => $district->name_kn,
+                'weather' => $todayWeather ? [
+                    'temperature' => round($todayWeather->current_temperature ?? $todayWeather->temp_max ?? 28),
+                    'temp_max' => round($todayWeather->temp_max ?? 30),
+                    'temp_min' => round($todayWeather->temp_min ?? 22),
+                    'condition_en' => $todayWeather->weather_condition_en ?? 'Partly Cloudy',
+                    'condition_kn' => $todayWeather->weather_condition_kn ?? 'ಭಾಗಶಃ ಮೋಡ',
+                    'rain_prob' => (int) round($todayWeather->precipitation_probability ?? 0),
+                    'advisory_en' => $todayWeather->farming_advisory_en,
+                    'advisory_kn' => $todayWeather->farming_advisory_kn,
+                ] : null,
             ]);
         }
 

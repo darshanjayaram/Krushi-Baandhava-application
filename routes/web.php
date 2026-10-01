@@ -225,6 +225,13 @@ Route::prefix('admin')->group(function () {
         Route::post('/settings/prune-data', [SystemSettingController::class, 'pruneData'])->name('admin.settings.prune-data');
         Route::post('/settings/trigger-forecasting', [SystemSettingController::class, 'triggerForecasting'])->name('admin.settings.trigger-forecasting');
 
+        // Weather Storage & On-Demand Cache Engine
+        Route::get('/weather', [\App\Http\Controllers\Admin\WeatherManagementController::class, 'index'])->name('admin.weather.index');
+        Route::post('/weather/settings', [\App\Http\Controllers\Admin\WeatherManagementController::class, 'updateSettings'])->name('admin.weather.settings');
+        Route::post('/weather/prune', [\App\Http\Controllers\Admin\WeatherManagementController::class, 'prune'])->name('admin.weather.prune');
+        Route::post('/weather/sync-district/{district}', [\App\Http\Controllers\Admin\WeatherManagementController::class, 'syncDistrict'])->name('admin.weather.sync-district');
+        Route::post('/weather/sync-all', [\App\Http\Controllers\Admin\WeatherManagementController::class, 'syncAll'])->name('admin.weather.sync-all');
+
         // Data Quality & Rejected Records
         Route::get('/data-quality', [DataQualityController::class, 'index'])->name('admin.data-quality.index');
         Route::post('/data-quality/reprocess/{rawRecord}', [DataQualityController::class, 'reprocess'])->name('admin.data-quality.reprocess');

@@ -23,6 +23,7 @@ class OpenMeteoWeatherProvider implements WeatherProviderInterface
             $timezone = SystemSetting::get('weather_timezone', 'Asia/Kolkata');
 
             $response = Http::timeout(self::TIMEOUT_SECONDS)
+                ->withoutVerifying()
                 ->get($endpoint, [
                     'latitude' => $latitude,
                     'longitude' => $longitude,

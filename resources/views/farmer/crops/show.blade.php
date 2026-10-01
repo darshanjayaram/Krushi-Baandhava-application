@@ -821,7 +821,7 @@
         /* Ambient glows */
         .khc-glow{position:absolute;border-radius:50%;filter:blur(48px);pointer-events:none;}
         /* Header */
-        .khc-eyebrow{color:#86EFAC;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+        .khc-eyebrow{color:#86EFAC;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
         .khc-title{color:#FFFFFF;font-size:20px;font-weight:900;line-height:1.1;}
         .khc-badge-5y{background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:4px 12px;color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;}
         /* Lead text */
@@ -904,7 +904,7 @@
                         </span>
                     @endif
                 </div>
-                <div class="khc-title {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <div class="khc-title mb-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     {{ $activeLocale === 'en' ? 'Best Months to Sell' : 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು' }}
                 </div>
                 <div class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.72);margin-top:2px;">

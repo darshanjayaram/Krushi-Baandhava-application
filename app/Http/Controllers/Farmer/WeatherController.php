@@ -49,22 +49,33 @@ class WeatherController extends Controller
         $todayForecast = null;
 
         if ($activeDistrict) {
+            $ttlMinutes = $this->weatherService->getCacheTtlMinutes();
+
             // Check if forecasts exist for active district
             $forecasts = WeatherForecast::forDistrict($activeDistrict->id)
                 ->upcoming()
                 ->take(7)
                 ->get();
 
-            // If empty, auto-sync once to populate database seamlessly
-            if ($forecasts->isEmpty()) {
-                $this->weatherService->syncDistrict($activeDistrict);
-                $forecasts = WeatherForecast::forDistrict($activeDistrict->id)
-                    ->upcoming()
-                    ->take(7)
-                    ->get();
+            $latestFetched = $forecasts->max('fetched_at');
+            $isExpiredOrEmpty = $forecasts->isEmpty()
+                || !$latestFetched
+                || Carbon::parse($latestFetched)->lt(Carbon::now()->subMinutes($ttlMinutes));
+
+            // If empty or older than TTL, auto-sync on demand
+            if ($isExpiredOrEmpty && $activeDistrict->latitude && $activeDistrict->longitude) {
+                try {
+                    $this->weatherService->syncDistrict($activeDistrict, true);
+                    $forecasts = WeatherForecast::forDistrict($activeDistrict->id)
+                        ->upcoming()
+                        ->take(7)
+                        ->get();
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("Weather on-demand sync failed in WeatherController for {$activeDistrict->name}: {$e->getMessage()}");
+                }
             }
 
-            $todayForecast = $forecasts->firstWhere('forecast_date', Carbon::today())
+            $todayForecast = $forecasts->firstWhere('forecast_date', Carbon::today()->toDateString())
                 ?? $forecasts->first();
         }
 
