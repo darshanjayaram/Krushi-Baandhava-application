@@ -44,7 +44,7 @@ class Crop extends Model
 
     public function isCoconutBoard(): bool
     {
-        return $this->price_source_type === 'coconut_board' || in_array($this->slug, ['coconut', 'copra', 'tender-coconut']);
+        return $this->price_source_type === 'coconut_board';
     }
 
     public function isBoardPriced(): bool

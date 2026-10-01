@@ -172,7 +172,10 @@ Route::prefix('admin')->group(function () {
         Route::get('/sync-logs', [SyncLogController::class, 'index'])->name('admin.sync-logs.index');
 
         // Agricultural CMS & Knowledge Base
+        Route::post('/schemes/settings', [\App\Http\Controllers\Admin\SchemeController::class, 'updateSettings'])->name('admin.schemes.settings');
+        Route::post('/schemes/bulk', [\App\Http\Controllers\Admin\SchemeController::class, 'bulkAction'])->name('admin.schemes.bulk');
         Route::post('/schemes/{scheme}/toggle', [\App\Http\Controllers\Admin\SchemeController::class, 'toggle'])->name('admin.schemes.toggle');
+        Route::post('/schemes/{scheme}/toggle-featured', [\App\Http\Controllers\Admin\SchemeController::class, 'toggleFeatured'])->name('admin.schemes.toggle-featured');
         Route::resource('schemes', \App\Http\Controllers\Admin\SchemeController::class)->names('admin.schemes');
 
         Route::post('/news/{news}/toggle', [\App\Http\Controllers\Admin\NewsController::class, 'toggle'])->name('admin.news.toggle');

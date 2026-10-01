@@ -116,12 +116,11 @@ class CropController extends Controller
             ];
         }
 
-        // Base price query builder with strict board / APMC authority isolation
+        // Base price query builder (Coffee Board authority isolation for coffee; APMC & multi-source for all other crops)
         $basePricesQuery = MarketPrice::karnataka()->where('crop_id', $crop->id);
-        if ($boardMeta) {
-            $boardSourceCode = $boardMeta['type'];
-            $basePricesQuery->whereHas('dataSource', function ($dq) use ($boardSourceCode) {
-                $dq->where('code', $boardSourceCode);
+        if ($crop->isCoffeeBoard()) {
+            $basePricesQuery->whereHas('dataSource', function ($dq) {
+                $dq->where('code', 'coffee_board');
             });
         }
 

@@ -25,17 +25,30 @@
 }" class="space-y-6 pb-12">
 
     <!-- ============================================================== -->
-    <!-- 1. VIBRANT, MODERN & WELCOMING HERO BANNER (Ultra-Lean on Mobile) -->
+    <!-- 1. VIBRANT, MODERN & WELCOMING HERO BANNER (Atmospheric Theme) -->
     <!-- ============================================================== -->
-    <div class="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#D9CEB8] bg-gradient-to-br from-[#10361C] via-[#0E2F19] to-[#0A2212] text-white p-3.5 sm:p-6 shadow-md">
-        <!-- Ambient Warm Glows -->
-        <div class="absolute -right-16 -top-16 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-[0_16px_40px_-10px_rgba(11,43,23,0.50)] border border-emerald-500/30 text-white p-3.5 sm:p-6"
+         style="contain: paint; background: radial-gradient(circle at 85% 15%, #257044 0%, #154D2B 45%, #0B2B17 100%);">
+        
+        <!-- Unique Krushi Baandhava Agricultural Field Elevation Contours (Topographic Landscape Geometry) -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none select-none z-0" preserveAspectRatio="none" viewBox="0 0 800 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M-20 180 Q 240 70, 500 170 T 820 90" stroke="currentColor" stroke-width="1.8" stroke-opacity="0.18" class="text-emerald-200" />
+            <path d="M-20 215 Q 260 110, 520 205 T 820 135" stroke="currentColor" stroke-width="1.4" stroke-opacity="0.14" class="text-white" stroke-dasharray="6 4" />
+            <path d="M-20 245 Q 280 150, 540 235 T 820 175" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.10" class="text-emerald-300" />
+            <ellipse cx="680" cy="45" rx="150" ry="100" fill="url(#atmGlowVideos)" opacity="0.30" />
+            <defs>
+                <radialGradient id="atmGlowVideos" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#4ade80" stop-opacity="0.5"/>
+                    <stop offset="100%" stop-color="#154D2B" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+        </svg>
 
         <div class="relative z-10 flex items-center justify-between gap-3">
             <div class="space-y-0.5 sm:space-y-2">
                 <!-- Eyebrow Badge -->
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-emerald-400/30 text-[10px] sm:text-[11px] font-black text-emerald-300 shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#1C5A2C] text-[10px] sm:text-[11px] font-black shadow-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                     <span class="hidden sm:inline">{{ $activeLocale === 'en' ? 'Curated Agricultural Video Guides' : 'ಕೃಷಿ ವಿಡಿಯೋ ಮಾರ್ಗದರ್ಶಿ • 100% ಪ್ರಾಯೋಗಿಕ ಮಾಹಿತಿ' }}</span>
                     <span class="sm:hidden">{{ $activeLocale === 'en' ? 'Video Guides' : 'ಕೃಷಿ ವಿಡಿಯೋಗಳು' }}</span>
                 </div>
@@ -45,7 +58,7 @@
                 </h1>
 
                 <!-- Subtitle: Desktop Only to save vertical screen space on mobile -->
-                <p class="hidden sm:block text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <p class="hidden sm:block text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     {{ $activeLocale === 'en' 
                         ? 'Handpicked scientific tutorials, crop protection breakthroughs, modern tools, and progressive Karnataka farmer experiences.' 
                         : 'ಕೃಷಿ ವಿವಿಗಳ ವೈಜ್ಞಾನಿಕ ಬೇಸಾಯ ಪದ್ಧತಿ, ಕೀಟ-ರೋಗ ನಿರ್ವಹಣೆ, ಆಧುನಿಕ ಯಂತ್ರೋಪಕರಣ ಹಾಗೂ ಪ್ರಗತಿಪರ ರೈತರ ನೈಜ ಯಶೋಗಾಥೆಗಳು.' }}
@@ -54,7 +67,7 @@
 
             <!-- Home Link -->
             <a href="{{ route('home') }}" 
-               class="inline-flex items-center gap-1 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] sm:text-xs backdrop-blur-md border border-white/20 transition shadow-xs shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+               class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-[11px] sm:text-xs backdrop-blur-md border border-white/25 transition shadow-xs shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                 <span>&larr;</span>
                 <span class="hidden sm:inline">{{ $activeLocale === 'en' ? 'Back to Home' : 'ಮುಖಪುಟ' }}</span>
                 <span class="sm:hidden">{{ $activeLocale === 'en' ? 'Home' : 'ಮುಖಪುಟ' }}</span>
@@ -63,9 +76,9 @@
     </div>
 
     <!-- ============================================================== -->
-    <!-- 2. STREAMLINED UNIFIED SEARCH & FILTER BAR (Mobile-Optimized)   -->
+    <!-- 2. STREAMLINED UNIFIED SEARCH & FILTER BAR (Warm Theme Surface) -->
     <!-- ============================================================== -->
-    <div class="bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 shadow-sm p-3 sm:p-4 space-y-2.5">
+    <div class="bg-[#FAF8F5] rounded-2xl sm:rounded-3xl border-2 border-[#DDD2BE] shadow-xs p-3.5 sm:p-4 space-y-3">
         
         <!-- Search & Dropdown Selectors Row: 2 cols on mobile, 12 cols on desktop -->
         <form method="GET" action="{{ route('farmer.videos.index') }}" class="grid grid-cols-2 sm:grid-cols-12 gap-2">
@@ -75,8 +88,8 @@
 
             <!-- Search input: full width on mobile -->
             <div class="relative col-span-2 sm:col-span-6">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
@@ -84,10 +97,10 @@
                        name="search" 
                        value="{{ $search }}" 
                        placeholder="{{ $activeLocale === 'en' ? 'Search topic, pest, or channel...' : 'ಬೆಳೆ, ರೋಗ ಅಥವಾ ವಿಷಯ ಹುಡುಕಿ...' }}"
-                       class="w-full text-xs pl-8 pr-7 py-2 bg-stone-50 border border-stone-200 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                       class="w-full text-xs pl-9 pr-7 py-2.5 bg-white border border-[#DDD2BE] rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1C5A2C] focus:border-[#1C5A2C] transition shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                 @if($search)
                     <a href="{{ route('farmer.videos.index', array_filter(['crop_id' => $cropId, 'category' => $category, 'growth_stage' => $growthStage])) }}" 
-                       class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-stone-400 hover:text-stone-700 text-xs font-bold"
+                       class="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-700 text-xs font-bold"
                        title="Clear search">✕</a>
                 @endif
             </div>
@@ -96,7 +109,7 @@
             <div class="col-span-1 sm:col-span-3">
                 <select name="crop_id" 
                         onchange="this.form.submit()"
-                        class="w-full text-xs py-2 px-2.5 bg-stone-50 border border-stone-200 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-600 truncate {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        class="w-full text-xs py-2.5 px-3 bg-white border border-[#DDD2BE] text-stone-800 font-bold rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1C5A2C] truncate shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     <option value="">{{ $activeLocale === 'en' ? '🌾 All Crops' : '🌾 ಎಲ್ಲಾ ಬೆಳೆಗಳು' }}</option>
                     @foreach($crops as $c)
                         <option value="{{ $c->id }}" {{ (string)$cropId === (string)$c->id ? 'selected' : '' }}>
@@ -110,7 +123,7 @@
             <div class="col-span-1 sm:col-span-3">
                 <select name="growth_stage" 
                         onchange="this.form.submit()"
-                        class="w-full text-xs py-2 px-2.5 bg-amber-50/60 border border-amber-200 text-amber-950 font-bold rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500 truncate {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        class="w-full text-xs py-2.5 px-3 bg-[#FFFDF7] border border-[#ECD7A9] text-[#78350F] font-bold rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500 truncate shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     <option value="">{{ $activeLocale === 'en' ? '🌱 All Stages' : '🌱 ಎಲ್ಲಾ ಹಂತಗಳು' }}</option>
                     @foreach($growthStages as $stageKey => $stageData)
                         <option value="{{ $stageKey }}" {{ $growthStage === $stageKey ? 'selected' : '' }}>
@@ -122,16 +135,16 @@
         </form>
 
         <!-- Category Horizontal Segmented Scroll Pills -->
-        <div class="pt-1.5 border-t border-stone-100 flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar -mx-1 px-1">
+        <div class="pt-2 border-t border-[#E8DFC9] flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar -mx-1 px-1">
             <a href="{{ route('farmer.videos.index', array_filter(['crop_id' => $cropId, 'growth_stage' => $growthStage, 'search' => $search])) }}" 
-               class="px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition text-xs leading-none inline-flex items-center gap-1 shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ empty($category) ? 'bg-emerald-700 text-white shadow-xs' : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900' }}">
+               class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition text-xs leading-none inline-flex items-center gap-1 shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ empty($category) ? 'bg-[#1C5A2C] text-white shadow-xs font-black' : 'bg-white text-stone-700 hover:bg-[#F3ECE1] border border-[#DDD2BE] shadow-2xs' }}">
                 <span>🎬</span>
                 <span>{{ $activeLocale === 'en' ? 'All' : 'ಎಲ್ಲಾ' }}</span>
             </a>
 
             @foreach($categories as $catKey => $catData)
                 <a href="{{ route('farmer.videos.index', array_filter(['category' => $catKey, 'crop_id' => $cropId, 'growth_stage' => $growthStage, 'search' => $search])) }}" 
-                   class="px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition inline-flex items-center gap-1 text-xs leading-none shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ $category === $catKey ? 'bg-emerald-700 text-white shadow-xs font-black' : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900' }}">
+                   class="px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition inline-flex items-center gap-1 text-xs leading-none shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} {{ $category === $catKey ? 'bg-[#1C5A2C] text-white shadow-xs font-black' : 'bg-white text-stone-700 hover:bg-[#F3ECE1] border border-[#DDD2BE] shadow-2xs' }}">
                     <span class="text-xs leading-none">{{ $catData['icon'] }}</span>
                     <span>{{ $activeLocale === 'en' ? ($catData['name_en'] ?? ucfirst($catKey)) : ($catData['name_kn'] ?? ($catData['name_en'] ?? ucfirst($catKey))) }}</span>
                 </a>
@@ -140,27 +153,27 @@
 
         <!-- Active Filter Indicator & Reset -->
         @if($hasActiveFilters)
-            <div class="pt-1.5 border-t border-stone-100 flex items-center justify-between text-xs flex-wrap gap-1.5">
+            <div class="pt-2 border-t border-[#E8DFC9] flex items-center justify-between text-xs flex-wrap gap-1.5">
                 <div class="flex items-center gap-1 text-stone-500 text-[11px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     <span class="font-bold">{{ $activeLocale === 'en' ? 'Filtered:' : 'ಫಿಲ್ಟರ್:' }}</span>
                     @if($search)
-                        <span class="px-2 py-0.5 rounded bg-stone-100 text-stone-800 font-semibold">"{{ $search }}"</span>
+                        <span class="px-2 py-0.5 rounded bg-white border border-[#DDD2BE] text-stone-800 font-semibold shadow-2xs">"{{ $search }}"</span>
                     @endif
                     @if($cropId)
                         @php $activeCrop = $crops->firstWhere('id', $cropId); @endphp
                         @if($activeCrop)
-                            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+                            <span class="px-2 py-0.5 rounded bg-[#EAF4EC] border border-[#CDE3D0] text-[#1C5A2C] font-bold">
                                 🌾 {{ $activeLocale === 'en' ? $activeCrop->name : ($activeCrop->name_kn ?: $activeCrop->name) }}
                             </span>
                         @endif
                     @endif
                     @if($category && isset($categories[$category]))
-                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+                        <span class="px-2 py-0.5 rounded bg-[#EAF4EC] border border-[#CDE3D0] text-[#1C5A2C] font-bold">
                             {{ $categories[$category]['icon'] }} {{ $activeLocale === 'en' ? $categories[$category]['name_en'] : $categories[$category]['name_kn'] }}
                         </span>
                     @endif
                     @if($growthStage && isset($growthStages[$growthStage]))
-                        <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold">
+                        <span class="px-2 py-0.5 rounded bg-[#FFFDF7] border border-[#ECD7A9] text-[#78350F] font-bold">
                             {{ $growthStages[$growthStage]['icon'] }} {{ $activeLocale === 'en' ? $growthStages[$growthStage]['name_en'] : $growthStages[$growthStage]['name_kn'] }}
                         </span>
                     @endif
@@ -175,17 +188,18 @@
     </div>
 
     <!-- ======================================================== -->
-    <!-- 3. FEATURED VIDEO SHOWCASE (Tight & Responsive)          -->
+    <!-- 3. FEATURED VIDEO SHOWCASE (Warm & Prestigious Spotlight) -->
     <!-- ======================================================== -->
     @if(isset($featuredVideo) && $featuredVideo)
-        <div class="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white border-2 border-emerald-600/20 shadow-md hover:shadow-lg transition-all p-3.5 sm:p-5 group">
-            <!-- Subtle decorative background warmth -->
-            <div class="absolute -right-16 -top-16 w-64 h-64 bg-gradient-to-br from-emerald-50 to-amber-50 rounded-full blur-2xl pointer-events-none opacity-60"></div>
+        <div class="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#FAF8F5] via-white to-[#F2F7F2] border-2 border-[#D9CEB8] shadow-md hover:shadow-xl transition-all duration-300 p-4 sm:p-6 group">
+            <!-- Ambient Warm Glows -->
+            <div class="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -left-12 -bottom-12 w-64 h-64 bg-amber-400/10 rounded-full blur-2xl pointer-events-none"></div>
 
-            <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-6 items-center">
+            <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-center">
                 
                 <!-- Left Column: Video Thumbnail with Play Badge -->
-                <div class="lg:col-span-5 relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer shadow-md bg-stone-900 border border-stone-200 group/thumb shrink-0"
+                <div class="lg:col-span-5 relative aspect-video rounded-2xl overflow-hidden cursor-pointer shadow-lg bg-stone-900 border-2 border-[#DDD2BE] group/thumb shrink-0"
                      @click="openVideo('{{ $featuredVideo->youtube_video_id }}', '{{ addslashes($featuredVideo->title_kn ?: $featuredVideo->title) }}', '{{ addslashes($featuredVideo->channel_name) }}')">
                     <img src="{{ $featuredVideo->thumbnail_url }}" 
                          alt="{{ $featuredVideo->title }}" 
@@ -196,85 +210,87 @@
 
                     <!-- Centered Play Button -->
                     <div class="absolute inset-0 bg-black/10 group-hover/thumb:bg-black/0 transition flex items-center justify-center">
-                        <div class="w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-red-600 text-white flex items-center justify-center shadow-2xl transform group-hover/thumb:scale-115 transition duration-300 ring-4 ring-white/50">
+                        <div class="w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-red-600 text-white flex items-center justify-center shadow-2xl transform group-hover/thumb:scale-115 transition duration-300 ring-4 ring-white/60">
                             <svg class="w-6 sm:w-8 h-6 sm:h-8 ml-0.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         </div>
                     </div>
 
                     <!-- Duration Pill -->
                     @if($featuredVideo->duration_text)
-                        <span class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-black/85 text-white text-[10px] sm:text-[11px] font-bold font-mono tracking-wider shadow-sm">
+                        <span class="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/85 text-white text-[10px] sm:text-[11px] font-bold font-mono tracking-wider shadow-sm">
                             {{ $featuredVideo->duration_text }}
                         </span>
                     @endif
 
                     <!-- Kannada Audio Pill -->
                     @if($featuredVideo->language === 'kn')
-                        <span class="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-emerald-800 text-white text-[9px] sm:text-[10px] font-bold shadow-sm border border-emerald-600">
+                        <span class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-[#1C5A2C] text-white text-[9px] sm:text-[10px] font-bold shadow-sm border border-emerald-400">
                             ಕನ್ನಡ ಆಡಿಯೋ
                         </span>
                     @endif
                 </div>
 
                 <!-- Right Column: Info & Action -->
-                <div class="lg:col-span-7 flex flex-col justify-between space-y-2.5 sm:space-y-3.5">
+                <div class="lg:col-span-7 flex flex-col justify-between space-y-3 sm:space-y-4">
                     
                     <!-- Top Badges Row -->
                     <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-300/80 text-[10px] sm:text-xs font-black tracking-wide leading-none uppercase shadow-xs">
+                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-300 text-stone-950 text-[10px] sm:text-xs font-black tracking-wide leading-none uppercase shadow-xs">
                             ★ {{ $activeLocale === 'en' ? "Today's Spotlight" : 'ಇಂದಿನ ವಿಶೇಷ ಶಿಫಾರಸು' }}
                         </span>
                         @if($featuredVideo->crop)
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] sm:text-xs font-bold leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full bg-[#EAF4EC] text-[#1C5A2C] border border-[#CDE3D0] text-[10px] sm:text-xs font-bold leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                                 🌾 {{ $activeLocale === 'en' ? $featuredVideo->crop->name : ($featuredVideo->crop->name_kn ?: $featuredVideo->crop->name) }}
                             </span>
                         @endif
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-stone-100 text-stone-700 border border-stone-200 text-[10px] sm:text-xs font-bold leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full bg-white text-stone-700 border border-[#DDD2BE] text-[10px] sm:text-xs font-bold leading-none shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                             {{ $featuredVideo->getGrowthStageName($activeLocale) }}
                         </span>
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-stone-100 text-stone-600 text-[10px] sm:text-xs font-medium leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full bg-white text-stone-600 border border-[#DDD2BE] text-[10px] sm:text-xs font-medium leading-none shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                             {{ $featuredVideo->getCategoryName($activeLocale) }}
                         </span>
                     </div>
 
                     <!-- Title & Subtitle -->
-                    <div>
-                        <h2 class="text-base sm:text-xl font-black text-stone-900 hover:text-emerald-700 transition leading-snug cursor-pointer line-clamp-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}"
+                    <div class="space-y-1">
+                        <h2 class="text-base sm:text-2xl font-black text-stone-900 group-hover:text-[#1C5A2C] transition leading-snug cursor-pointer line-clamp-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}"
                             @click="openVideo('{{ $featuredVideo->youtube_video_id }}', '{{ addslashes($featuredVideo->title_kn ?: $featuredVideo->title) }}', '{{ addslashes($featuredVideo->channel_name) }}')">
                             {{ $activeLocale === 'en' ? ($featuredVideo->title ?: $featuredVideo->title_kn) : ($featuredVideo->title_kn ?: $featuredVideo->title) }}
                         </h2>
 
                         @if($activeLocale === 'kn' && $featuredVideo->title_kn && $featuredVideo->title)
-                            <p class="text-xs text-stone-500 font-sans mt-1 line-clamp-1">
+                            <p class="text-xs sm:text-sm text-stone-500 font-sans line-clamp-1">
                                 {{ $featuredVideo->title }}
                             </p>
                         @elseif($activeLocale === 'en' && $featuredVideo->title_kn)
-                            <p class="text-xs text-stone-500 font-kannada mt-1 line-clamp-1">
+                            <p class="text-xs sm:text-sm text-stone-500 font-kannada line-clamp-1">
                                 {{ $featuredVideo->title_kn }}
                             </p>
                         @endif
                     </div>
 
-                    <!-- Footer: Channel & Watch Button -->
-                    <div class="pt-3 border-t border-stone-100 flex items-center justify-between gap-3 flex-wrap">
-                        <div class="flex items-center gap-2 text-xs text-stone-600 truncate">
-                            <span class="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-[10px] shrink-0">
-                                ▶
-                            </span>
-                            <div class="truncate">
-                                <span class="text-stone-400 text-[10px] block leading-none">{{ $activeLocale === 'en' ? 'Channel / Creator' : 'ಮೂಲ ಚಾನೆಲ್' }}</span>
-                                <span class="font-extrabold text-stone-800 text-xs mt-0.5 block truncate max-w-[150px] sm:max-w-xs">
-                                    {{ $featuredVideo->channel_name ?: 'Krushi Guide' }}
+                    <!-- Footer: Channel & Watch Button Dock -->
+                    <div class="pt-2">
+                        <div class="p-3 sm:p-3.5 rounded-2xl bg-white/90 border border-[#DDD2BE] flex items-center justify-between gap-3 shadow-2xs flex-wrap sm:flex-nowrap">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                                    ▶
                                 </span>
+                                <div class="truncate">
+                                    <span class="text-stone-400 text-[10px] uppercase font-bold block leading-none">{{ $activeLocale === 'en' ? 'Verified Channel' : 'ದೃಢೀಕೃತ ಚಾನೆಲ್' }}</span>
+                                    <span class="font-extrabold text-stone-800 text-xs sm:text-sm mt-0.5 block truncate">
+                                        {{ $featuredVideo->channel_name ?: 'Krushi Guide' }}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
 
-                        <button type="button" 
-                                @click="openVideo('{{ $featuredVideo->youtube_video_id }}', '{{ addslashes($featuredVideo->title_kn ?: $featuredVideo->title) }}', '{{ addslashes($featuredVideo->channel_name) }}')"
-                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                            <span>{{ $activeLocale === 'en' ? 'Watch Full Video' : 'ವಿಡಿಯೋ ವೀಕ್ಷಿಸಿ' }}</span>
-                        </button>
+                            <button type="button" 
+                                    @click="openVideo('{{ $featuredVideo->youtube_video_id }}', '{{ addslashes($featuredVideo->title_kn ?: $featuredVideo->title) }}', '{{ addslashes($featuredVideo->channel_name) }}')"
+                                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#1C5A2C] hover:bg-[#144223] text-white text-xs sm:text-sm font-black shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer shrink-0 group/btn {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                <svg class="w-4 h-4 fill-amber-300" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                <span>{{ $activeLocale === 'en' ? 'Watch Full Video' : 'ವಿಡಿಯೋ ವೀಕ್ಷಿಸಿ' }}</span>
+                            </button>
+                        </div>
                     </div>
 
                 </div>

@@ -1096,142 +1096,7 @@
     </div>
     @endif
 
-    <!-- 6. Mandi / Board Rates Comparison List (Ranked Highest to Lowest) -->
-    <div class="space-y-3 sm:space-y-4" x-data="{ showAllMandis: false }">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-                <span class="w-1.5 h-8 sm:h-9 rounded-full {{ $boardMeta ? ($boardMeta['theme'] === 'coffee' ? 'bg-amber-800' : 'bg-emerald-700') : 'bg-[#1C5A2C]' }} shrink-0 mt-0.5"></span>
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h2 class="text-xl sm:text-2xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            @if($boardMeta)
-                                {{ $activeLocale === 'en' ? $boardMeta['rates_heading_en'] : $boardMeta['rates_heading_kn'] }}
-                            @else
-                                {{ $activeLocale === 'en' ? 'Where to Sell Today? — Mandi Rates' : 'ಇಂದು ಎಲ್ಲಿ ಮಾರಬೇಕು? — ಮಂಡಿ ದರಗಳು' }}
-                            @endif
-                        </h2>
-                    </div>
-                    <div class="flex items-center gap-2 text-xs text-stone-500 font-medium mt-0.5 flex-wrap {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        @if($boardMeta)
-                            <span>{{ $boardMeta['authority'] }} {{ $activeLocale === 'en' ? 'Official Centres Near You' : 'ನಿಮ್ಮ ಹತ್ತಿರದ ಅಧಿಕೃತ ಕೇಂದ್ರಗಳ ದರ ಹೋಲಿಕೆ' }}</span>
-                        @else
-                            <span>{{ $activeLocale === 'en' ? 'Ranked by highest modal price near your location' : 'ನಿಮ್ಮ ಸಮೀಪದ ಮಾರುಕಟ್ಟೆಗಳಲ್ಲಿ ಇಂದಿನ ಗರಿಷ್ಠ ದರಗಳ ಆಧಾರದಲ್ಲಿ' }}</span>
-                            @if(isset($displayMarketName))
-                                <span class="text-stone-300">•</span>
-                                <span class="inline-flex items-center gap-1 font-bold text-stone-700 bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#D9CEB8] text-[11px]">
-                                    📍 {{ $activeLocale === 'en' ? 'Currently: ' : 'ಪ್ರಸ್ತುತ: ' }}{{ $displayMarketName }}
-                                </span>
-                            @endif
-                        @endif
-                    </div>
-                </div>
-            </div>
-            <span class="inline-flex items-center justify-center leading-none text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1.5 rounded-full border border-stone-200 shadow-2xs shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'Date: ' : 'ದಿನಾಂಕ: ' }}{{ $stats['date_formatted'] }}</span>
-            </span>
-        </div>
-
-        @php
-            $mandiGroups = $mandiGroups ?? ($mandiPrices->isNotEmpty() ? $mandiPrices->groupBy('market_id')->map(function ($prices) {
-                $bestRecord = $prices->sortByDesc('modal_price')->first();
-                return (object) [
-                    'market' => $bestRecord->market,
-                    'best_item' => $bestRecord,
-                    'best_modal' => (float) $bestRecord->modal_price,
-                    'total_arrivals' => (float) $prices->sum('arrival_quantity'),
-                    'arrival_unit' => $bestRecord->arrival_unit ?? 'Qtl',
-                    'unit' => $bestRecord->unit ?? 'Quintal',
-                    'price_date' => $bestRecord->price_date,
-                    'dataSource' => $bestRecord->dataSource,
-                    'varieties' => $prices->sortByDesc('modal_price')->values(),
-                    'variety_count' => $prices->count(),
-                    'distance_km' => $bestRecord->market->distance_km ?? 9999,
-                    'is_same_district' => $bestRecord->market->is_same_district ?? false,
-                ];
-            })->sortByDesc('best_modal')->values() : collect());
-
-            $nearestTwoGroups = $nearestTwoGroups ?? $mandiGroups->take(2);
-            $allOtherMandiGroups = $allOtherMandiGroups ?? $mandiGroups->slice(2);
-        @endphp
-
-        @if($mandiGroups->isEmpty())
-            <div class="bg-white rounded-3xl p-8 text-center border border-[#E8DFC8] shadow-2xs space-y-2">
-                <div class="text-3xl">{{ $boardMeta ? $boardMeta['icon'] : '🌾' }}</div>
-                <div class="font-extrabold text-stone-800 text-base font-kannada">
-                    {{ $activeLocale === 'en' ? 'No mandi prices available for today' : 'ಈ ಬೆಳೆಗೆ ಇಂದಿನ ದರಗಳು ಲಭ್ಯವಿಲ್ಲ' }}
-                </div>
-                <p class="text-xs text-stone-500 font-kannada">
-                    @if($boardMeta)
-                        {{ $activeLocale === 'en' ? 'Rates not yet published by official centres.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ' . $boardMeta['badge_kn'] . ' ಅಧಿಕೃತ ಕೇಂದ್ರಗಳಿಂದ ದರ ಮಾಹಿತಿ ಪ್ರಕಟವಾಗಿಲ್ಲ.' }}
-                    @else
-                        {{ $activeLocale === 'en' ? 'No mandi market has reported prices for this date.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ಯಾವುದೇ ಮಾರುಕಟ್ಟೆಯಿಂದ ದರ ಮಾಹಿತಿ ಬಂದಿಲ್ಲ.' }}
-                    @endif
-                </p>
-                <div class="pt-2">
-                    <a href="{{ route('farmer.crops.index') }}" class="px-4 py-2 text-xs font-bold text-white bg-[#1C5A2C] rounded-xl hover:bg-[#154622] transition font-sans">
-                        {{ $activeLocale === 'en' ? 'View Other Crops' : 'ಇತರ ಬೆಳೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ' }}
-                    </a>
-                </div>
-            </div>
-        @else
-            <!-- 2 Mandis Near to Current User Location (Ranked by Best Price) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                @foreach($nearestTwoGroups as $index => $group)
-                    @include('farmer.crops.partials.mandi-card', [
-                        'group' => $group,
-                        'rank' => $index + 1,
-                        'isTopNearest' => ($index === 0),
-                        'isNearestCard' => true,
-                        'crop' => $crop,
-                        'boardMeta' => $boardMeta,
-                        'activeLocale' => $activeLocale,
-                    ])
-                @endforeach
-            </div>
-
-            <!-- Optional View All Other Mandis in Karnataka -->
-            @if($allOtherMandiGroups->isNotEmpty())
-                <div class="pt-2 text-center">
-                    <button type="button" 
-                            @click="showAllMandis = !showAllMandis"
-                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white border border-[#E8DFC8] text-stone-800 hover:text-emerald-900 font-bold text-xs shadow-2xs hover:bg-stone-50 transition active:scale-95 cursor-pointer font-sans">
-                        <span x-text="showAllMandis ? '▲' : '▼'"></span>
-                        <span x-text="showAllMandis 
-                            ? '{{ $activeLocale === 'en' ? 'Show 2 Nearest Mandis Only' : 'ಕೇವಲ ಹತ್ತಿರದ 2 ಮಂಡಿಗಳನ್ನು ತೋರಿಸಿ' }}' 
-                            : '{{ $activeLocale === 'en' ? 'View All Other ' . $allOtherMandiGroups->count() . ' Mandis in Karnataka' : 'ಕರ್ನಾಟಕದ ಉಳಿದ ' . $allOtherMandiGroups->count() . ' ಮಂಡಿಗಳನ್ನು ವೀಕ್ಷಿಸಿ' }}'">
-                        </span>
-                    </button>
-
-                    <div x-show="showAllMandis" 
-                         x-cloak
-                         x-transition:enter="transition ease-out duration-300"
-                         x-transition:enter-start="opacity-0 transform -translate-y-2"
-                         x-transition:enter-end="opacity-100 transform translate-y-0"
-                         class="space-y-3 pt-4 mt-4 border-t border-dashed border-stone-200 text-left">
-                        <div class="flex items-center justify-between text-xs font-bold text-stone-500 font-sans px-1">
-                            <span>🏛️ {{ $activeLocale === 'en' ? 'All Other Karnataka Mandis (Ranked by Best Price):' : 'ಕರ್ನಾಟಕದ ಇತರ ಎಲ್ಲಾ ಮಂಡಿಗಳು (ಅತ್ಯಧಿಕ ದರದಿಂದ ಇಳಿಕೆ ಕ್ರಮದಲ್ಲಿ):' }}</span>
-                            <span class="text-stone-400 text-[11px]">{{ $allOtherMandiGroups->count() }} {{ $activeLocale === 'en' ? 'Mandis' : 'ಮಂಡಿಗಳು' }}</span>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                            @foreach($allOtherMandiGroups as $otherIndex => $group)
-                                @include('farmer.crops.partials.mandi-card', [
-                                    'group' => $group,
-                                    'rank' => $otherIndex + 3,
-                                    'isTopNearest' => false,
-                                    'isNearestCard' => false,
-                                    'crop' => $crop,
-                                    'boardMeta' => $boardMeta,
-                                    'activeLocale' => $activeLocale,
-                                ])
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            @endif
-        @endif
-    </div>
-
-    <!-- 7. Historical Analytics & Interactive Price Trends -->
+    <!-- 6. Historical Analytics & Interactive Price Trends -->
     @php
         $sumArrivals = !empty($dailyTrends['arrivals']) ? array_sum(array_filter($dailyTrends['arrivals'], fn($v) => is_numeric($v) && $v > 0)) : 0;
         $trendDir = $statisticalSummary['trend_direction'] ?? 'stable';
@@ -1778,6 +1643,141 @@
     </div>
 
 
+
+    <!-- 7. Mandi / Board Rates Comparison List (Ranked Highest to Lowest) -->
+    <div class="space-y-3 sm:space-y-4" x-data="{ showAllMandis: false }">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <span class="w-1.5 h-8 sm:h-9 rounded-full {{ $boardMeta ? ($boardMeta['theme'] === 'coffee' ? 'bg-amber-800' : 'bg-emerald-700') : 'bg-[#1C5A2C]' }} shrink-0 mt-0.5"></span>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h2 class="text-xl sm:text-2xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            @if($boardMeta)
+                                {{ $activeLocale === 'en' ? $boardMeta['rates_heading_en'] : $boardMeta['rates_heading_kn'] }}
+                            @else
+                                {{ $activeLocale === 'en' ? 'Where to Sell Today? — Mandi Rates' : 'ಇಂದು ಎಲ್ಲಿ ಮಾರಬೇಕು? — ಮಂಡಿ ದರಗಳು' }}
+                            @endif
+                        </h2>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-stone-500 font-medium mt-0.5 flex-wrap {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        @if($boardMeta)
+                            <span>{{ $boardMeta['authority'] }} {{ $activeLocale === 'en' ? 'Official Centres Near You' : 'ನಿಮ್ಮ ಹತ್ತಿರದ ಅಧಿಕೃತ ಕೇಂದ್ರಗಳ ದರ ಹೋಲಿಕೆ' }}</span>
+                        @else
+                            <span>{{ $activeLocale === 'en' ? 'Ranked by highest modal price near your location' : 'ನಿಮ್ಮ ಸಮೀಪದ ಮಾರುಕಟ್ಟೆಗಳಲ್ಲಿ ಇಂದಿನ ಗರಿಷ್ಠ ದರಗಳ ಆಧಾರದಲ್ಲಿ' }}</span>
+                            @if(isset($displayMarketName))
+                                <span class="text-stone-300">•</span>
+                                <span class="inline-flex items-center gap-1 font-bold text-stone-700 bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#D9CEB8] text-[11px]">
+                                    📍 {{ $activeLocale === 'en' ? 'Currently: ' : 'ಪ್ರಸ್ತುತ: ' }}{{ $displayMarketName }}
+                                </span>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <span class="inline-flex items-center justify-center leading-none text-xs font-bold text-stone-700 bg-[#FAF8F5] px-3.5 py-1.5 rounded-full border border-[#DDD2BE] shadow-2xs shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <span class="inline-flex items-center leading-none">📅 {{ $activeLocale === 'en' ? 'Date: ' : 'ದಿನಾಂಕ: ' }}{{ $stats['date_formatted'] }}</span>
+            </span>
+        </div>
+
+        @php
+            $mandiGroups = $mandiGroups ?? ($mandiPrices->isNotEmpty() ? $mandiPrices->groupBy('market_id')->map(function ($prices) {
+                $bestRecord = $prices->sortByDesc('modal_price')->first();
+                return (object) [
+                    'market' => $bestRecord->market,
+                    'best_item' => $bestRecord,
+                    'best_modal' => (float) $bestRecord->modal_price,
+                    'total_arrivals' => (float) $prices->sum('arrival_quantity'),
+                    'arrival_unit' => $bestRecord->arrival_unit ?? 'Qtl',
+                    'unit' => $bestRecord->unit ?? 'Quintal',
+                    'price_date' => $bestRecord->price_date,
+                    'dataSource' => $bestRecord->dataSource,
+                    'varieties' => $prices->sortByDesc('modal_price')->values(),
+                    'variety_count' => $prices->count(),
+                    'distance_km' => $bestRecord->market->distance_km ?? 9999,
+                    'is_same_district' => $bestRecord->market->is_same_district ?? false,
+                ];
+            })->sortByDesc('best_modal')->values() : collect());
+
+            $nearestTwoGroups = $nearestTwoGroups ?? $mandiGroups->take(2);
+            $allOtherMandiGroups = $allOtherMandiGroups ?? $mandiGroups->slice(2);
+        @endphp
+
+        @if($mandiGroups->isEmpty())
+            <div class="bg-gradient-to-br from-[#FAF8F5] to-white rounded-3xl p-8 text-center border-2 border-[#DDD2BE] shadow-xs space-y-2">
+                <div class="text-3xl">{{ $boardMeta ? $boardMeta['icon'] : '🌾' }}</div>
+                <div class="font-extrabold text-stone-800 text-base font-kannada">
+                    {{ $activeLocale === 'en' ? 'No mandi prices available for today' : 'ಈ ಬೆಳೆಗೆ ಇಂದಿನ ದರಗಳು ಲಭ್ಯವಿಲ್ಲ' }}
+                </div>
+                <p class="text-xs text-stone-500 font-kannada">
+                    @if($boardMeta)
+                        {{ $activeLocale === 'en' ? 'Rates not yet published by official centres.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ' . $boardMeta['badge_kn'] . ' ಅಧಿಕೃತ ಕೇಂದ್ರಗಳಿಂದ ದರ ಮಾಹಿತಿ ಪ್ರಕಟವಾಗಿಲ್ಲ.' }}
+                    @else
+                        {{ $activeLocale === 'en' ? 'No mandi market has reported prices for this date.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ಯಾವುದೇ ಮಾರುಕಟ್ಟೆಯಿಂದ ದರ ಮಾಹಿತಿ ಬಂದಿಲ್ಲ.' }}
+                    @endif
+                </p>
+                <div class="pt-2">
+                    <a href="{{ route('farmer.crops.index') }}" class="px-4 py-2 text-xs font-bold text-white bg-[#1C5A2C] rounded-xl hover:bg-[#154622] transition font-sans shadow-xs">
+                        {{ $activeLocale === 'en' ? 'View Other Crops' : 'ಇತರ ಬೆಳೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ' }}
+                    </a>
+                </div>
+            </div>
+        @else
+            <!-- 2 Mandis Near to Current User Location (Ranked by Best Price) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                @foreach($nearestTwoGroups as $index => $group)
+                    @include('farmer.crops.partials.mandi-card', [
+                        'group' => $group,
+                        'rank' => $index + 1,
+                        'isTopNearest' => ($index === 0),
+                        'isNearestCard' => true,
+                        'crop' => $crop,
+                        'boardMeta' => $boardMeta,
+                        'activeLocale' => $activeLocale,
+                    ])
+                @endforeach
+            </div>
+
+            <!-- Optional View All Other Mandis in Karnataka -->
+            @if($allOtherMandiGroups->isNotEmpty())
+                <div class="pt-2 text-center">
+                    <button type="button" 
+                            @click="showAllMandis = !showAllMandis"
+                            class="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-2xl bg-[#FAF8F5] hover:bg-white border-2 border-[#DDD2BE] hover:border-[#1C5A2C] text-[#1C5A2C] hover:text-[#144223] font-extrabold text-xs shadow-xs transition active:scale-95 cursor-pointer font-sans">
+                        <span x-text="showAllMandis ? '▲' : '▼'"></span>
+                        <span x-text="showAllMandis 
+                            ? '{{ $activeLocale === 'en' ? 'Show 2 Nearest Mandis Only' : 'ಕೇವಲ ಹತ್ತಿರದ 2 ಮಂಡಿಗಳನ್ನು ತೋರಿಸಿ' }}' 
+                            : '{{ $activeLocale === 'en' ? 'View All Other ' . $allOtherMandiGroups->count() . ' Mandis in Karnataka' : 'ಕರ್ನಾಟಕದ ಉಳಿದ ' . $allOtherMandiGroups->count() . ' ಮಂಡಿಗಳನ್ನು ವೀಕ್ಷಿಸಿ' }}'">
+                        </span>
+                    </button>
+
+                    <div x-show="showAllMandis" 
+                         x-cloak
+                         x-transition:enter="transition ease-out duration-300"
+                         x-transition:enter-start="opacity-0 transform -translate-y-2"
+                         x-transition:enter-end="opacity-100 transform translate-y-0"
+                         class="space-y-3 pt-4 mt-4 border-t border-dashed border-stone-200 text-left">
+                        <div class="flex items-center justify-between text-xs font-bold text-stone-500 font-sans px-1">
+                            <span>🏛️ {{ $activeLocale === 'en' ? 'All Other Karnataka Mandis (Ranked by Best Price):' : 'ಕರ್ನಾಟಕದ ಇತರ ಎಲ್ಲಾ ಮಂಡಿಗಳು (ಅತ್ಯಧಿಕ ದರದಿಂದ ಇಳಿಕೆ ಕ್ರಮದಲ್ಲಿ):' }}</span>
+                            <span class="text-stone-400 text-[11px]">{{ $allOtherMandiGroups->count() }} {{ $activeLocale === 'en' ? 'Mandis' : 'ಮಂಡಿಗಳು' }}</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                            @foreach($allOtherMandiGroups as $otherIndex => $group)
+                                @include('farmer.crops.partials.mandi-card', [
+                                    'group' => $group,
+                                    'rank' => $otherIndex + 3,
+                                    'isTopNearest' => false,
+                                    'isNearestCard' => false,
+                                    'crop' => $crop,
+                                    'boardMeta' => $boardMeta,
+                                    'activeLocale' => $activeLocale,
+                                ])
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
+        @endif
+    </div>
 
     <!-- 8. Agri Videos, Articles & Government Schemes -->
     @if($cropVideos->isNotEmpty() || $cropArticles->isNotEmpty())

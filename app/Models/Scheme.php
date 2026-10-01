@@ -27,10 +27,13 @@ class Scheme extends Model
         'icon_emoji',
         'display_order',
         'is_active',
+        'is_featured',
+        'banner_tag',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_featured' => 'boolean',
         'display_order' => 'integer',
     ];
 
@@ -58,6 +61,11 @@ class Scheme extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeFeatured(Builder $query): Builder
+    {
+        return $query->where('is_featured', true);
     }
 
     public function scopeCategory(Builder $query, string $category): Builder
