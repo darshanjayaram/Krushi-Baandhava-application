@@ -14,18 +14,18 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-2">
-            <a href="{{ route('admin.datasources.index') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <a href="{{ route('admin.datasources.index') }}" class="flex-1 sm:flex-none text-center px-4 py-2.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition">
                 Data Sources & APIs
             </a>
-            <a href="{{ route('admin.markets.index') }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition">
+            <a href="{{ route('admin.markets.index') }}" class="flex-1 sm:flex-none text-center px-4 py-2.5 sm:py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition">
                 View Mandis
             </a>
         </div>
     </div>
 
     <!-- Quick Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Districts</div>
             <div class="text-2xl font-black text-emerald-400">{{ $districtsCount }}</div>

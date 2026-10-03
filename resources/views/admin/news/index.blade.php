@@ -10,7 +10,7 @@
         </div>
 
         <a href="{{ route('admin.news.create') }}" 
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer">
+           class="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
             </svg>
@@ -49,6 +49,13 @@
 
     <!-- News Table -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        <!-- Mobile Table Swipe Cue -->
+        <div class="sm:hidden px-4 py-2 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-1.5 font-medium">
+                <span>👉</span> Scroll horizontally for status & actions
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">Swipe ↔</span>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-300">
                 <thead class="bg-slate-950/80 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">

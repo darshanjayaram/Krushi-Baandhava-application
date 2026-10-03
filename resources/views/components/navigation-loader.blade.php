@@ -36,6 +36,19 @@
         transform: scale(1);
     }
 
+    /* Enforce strict font-family rules inside global navigation loader */
+    #globalNavigationLoader,
+    #globalNavigationLoader .font-sans,
+    #globalNavigationLoader .is-en {
+        font-family: 'Plus Jakarta Sans', 'Manrope', system-ui, -apple-system, sans-serif !important;
+    }
+
+    #globalNavigationLoader .font-kannada,
+    #globalNavigationLoader .is-kn,
+    #globalNavigationLoader [lang="kn"] {
+        font-family: 'Noto Sans Kannada', 'Manrope', sans-serif !important;
+    }
+
     @keyframes kbBarIndeterminate {
         0% {
             left: -35%;
@@ -89,10 +102,14 @@
 </style>
 
 @php
+    $activeLocale = app()->getLocale();
+    $isEn = ($activeLocale === 'en');
     $appLogo = \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg');
     $logoVersion = file_exists(public_path(ltrim($appLogo, '/'))) ? filemtime(public_path(ltrim($appLogo, '/'))) : '1';
     $appLogoUrl = asset($appLogo) . '?v=' . $logoVersion;
     $appName = \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava');
+    $defaultTitle = $isEn ? 'Loading Page...' : 'ಪುಟ ಲೋಡ್ ಆಗುತ್ತಿದೆ...';
+    $defaultSubtitle = $isEn ? 'Loading latest market data...' : 'ಮಾರುಕಟ್ಟೆಯ ಇತ್ತೀಚಿನ ಮಾಹಿತಿ ಪಡೆಯಲಾಗುತ್ತಿದೆ...';
 @endphp
 
 <!-- Full-Screen Glassmorphic Navigation Loading Window -->
@@ -114,13 +131,17 @@
             </div>
         </div>
 
-        <!-- Bilingual Loading Typography -->
+        <!-- Localized Loading Typography -->
         <div class="space-y-0.5">
-            <h4 class="text-sm font-black text-[#1C5A2C] font-kannada tracking-wide">
-                ಪುಟ ಲೋಡ್ ಆಗುತ್ತಿದೆ...
+            <h4 id="globalLoaderTitle" 
+                class="kb-loader-title text-sm font-black text-[#1C5A2C] tracking-wide {{ $isEn ? 'font-sans is-en' : 'font-kannada is-kn' }}"
+                style="{{ $isEn ? 'font-family: \'Plus Jakarta Sans\', \'Manrope\', system-ui, sans-serif !important;' : 'font-family: \'Noto Sans Kannada\', \'Manrope\', sans-serif !important;' }}">
+                {{ $defaultTitle }}
             </h4>
-            <p class="text-[11px] text-stone-500 font-semibold tracking-tight">
-                Loading latest market data...
+            <p id="globalLoaderSubtitle" 
+               class="kb-loader-subtitle text-[11px] text-stone-500 font-semibold tracking-tight {{ $isEn ? 'font-sans is-en' : 'font-kannada is-kn' }}"
+               style="{{ $isEn ? 'font-family: \'Plus Jakarta Sans\', \'Manrope\', system-ui, sans-serif !important;' : 'font-family: \'Noto Sans Kannada\', \'Manrope\', sans-serif !important;' }}">
+                {{ $defaultSubtitle }}
             </p>
         </div>
 
@@ -138,14 +159,52 @@
     let safetyWatchdog = null;
     const ANTI_FLICKER_DELAY = 160; // ms threshold so instant/cached navigations don't flicker
 
+    const DEFAULT_TITLE = @js($defaultTitle);
+    const DEFAULT_SUBTITLE = @js($defaultSubtitle);
+    const IS_DEFAULT_KN = @js(!$isEn);
+
     function getLoader() {
         if (!loaderEl) loaderEl = document.getElementById('globalNavigationLoader');
         return loaderEl;
     }
 
-    function showLoader() {
+    function setLoaderContent(title, subtitle, isKn = null) {
+        const titleEl = document.getElementById('globalLoaderTitle');
+        const subEl = document.getElementById('globalLoaderSubtitle');
+        
+        const finalTitle = title || DEFAULT_TITLE;
+        const finalSub = subtitle || DEFAULT_SUBTITLE;
+        const kn = (isKn !== null) ? isKn : IS_DEFAULT_KN;
+
+        if (titleEl) {
+            titleEl.textContent = finalTitle;
+            if (kn) {
+                titleEl.className = 'kb-loader-title text-sm font-black text-[#1C5A2C] tracking-wide font-kannada is-kn';
+                titleEl.style.fontFamily = "'Noto Sans Kannada', 'Manrope', sans-serif";
+            } else {
+                titleEl.className = 'kb-loader-title text-sm font-black text-[#1C5A2C] tracking-wide font-sans is-en';
+                titleEl.style.fontFamily = "'Plus Jakarta Sans', 'Manrope', system-ui, sans-serif";
+            }
+        }
+
+        if (subEl) {
+            subEl.textContent = finalSub;
+            if (kn) {
+                subEl.className = 'kb-loader-subtitle text-[11px] text-stone-500 font-semibold tracking-tight font-kannada is-kn';
+                subEl.style.fontFamily = "'Noto Sans Kannada', 'Manrope', sans-serif";
+            } else {
+                subEl.className = 'kb-loader-subtitle text-[11px] text-stone-500 font-semibold tracking-tight font-sans is-en';
+                subEl.style.fontFamily = "'Plus Jakarta Sans', 'Manrope', system-ui, sans-serif";
+            }
+        }
+    }
+
+    function showLoader(customTitle = null, customSubtitle = null, isKn = null) {
         const el = getLoader();
         if (!el) return;
+
+        // Apply text content (localized or custom)
+        setLoaderContent(customTitle, customSubtitle, isKn);
 
         // Cancel any pending timer
         clearTimeout(delayTimer);
@@ -174,6 +233,7 @@
     // Expose global methods for custom AJAX or modal actions
     window.showPageLoader = showLoader;
     window.hidePageLoader = hideLoader;
+    window.setPageLoaderContent = setLoaderContent;
 
     // 1. Intercept internal link taps
     document.addEventListener('click', function(e) {
@@ -201,6 +261,18 @@
                 if (targetUrl.pathname === window.location.pathname && targetUrl.search === window.location.search) {
                     return;
                 }
+
+                // If user is clicking to switch to English
+                if (targetUrl.pathname.includes('/locale/en') || targetUrl.searchParams.get('lang') === 'en') {
+                    showLoader('Switching to English...', 'Loading application in English...', false);
+                    return;
+                }
+                // If user is clicking to switch to Kannada
+                if (targetUrl.pathname.includes('/locale/kn') || targetUrl.searchParams.get('lang') === 'kn') {
+                    showLoader('ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗುತ್ತಿದೆ...', 'ಕನ್ನಡದಲ್ಲಿ ಮಾಹಿತಿ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...', true);
+                    return;
+                }
+
                 showLoader();
             }
         } catch(err) {}

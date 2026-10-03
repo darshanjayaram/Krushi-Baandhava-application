@@ -20,8 +20,8 @@ Krushi Baandhava's **Report Issues & Feedback** module elevates this into an ind
 - **Mandi & Crop Smart Pre-filling:**
   - Contextual parameters passed from mandi profiles or crop detail pages (`/feedback?mode=issue&crop=Tomato&market=Kolar`) automatically select the right category and pre-fill crop/market fields.
 - **Farmer Assurance & Ticket Reference:**
-  - Immediate generation of human-readable reference number (e.g. `KB-2601`).
-  - Instant WhatsApp follow-up CTA connecting the farmer directly to our support desk with pre-composed Kannada/English text.
+  - Immediate generation of human-readable reference number (e.g. `KB-26-5246`).
+  - Ticket confirmation screen with clean acknowledgment. (Note: The direct WhatsApp follow-up button is currently hidden and ready to be re-activated once official support desk WhatsApp operations commence).
 - **Admin Helpdesk & Grievance CRM:**
   - Dedicated admin portal (`/admin/feedback`) to review, filter (New, In Review, Resolved, Rejected), listen to voice notes, preview photos/receipts in a lightbox, log internal resolution notes, and trigger direct WhatsApp/Phone replies.
 

@@ -80,9 +80,11 @@
                     <input type="email" 
                            id="email" 
                            name="email" 
-                           value="{{ old('email', 'admin@krushibaandhava.org') }}" 
+                           value="{{ old('email') }}" 
+                           placeholder="admin@example.com"
                            required 
                            autofocus
+                           autocomplete="email"
                            class="w-full px-3.5 py-2.5 bg-slate-950/70 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition">
                     @error('email')
                         <p class="text-rose-400 text-xs mt-1.5 font-medium">{{ $message }}</p>
@@ -96,8 +98,9 @@
                     <input type="password" 
                            id="password" 
                            name="password" 
-                           value="password123" 
+                           placeholder="••••••••"
                            required
+                           autocomplete="current-password"
                            class="w-full px-3.5 py-2.5 bg-slate-950/70 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition">
                     @error('password')
                         <p class="text-rose-400 text-xs mt-1.5 font-medium">{{ $message }}</p>

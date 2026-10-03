@@ -465,8 +465,12 @@
                             class="header-location-pill hidden lg:flex items-center gap-1.5 bg-[#FAF8F5] border border-[#DDD2BE] rounded-full px-3 py-1.5 text-xs font-bold text-stone-800 transition hover:bg-stone-100 active:scale-95 cursor-pointer shadow-2xs shrink-0"
                             title="{{ $activeLocale === 'en' ? 'Click to change location' : 'ಸ್ಥಳ ಬದಲಾಯಿಸಲು ಕ್ಲಿಕ್ ಮಾಡಿ' }}">
                         <span class="text-rose-500 text-xs">📍</span>
-                        <span class="max-w-[100px] truncate {{ $activeLocale === 'kn' ? 'font-kannada pt-0.5 leading-normal' : '' }}">
-                            {{ $activeLocale === 'en' ? ($activeDistrict->name ?? $activeDistrict->name_kn ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
+                        <span class="max-w-[130px] truncate {{ $activeLocale === 'kn' ? 'font-kannada pt-0.5 leading-normal' : '' }}">
+                            @if(!empty($activeLocalArea))
+                                {{ $activeLocale === 'kn' ? ($activeLocalAreaKn ?: $activeLocalArea) : $activeLocalArea }}
+                            @else
+                                {{ $activeLocale === 'en' ? ($activeDistrict->name ?? $activeDistrict->name_kn ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
+                            @endif
                         </span>
                     </button>
                     @endif
@@ -661,7 +665,12 @@
                             <div class="truncate">
                                 <span class="text-[10px] text-stone-400 font-bold uppercase tracking-wider block">{{ $activeLocale === 'en' ? 'Active District' : 'ಆಯ್ಕೆಯಾದ ಜಿಲ್ಲೆ' }}</span>
                                 <span class="text-xs font-black text-stone-800 {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                                    {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
+                                    @if(!empty($activeLocalArea))
+                                        {{ $activeLocale === 'kn' ? ($activeLocalAreaKn ?: $activeLocalArea) : $activeLocalArea }}
+                                        <span class="text-stone-500 font-medium text-[11px]">({{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }})</span>
+                                    @else
+                                        {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
+                                    @endif
                                 </span>
                             </div>
                         </div>

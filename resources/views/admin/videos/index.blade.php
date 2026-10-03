@@ -91,23 +91,23 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <button type="button" 
                     @click="settingsModalOpen = true" 
-                    class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer"
+                    class="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer"
                     title="Configure Max Videos per Page for Farmer Hub">
                 <span>⚙️</span>
                 <span>Per Page: <strong class="text-emerald-400">{{ $farmerPerPage ?? 12 }}</strong></span>
             </button>
 
             <a href="{{ route('admin.videos.taxonomies.index') }}" 
-               class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer">
+               class="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer">
                 <span>🏷️</span>
-                <span>Categories & Stages</span>
+                <span>Categories</span>
             </a>
 
             <a href="{{ route('admin.videos.create') }}" 
-               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 cursor-pointer">
+               class="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 cursor-pointer">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>

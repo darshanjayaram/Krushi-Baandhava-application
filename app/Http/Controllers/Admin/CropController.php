@@ -10,8 +10,10 @@ use App\Models\CropCategory;
 use App\Models\CropSourceMapping;
 use App\Models\DataSource;
 use App\Services\Ingestion\MarketPriceIngestionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -25,11 +27,22 @@ class CropController extends Controller
     {
         $search = $request->query('search');
         $categoryId = $request->query('category_id');
+        $status = $request->query('status'); // 'active', 'inactive', or null
+        $perPage = (int) $request->query('per_page', 50);
+        if ($perPage <= 0 || $perPage > 250) {
+            $perPage = 50;
+        }
 
         $crops = Crop::with(['category', 'sourceMappings.dataSource', 'varieties.sourceMappings.dataSource'])
             ->withCount(['varieties', 'prices'])
             ->when($categoryId, function ($query, $categoryId) {
                 $query->where('category_id', $categoryId);
+            })
+            ->when($status === 'active', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->when($status === 'inactive', function ($query) {
+                $query->where('is_active', false);
             })
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -39,12 +52,25 @@ class CropController extends Controller
                 });
             })
             ->orderBy('name')
-            ->paginate((int) $request->query('per_page', 50))
+            ->paginate($perPage)
             ->withQueryString();
 
         $categories = CropCategory::where('is_active', true)->orderBy('display_order')->get();
+        $totalCropsCount = Crop::count();
+        $activeCropsCount = Crop::where('is_active', true)->count();
+        $inactiveCropsCount = Crop::where('is_active', false)->count();
 
-        return view('admin.master.crops.index', compact('crops', 'categories', 'search', 'categoryId'));
+        return view('admin.master.crops.index', compact(
+            'crops', 
+            'categories', 
+            'search', 
+            'categoryId', 
+            'status', 
+            'perPage',
+            'totalCropsCount',
+            'activeCropsCount',
+            'inactiveCropsCount'
+        ));
     }
 
     /**
@@ -700,5 +726,141 @@ class CropController extends Controller
             'skipped' => $skipped,
             'message' => count($deleted) . ' photo(s) removed from gallery.',
         ]);
+    }
+
+    /**
+     * Helper to safely remove all child database records and linked files for crops.
+     * Prevents MySQL InnoDB cascade conflicts where varieties trigger SET NULL on price_daily_statistics.
+     *
+     * @param array<int> $cropIds
+     */
+    protected function purgeCropDependencies(array $cropIds): void
+    {
+        if (empty($cropIds)) {
+            return;
+        }
+
+        // 1. Delete analytics and forecasting child tables first
+        DB::table('forecast_metrics')->whereIn('crop_id', $cropIds)->delete();
+        DB::table('price_forecasts')->whereIn('crop_id', $cropIds)->delete();
+        DB::table('price_monthly_statistics')->whereIn('crop_id', $cropIds)->delete();
+        DB::table('price_daily_statistics')->whereIn('crop_id', $cropIds)->delete();
+
+        // 2. Delete market trade arrivals and daily prices
+        DB::table('market_prices')->whereIn('crop_id', $cropIds)->delete();
+        DB::table('market_arrivals')->whereIn('crop_id', $cropIds)->delete();
+
+        // 3. Delete datasource sync items and variety mapping aliases
+        DB::table('data_source_crop_sync')->whereIn('crop_id', $cropIds)->delete();
+        DB::table('crop_source_mappings')->whereIn('crop_id', $cropIds)->delete();
+
+        // 4. Delete varieties
+        DB::table('crop_varieties')->whereIn('crop_id', $cropIds)->delete();
+
+        // 5. Unlink any loose associations without deleting parent articles/videos
+        DB::table('articles')->whereIn('crop_id', $cropIds)->update(['crop_id' => null]);
+        DB::table('curated_videos')->whereIn('crop_id', $cropIds)->update(['crop_id' => null]);
+    }
+
+    /**
+     * Remove the specified crop and all its cultivar mappings from the database.
+     */
+    public function destroy(Request $request, Crop $crop): RedirectResponse|JsonResponse
+    {
+        $cropId = $crop->id;
+        $cropName = $crop->name;
+        $oldData = $crop->toArray();
+
+        // 1. Clean up custom image file if not shared
+        if ($crop->icon && str_starts_with($crop->icon, 'uploads/crops/')) {
+            $otherUsage = Crop::where('id', '!=', $cropId)->where('icon', $crop->icon)->count();
+            if ($otherUsage === 0 && file_exists(public_path($crop->icon))) {
+                @unlink(public_path($crop->icon));
+            }
+        }
+
+        // 2. Safely purge all child table dependencies
+        DB::transaction(function () use ($crop, $cropId) {
+            $this->purgeCropDependencies([$cropId]);
+            $crop->delete();
+        });
+
+        // 3. Audit Log
+        AuditLog::log('crop.delete', 'Crop', $cropId, $oldData, null);
+
+        $msg = "Commodity '{$cropName}' and all associated cultivar records were deleted successfully.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->route('admin.crops.index')->with('success', $msg);
+    }
+
+    /**
+     * Batch delete multiple crops (supports select all / deselect all).
+     */
+    public function batchDestroy(Request $request): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'crop_ids' => ['required', 'array', 'min:1'],
+            'crop_ids.*' => ['required', 'integer', 'exists:crops,id'],
+        ]);
+
+        $cropIds = array_map('intval', $validated['crop_ids']);
+        $crops = Crop::whereIn('id', $cropIds)->get();
+
+        if ($crops->isEmpty()) {
+            $msg = 'No valid commodities selected for deletion.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['ok' => false, 'message' => $msg], 422);
+            }
+            return redirect()->route('admin.crops.index')->with('error', $msg);
+        }
+
+        $deletedCount = 0;
+        $deletedNames = [];
+
+        DB::transaction(function () use ($crops, $cropIds, &$deletedCount, &$deletedNames) {
+            // Clean up custom image files if not shared
+            foreach ($crops as $crop) {
+                if ($crop->icon && str_starts_with($crop->icon, 'uploads/crops/')) {
+                    $otherUsage = Crop::whereNotIn('id', $cropIds)
+                        ->where('icon', $crop->icon)
+                        ->count();
+                    if ($otherUsage === 0 && file_exists(public_path($crop->icon))) {
+                        @unlink(public_path($crop->icon));
+                    }
+                }
+                $deletedNames[] = $crop->name;
+            }
+
+            // Safely purge all child table dependencies for the batch
+            $this->purgeCropDependencies($cropIds);
+
+            // Delete the crops
+            $deletedCount = Crop::whereIn('id', $cropIds)->delete();
+        });
+
+        AuditLog::log('crop.batch_delete', 'Crop', null, [
+            'crop_ids' => $cropIds,
+            'count' => $deletedCount,
+            'names' => array_slice($deletedNames, 0, 50),
+        ], null);
+
+        $msg = "Successfully deleted {$deletedCount} commodities from catalog.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $msg,
+                'deleted_count' => $deletedCount,
+            ]);
+        }
+
+        return redirect()->route('admin.crops.index')->with('success', $msg);
     }
 }

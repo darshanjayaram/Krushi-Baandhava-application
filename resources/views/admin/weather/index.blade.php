@@ -15,30 +15,31 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
             <!-- Interactive Async Batch Runner Button -->
             <button type="button" 
                     @click="startBatchSync()"
-                    class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition flex items-center gap-2 shadow-lg hover:shadow-emerald-900/30">
+                    class="flex-1 md:flex-none justify-center px-4 py-2.5 md:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition flex items-center gap-2 shadow-lg hover:shadow-emerald-900/30 cursor-pointer">
                 <span class="animate-pulse">⚡</span>
-                <span>Sync All 31 Districts (Async)</span>
+                <span>Sync Districts (Async)</span>
             </button>
 
             <!-- Optional Background Queue Button -->
             <form action="{{ route('admin.weather.sync-all') }}" method="POST" 
-                  onsubmit="return confirm('Dispatch background queue job for all districts?')">
+                  onsubmit="return confirm('Dispatch background queue job for all districts?')"
+                  class="flex-1 md:flex-none">
                 @csrf
                 <input type="hidden" name="mode" value="async">
                 <button type="submit" 
                         title="Dispatches to Laravel background worker queue"
-                        class="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 shadow-sm">
+                        class="w-full justify-center px-3 py-2.5 md:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 shadow-sm cursor-pointer">
                     <span>⚙️</span>
                     <span>Queue Job</span>
                 </button>
             </form>
 
             <a href="{{ route('admin.settings.index') }}" 
-               class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition">
+               class="px-4 py-2.5 md:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition">
                 ← Settings
             </a>
         </div>
@@ -301,6 +302,14 @@
             </div>
         </div>
 
+        <!-- Mobile Table Swipe Cue -->
+        <div class="sm:hidden px-4 py-2 bg-slate-900 border-b border-slate-800 text-[11px] text-slate-400 flex items-center justify-between rounded-xl">
+            <span class="flex items-center gap-1.5 font-medium">
+                <span>👉</span> Scroll horizontally for temperature & sync controls
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">Swipe ↔</span>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -377,7 +386,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none"
          style="display: none;">
         
-        <div class="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 text-white animate-in fade-in zoom-in-95 duration-200">
+        <div class="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-5 text-white my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
             <!-- Header -->
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div class="flex items-center gap-3">

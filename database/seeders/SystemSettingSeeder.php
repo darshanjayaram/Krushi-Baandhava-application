@@ -44,6 +44,17 @@ class SystemSettingSeeder extends Seeder
             ['key' => 'cron_market_operating_days', 'value' => 'mon_sat', 'type' => 'string', 'group' => 'data_sources', 'description' => 'Operating days for APMC price ingestion (mon_sat skips Sunday Mandi holiday).'],
             ['key' => 'market_sync_interval', 'value' => 'daily', 'type' => 'string', 'group' => 'data_sources', 'description' => 'Default synchronization frequency for mandi prices.'],
             ['key' => 'auto_provision_master_data', 'value' => 'true', 'type' => 'boolean', 'group' => 'data_sources', 'description' => 'Automatically provision newly discovered crops, varieties, and APMC markets from incoming data.gov.in API records.'],
+            ['key' => 'crop_price_staleness_days', 'value' => '14', 'type' => 'integer', 'group' => 'price_freshness', 'description' => 'Global default maximum age in days before APMC market prices and varieties are considered stale and hidden on the crop page.'],
+            ['key' => 'category_price_staleness_days', 'value' => json_encode([
+                'vegetables' => 7,
+                'fruits' => 7,
+                'cereals-millets' => 21,
+                'pulses' => 21,
+                'commercial-plantation' => 30,
+                'spices' => 30,
+                'oilseeds' => 30,
+                'commercial-crops' => 30,
+            ]), 'type' => 'json', 'group' => 'price_freshness', 'description' => 'Dynamic staleness window thresholds in days by agricultural crop category.'],
             ['key' => 'cache_duration', 'value' => '3600', 'type' => 'integer', 'group' => 'performance', 'description' => 'Default cache lifetime in seconds for public aggregate data.'],
             ['key' => 'pagination_limit', 'value' => '20', 'type' => 'integer', 'group' => 'general', 'description' => 'Default items per page for listings.'],
             ['key' => 'maintenance_mode', 'value' => 'false', 'type' => 'boolean', 'group' => 'maintenance', 'description' => 'Toggle administrative maintenance mode.'],
@@ -57,6 +68,10 @@ class SystemSettingSeeder extends Seeder
             ['key' => 'pwa_display_mode', 'value' => 'standalone', 'type' => 'string', 'group' => 'pwa', 'description' => 'PWA display mode (standalone, fullscreen, minimal-ui, browser).'],
             ['key' => 'pwa_banner_enabled', 'value' => 'true', 'type' => 'boolean', 'group' => 'pwa', 'description' => 'Show in-app mobile installation prompt banner to visiting farmers.'],
             ['key' => 'pwa_icon', 'value' => '/icons/icon-512.svg', 'type' => 'string', 'group' => 'pwa', 'description' => 'Application 512x512 mobile installation home icon.'],
+            // Interactive Route Maps & Geolocation
+            ['key' => 'map_api_key', 'value' => '', 'type' => 'string', 'group' => 'maps', 'description' => 'CARTO Basemaps API key for authenticating route and mandi map tile requests.'],
+            ['key' => 'map_tile_provider', 'value' => 'carto_voyager', 'type' => 'string', 'group' => 'maps', 'description' => 'Active interactive route map tile provider (carto_voyager, carto_positron, osm_standard, custom).'],
+            ['key' => 'map_custom_tile_url', 'value' => '', 'type' => 'string', 'group' => 'maps', 'description' => 'Optional custom map tile server URL pattern (e.g. https://{s}.tile.example.com/{z}/{x}/{y}.png).'],
         ];
 
         foreach ($settings as $setting) {

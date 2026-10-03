@@ -624,7 +624,7 @@ function locationModalHandler() {
             this.activeDistrictId = dist.id;
             this.activeDistrictName = dist.name;
             this.activeDistrictNameKn = dist.name_kn || dist.name;
-            this.saveAndRedirect(dist.id, dist.name, dist.lat, dist.lon);
+            this.saveAndRedirect(dist.id, dist.name, dist.lat, dist.lon, null, null);
         },
 
         detectGPSLocation() {
@@ -649,11 +649,11 @@ function locationModalHandler() {
             }
 
             this.isDetecting = true;
-            this.detectingMessage = this.locale === 'en' ? 'Detecting location...' : 'ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲಾಗುತ್ತಿದೆ...';
+            this.detectingMessage = this.locale === 'en' ? 'Acquiring GPS location...' : 'ಜಿಪಿಎಸ್ ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲಾಗುತ್ತಿದೆ...';
 
             const self = this;
 
-            // Attempt 1: High Accuracy GPS (Best for mobile devices / GPS hardware)
+            // Attempt 1: Fast High Accuracy with cached fix support (sub-second on mobile & warm browsers)
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     self.handlePositionSuccess(position);
@@ -671,7 +671,7 @@ function locationModalHandler() {
                     }
 
                     // Attempt 2: Low Accuracy / Network Geolocation (Ideal for desktops, Wi-Fi or laptops without GPS hardware)
-                    self.detectingMessage = self.locale === 'en' ? 'Retrying with network location...' : 'ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಹುಡುಕಲಾಗುತ್ತಿದೆ...';
+                    self.detectingMessage = self.locale === 'en' ? 'Checking network location...' : 'ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಹುಡುಕಲಾಗುತ್ತಿದೆ...';
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
                             self.handlePositionSuccess(position);
@@ -682,24 +682,49 @@ function locationModalHandler() {
                         },
                         {
                             enableHighAccuracy: false,
-                            timeout: 8000,
-                            maximumAge: 300000
+                            timeout: 5000,
+                            maximumAge: 120000
                         }
                     );
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 6000,
-                    maximumAge: 60000
+                    timeout: 5000,
+                    maximumAge: 30000
                 }
             );
         },
 
-        handlePositionSuccess(position) {
+        async handlePositionSuccess(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            this.detectingMessage = this.locale === 'en' ? 'Matching nearest Karnataka mandi...' : 'ಸಮೀಪದ ಜಿಲ್ಲೆ ಹೊಂದಿಸಲಾಗುತ್ತಿದೆ...';
-            this.findNearestDistrictAndSelect(lat, lon);
+            this.detectingMessage = this.locale === 'en' ? 'Identifying your city & nearest mandi...' : 'ನಿಮ್ಮ ಊರು ಮತ್ತು ಸಮೀಪದ ಮಂಡಿ ಹೊಂದಿಸಲಾಗುತ್ತಿದೆ...';
+            
+            // Hyperlocal reverse geocode lookup (OpenStreetMap Nominatim via our fast parallel cached proxy)
+            let localArea = null;
+            let localAreaKn = null;
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+                const res = await fetch(`{{ route('reverse-geocode') }}?lat=${lat}&lon=${lon}`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.success && json.data) {
+                        localArea = json.data.local_area;
+                        localAreaKn = json.data.local_area_kn;
+                    }
+                }
+            } catch (err) {
+                console.warn('Reverse geocode lookup bypassed/timed out:', err);
+            }
+
+            this.findNearestDistrictAndSelect(lat, lon, localArea, localAreaKn);
         },
 
         async fallbackToIP() {
@@ -710,7 +735,7 @@ function locationModalHandler() {
                 const res = await fetch('https://ipwho.is/');
                 const data = await res.json();
                 if (data && data.success !== false && data.latitude && data.longitude) {
-                    this.findNearestDistrictAndSelect(data.latitude, data.longitude);
+                    this.findNearestDistrictAndSelect(data.latitude, data.longitude, data.city || null, null);
                     return;
                 }
             } catch (e) {
@@ -722,7 +747,7 @@ function locationModalHandler() {
                 const res = await fetch('https://ipapi.co/json/');
                 const data = await res.json();
                 if (data && data.latitude && data.longitude) {
-                    this.findNearestDistrictAndSelect(data.latitude, data.longitude);
+                    this.findNearestDistrictAndSelect(data.latitude, data.longitude, data.city || null, null);
                     return;
                 }
             } catch (e) {
@@ -735,7 +760,7 @@ function locationModalHandler() {
                 : 'ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಕೆಳಗಿನ ಪಟ್ಟಿಯಿಂದ ನಿಮ್ಮ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.';
         },
 
-        findNearestDistrictAndSelect(userLat, userLon) {
+        findNearestDistrictAndSelect(userLat, userLon, localArea = null, localAreaKn = null) {
             let nearest = null;
             let minDistanceKm = Infinity;
 
@@ -752,16 +777,16 @@ function locationModalHandler() {
             if (nearest) {
                 this.isUpdating = true;
                 this.updatingDistrictId = nearest.id;
-                this.updatingDistrictName = nearest.name;
-                this.updatingDistrictNameKn = nearest.name_kn || nearest.name;
-                this.saveAndRedirect(nearest.id, nearest.name, userLat, userLon);
+                this.updatingDistrictName = localArea ? `${localArea} (${nearest.name})` : nearest.name;
+                this.updatingDistrictNameKn = localAreaKn ? `${localAreaKn} (${nearest.name_kn || nearest.name})` : (nearest.name_kn || nearest.name);
+                this.saveAndRedirect(nearest.id, nearest.name, userLat, userLon, localArea, localAreaKn);
             } else {
                 const fallback = this.districts[0] || { id: 1, name: 'Shivamogga' };
                 this.isUpdating = true;
                 this.updatingDistrictId = fallback.id;
                 this.updatingDistrictName = fallback.name;
                 this.updatingDistrictNameKn = fallback.name_kn || fallback.name;
-                this.saveAndRedirect(fallback.id, fallback.name);
+                this.saveAndRedirect(fallback.id, fallback.name, null, null, null, null);
             }
         },
 
@@ -775,21 +800,44 @@ function locationModalHandler() {
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         },
 
-        saveAndRedirect(districtId, districtName, lat = null, lon = null) {
+        saveAndRedirect(districtId, districtName, lat = null, lon = null, localArea = null, localAreaKn = null) {
             // Instantly notify homepage weather widget to show shimmer effect
             window.dispatchEvent(new CustomEvent('weather-updating'));
 
-            // Persist in cookie (1 year)
+            // Persist district in cookie (1 year)
             document.cookie = "selected_district_id=" + districtId + "; path=/; max-age=31536000; SameSite=Lax";
             if (window.localStorage) {
                 localStorage.setItem('krushi_district_id', districtId);
                 localStorage.setItem('krushi_district_name', districtName);
             }
 
+            // Persist or clear hyper-local place
+            if (localArea) {
+                const encArea = encodeURIComponent(localArea);
+                const encAreaKn = encodeURIComponent(localAreaKn || localArea);
+                document.cookie = "selected_local_area=" + encArea + "; path=/; max-age=31536000; SameSite=Lax";
+                document.cookie = "selected_local_area_kn=" + encAreaKn + "; path=/; max-age=31536000; SameSite=Lax";
+                if (window.localStorage) {
+                    localStorage.setItem('krushi_local_area', localArea);
+                    localStorage.setItem('krushi_local_area_kn', localAreaKn || localArea);
+                }
+            } else {
+                document.cookie = "selected_local_area=; path=/; max-age=0; SameSite=Lax";
+                document.cookie = "selected_local_area_kn=; path=/; max-age=0; SameSite=Lax";
+                if (window.localStorage) {
+                    localStorage.removeItem('krushi_local_area');
+                    localStorage.removeItem('krushi_local_area_kn');
+                }
+            }
+
             const payload = { district_id: districtId };
             if (lat && lon) {
                 payload.latitude = lat;
                 payload.longitude = lon;
+            }
+            if (localArea) {
+                payload.local_area = localArea;
+                payload.local_area_kn = localAreaKn || localArea;
             }
 
             // Post to backend to persist in session
@@ -806,8 +854,8 @@ function locationModalHandler() {
                 // Ignore failure, cookie is already saved
             });
 
-            // Minimum transition delay (500ms) to provide a smooth, delightful visual confirmation
-            const minDelay = new Promise(resolve => setTimeout(resolve, 500));
+            // Minimum transition delay (300ms) for snappy, responsive feedback
+            const minDelay = new Promise(resolve => setTimeout(resolve, 300));
 
             Promise.all([apiPromise, minDelay]).finally(() => {
                 // Navigate or reload
@@ -819,3 +867,4 @@ function locationModalHandler() {
     };
 }
 </script>
+

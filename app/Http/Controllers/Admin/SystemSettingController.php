@@ -25,8 +25,28 @@ class SystemSettingController extends Controller
      */
     public function index(Request $request): View
     {
-        $allSettings = SystemSetting::orderBy('id')->get();
-        $groupedSettings = $allSettings->groupBy('group');
+        $managedGroups = [
+            'general',
+            'pwa',
+            'weather',
+            'maps',
+            'data_sources',
+            'forecasting',
+            'performance',
+            'maintenance',
+            'localization',
+        ];
+
+        $allSettings = SystemSetting::whereIn('group', $managedGroups)
+            ->whereNotIn('key', ['crop_price_staleness_days', 'category_price_staleness_days'])
+            ->orderBy('id')
+            ->get();
+
+        $groupedSettings = collect($managedGroups)->mapWithKeys(function ($group) use ($allSettings) {
+            return [$group => $allSettings->where('group', $group)->values()];
+        })->filter(function ($items) {
+            return $items->isNotEmpty();
+        });
 
         $activeTab = $request->query('tab', 'general');
         if (!$groupedSettings->has($activeTab) && $groupedSettings->isNotEmpty()) {
@@ -38,11 +58,13 @@ class SystemSettingController extends Controller
         $totalCrops = Crop::where('is_active', true)->count();
         $lastForecastRun = ForecastRun::latest()->first();
         $totalSyncLogs = SyncLog::count();
+        $cropCategories = \App\Models\CropCategory::where('is_active', true)->orderBy('id')->get();
 
         return view('admin.settings.index', compact(
             'groupedSettings',
             'activeTab',
             'districts',
+            'cropCategories',
             'totalForecasts',
             'totalCrops',
             'lastForecastRun',
@@ -105,6 +127,7 @@ class SystemSettingController extends Controller
             AuditLog::log('settings.update_pwa_icon', 'SystemSetting', null, ['pwa_icon' => $oldIcon], ['pwa_icon' => $iconUrl]);
         }
 
+        $tab = $request->input('tab', 'general');
         $inputSettings = $request->input('settings', []);
         $updatedKeys = [];
         $oldValues = [];
@@ -131,7 +154,12 @@ class SystemSettingController extends Controller
                 $formattedValue = (string) intval($val);
             } elseif ($setting->type === 'json') {
                 if (is_array($val)) {
-                    $formattedValue = json_encode(array_values(array_map('intval', $val)));
+                    $isAssoc = !empty($val) && is_string(array_key_first($val));
+                    if ($isAssoc) {
+                        $formattedValue = json_encode(array_map('intval', $val));
+                    } else {
+                        $formattedValue = json_encode(array_values(array_map('intval', $val)));
+                    }
                 } else {
                     $formattedValue = (string) $val;
                 }
@@ -179,6 +207,21 @@ class SystemSettingController extends Controller
 
         return redirect()->route('admin.settings.index', ['tab' => $tab])
             ->with('success', 'All application caches (config, routes, views, memory cache) cleared successfully.');
+    }
+
+    /**
+     * Compile and cache configuration, routes, and views for production maximum performance.
+     */
+    public function optimizeApp(Request $request): RedirectResponse
+    {
+        Artisan::call('optimize');
+
+        AuditLog::log('system.optimize_app', 'System', null, [], ['status' => 'optimized']);
+
+        $tab = $request->input('tab', 'general');
+
+        return redirect()->route('admin.settings.index', ['tab' => $tab])
+            ->with('success', 'Application optimized for production! Config, routes, and views have been pre-compiled for maximum performance.');
     }
 
     /**

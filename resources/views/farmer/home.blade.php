@@ -138,10 +138,17 @@
                         </div>
                         <div class="min-w-0 flex flex-col justify-center">
                             <span class="text-[9px] sm:text-[10px] text-amber-300 font-bold uppercase tracking-wider block {{ $activeLocale === 'kn' ? 'font-kannada leading-tight' : 'leading-none' }}">
-                                {{ $activeLocale === 'en' ? 'Your Mandi Center' : 'ನಿಮ್ಮ ಮಂಡಿ ಕೇಂದ್ರ' }}
+                                {{ !empty($activeLocalArea) 
+                                    ? ($activeLocale === 'en' ? 'Your Location & Mandi' : 'ನಿಮ್ಮ ಸ್ಥಳ ಮತ್ತು ಮಂಡಿ ಕೇಂದ್ರ') 
+                                    : ($activeLocale === 'en' ? 'Your Mandi Center' : 'ನಿಮ್ಮ ಮಂಡಿ ಕೇಂದ್ರ') }}
                             </span>
                             <span class="font-black text-xs sm:text-sm text-white block truncate {{ $activeLocale === 'kn' ? 'font-kannada leading-normal pt-1 pb-0.5' : 'font-sans leading-tight mt-0.5' }}">
-                                {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
+                                @if(!empty($activeLocalArea))
+                                    {{ $activeLocale === 'kn' ? ($activeLocalAreaKn ?: $activeLocalArea) : $activeLocalArea }}
+                                    <span class="text-amber-200/90 font-medium text-[11px] sm:text-xs">({{ $activeLocale === 'kn' ? ($activeDistrict->name_kn ?? $activeDistrict->name ?? '') : ($activeDistrict->name ?? '') }})</span>
+                                @else
+                                    {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
+                                @endif
                             </span>
                         </div>
                     </div>
@@ -491,7 +498,12 @@
                         <span class="text-xl sm:text-2xl filter drop-shadow">🌤️</span>
                         <div>
                             <h3 class="font-extrabold text-sm sm:text-base text-white tracking-wide {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                                {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
+                                @if(!empty($activeLocalArea))
+                                    {{ $activeLocale === 'kn' ? ($activeLocalAreaKn ?: $activeLocalArea) : $activeLocalArea }}
+                                    <span class="text-xs text-emerald-200/90 font-medium">({{ $activeLocale === 'kn' ? ($activeDistrict->name_kn ?? $activeDistrict->name ?? '') : ($activeDistrict->name ?? '') }})</span>
+                                @else
+                                    {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
+                                @endif
                             </h3>
                         </div>
                     </div>

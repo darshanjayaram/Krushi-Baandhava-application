@@ -15,19 +15,19 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <a href="{{ route('farmer.schemes.index') }}" target="_blank"
-               class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition border border-slate-700">
-                <span>👁️ View Farmer Page</span>
+               class="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition border border-slate-700">
+                <span>👁️ View Page</span>
                 <span>↗</span>
             </a>
 
             <a href="{{ route('admin.schemes.create') }}" 
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer">
+               class="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
-                <span>Add New Scheme</span>
+                <span>Add Scheme</span>
             </a>
         </div>
     </div>
@@ -199,6 +199,14 @@
                     Apply
                 </button>
             </div>
+        </div>
+
+        <!-- Mobile Table Swipe Cue -->
+        <div class="sm:hidden px-4 py-2 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-1.5 font-medium">
+                <span>👉</span> Scroll horizontally for scheme actions & status
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">Swipe ↔</span>
         </div>
 
         <div class="overflow-x-auto">

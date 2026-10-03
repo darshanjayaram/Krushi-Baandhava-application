@@ -84,7 +84,7 @@ class CropController extends Controller
         $varietyId = $request->query('variety');
         $gradeParam = trim((string) $request->query('grade', ''));
         $marketParam = trim((string) $request->query('market', ''));
-        $activeLocale = $request->query('lang') ?: ($request->session()->get('locale') ?: ($request->cookie('locale') ?: app()->getLocale()));
+        $activeLocale = $request->query('lang') ?: (session('locale') ?: ($request->cookie('locale') ?: app()->getLocale()));
 
         // Determine if this crop is governed by an official commodity board (Coffee Board or Coconut Board)
         $boardMeta = null;
@@ -124,22 +124,37 @@ class CropController extends Controller
             });
         }
 
-        // Resolve latest date specifically for this crop in Karnataka
-        $latestDate = (clone $basePricesQuery)->max('price_date') ?? Carbon::today()->toDateString();
-        $recentCycleThreshold = Carbon::parse($latestDate)->subDays(14)->toDateString();
+        // Resolve platform anchor date (max of today and latest platform data date to handle holidays/weekends safely)
+        $stalenessThresholdDays = $crop->getStalenessThresholdDays();
+        $platformMaxDate = MarketPrice::karnataka()->max('price_date') ?? Carbon::today()->toDateString();
+        $anchorDate = Carbon::today()->gt(Carbon::parse($platformMaxDate)) ? Carbon::today() : Carbon::parse($platformMaxDate);
+        $cutoffDate = $crop->getFreshnessCutoffDate($anchorDate->toDateString());
 
-        // Filter available varieties to only those that actually have recorded prices for this crop in recent cycle
-        $pricedVarietyIds = (clone $basePricesQuery)
-            ->where('price_date', '>=', $recentCycleThreshold)
-            ->where('price_date', '<=', $latestDate)
-            ->whereNotNull('variety_id')
-            ->pluck('variety_id')
-            ->unique()
-            ->toArray();
+        // Resolve latest date specifically for this crop in Karnataka strictly within the freshness window
+        $latestDate = (clone $basePricesQuery)
+            ->where('price_date', '>=', $cutoffDate)
+            ->max('price_date');
+
+        // Filter available varieties to only those that actually have recorded prices for this crop within freshness window
+        $pricedVarietyIds = [];
+        if ($latestDate) {
+            $pricedVarietyIds = (clone $basePricesQuery)
+                ->where('price_date', '>=', $cutoffDate)
+                ->where('price_date', '<=', $latestDate)
+                ->whereNotNull('variety_id')
+                ->pluck('variety_id')
+                ->unique()
+                ->toArray();
+        }
 
         $availableVarieties = $crop->varieties
             ->whereIn('id', $pricedVarietyIds)
             ->values();
+
+        // If a specific variety was requested but has no prices within the freshness window, clear it so we don't query stale data
+        if ($varietyId && !in_array((int)$varietyId, $pricedVarietyIds) && !empty($pricedVarietyIds)) {
+            $varietyId = null;
+        }
 
         // Resolve reference coordinates to find nearby markets
         $refLat = null;
@@ -167,14 +182,17 @@ class CropController extends Controller
             $refLon = 75.5681;
         }
 
-        // 1. Fetch all distinct Karnataka mandis/centres reporting this crop in recent cycle, sorted by nearby proximity
-        $recentMarketPrices = (clone $basePricesQuery)
-            ->with(['market.district'])
-            ->where('price_date', '>=', $recentCycleThreshold)
-            ->where('price_date', '<=', $latestDate)
-            ->orderBy('price_date', 'desc')
-            ->orderBy('modal_price', 'desc')
-            ->get();
+        // 1. Fetch all distinct Karnataka mandis/centres reporting this crop within the freshness window, sorted by nearby proximity
+        $recentMarketPrices = collect();
+        if ($latestDate) {
+            $recentMarketPrices = (clone $basePricesQuery)
+                ->with(['market.district'])
+                ->where('price_date', '>=', $cutoffDate)
+                ->where('price_date', '<=', $latestDate)
+                ->orderBy('price_date', 'desc')
+                ->orderBy('modal_price', 'desc')
+                ->get();
+        }
 
         $availableMarkets = $recentMarketPrices
             ->groupBy('market_id')
@@ -278,21 +296,27 @@ class CropController extends Controller
 
         // 2. Base query for Karnataka mandi/board prices
         $targetMandiDate = $latestDate;
-        if ($varietyId) {
-            $targetMandiDate = (clone $basePricesQuery)->where('variety_id', $varietyId)->max('price_date') ?? $latestDate;
+        if ($varietyId && $latestDate) {
+            $targetMandiDate = (clone $basePricesQuery)
+                ->where('variety_id', $varietyId)
+                ->where('price_date', '>=', $cutoffDate)
+                ->max('price_date');
         }
 
-        $mandiPricesQuery = (clone $basePricesQuery)
-            ->with(['variety', 'market.district', 'dataSource'])
-            ->where('price_date', $targetMandiDate);
+        $mandiPrices = collect();
+        if ($targetMandiDate) {
+            $mandiPricesQuery = (clone $basePricesQuery)
+                ->with(['variety', 'market.district', 'dataSource'])
+                ->where('price_date', $targetMandiDate);
 
-        if ($varietyId) {
-            $mandiPricesQuery->where('variety_id', $varietyId);
+            if ($varietyId) {
+                $mandiPricesQuery->where('variety_id', $varietyId);
+            }
+
+            $mandiPrices = $mandiPricesQuery
+                ->orderBy('modal_price', 'desc')
+                ->get();
         }
-
-        $mandiPrices = $mandiPricesQuery
-            ->orderBy('modal_price', 'desc')
-            ->get();
 
         $marketProximityMap = $availableMarkets->keyBy('id');
 
@@ -360,10 +384,9 @@ class CropController extends Controller
         })->sortByDesc('best_modal')->values();
 
         // State-level analytics summary for this commodity across all Karnataka mandis/centres
-        $allKarnatakaPrices = (clone $basePricesQuery)
-            ->with(['market'])
-            ->where('price_date', $latestDate)
-            ->get();
+        $allKarnatakaPrices = $latestDate
+            ? (clone $basePricesQuery)->with(['market'])->where('price_date', $latestDate)->get()
+            : collect();
 
         $stats = [
             'highest_modal' => $allKarnatakaPrices->max('modal_price') ?? 0,
@@ -373,7 +396,7 @@ class CropController extends Controller
             'avg_modal' => $allKarnatakaPrices->avg('modal_price') ?? 0,
             'total_mandis' => $allKarnatakaPrices->pluck('market_id')->unique()->count(),
             'total_arrivals' => $allKarnatakaPrices->sum('arrival_quantity') ?? 0,
-            'date_formatted' => Carbon::parse($latestDate)->format('d M Y'),
+            'date_formatted' => $latestDate ? Carbon::parse($latestDate)->format('d M Y') : '—',
         ];
 
         // Matched selected market if filtered or auto-resolve nearest
@@ -426,34 +449,18 @@ class CropController extends Controller
             $isSelectedActualNearest = ($actualNearestMarket && $selectedMarket->id === $actualNearestMarket->id);
         }
 
-        // Fetch latest traded prices for this selected market across its active rolling trading window (14 days)
+        // Fetch latest traded prices for this selected market across its active trading window (strictly >= cutoffDate)
         // Negilu Krishi alignment: Each variety/grade resolves independently to its own latest trading session record.
         $selectedMarketPrices = collect();
-        if ($selectedMarket) {
+        if ($selectedMarket && $latestDate) {
             $recentMarketPricesRaw = (clone $basePricesQuery)
                 ->with(['variety', 'market.district', 'dataSource'])
                 ->where('market_id', $selectedMarket->id)
-                ->where('price_date', '>=', $recentCycleThreshold)
+                ->where('price_date', '>=', $cutoffDate)
                 ->where('modal_price', '>', 0)
                 ->orderBy('price_date', 'desc')
                 ->orderBy('modal_price', 'desc')
                 ->get();
-
-            // Fallback if no records in strict 14 days, get latest available trading window for this market
-            if ($recentMarketPricesRaw->isEmpty()) {
-                $marketMaxDate = (clone $basePricesQuery)->where('market_id', $selectedMarket->id)->max('price_date');
-                if ($marketMaxDate) {
-                    $fallbackThreshold = Carbon::parse($marketMaxDate)->subDays(14)->toDateString();
-                    $recentMarketPricesRaw = (clone $basePricesQuery)
-                        ->with(['variety', 'market.district', 'dataSource'])
-                        ->where('market_id', $selectedMarket->id)
-                        ->where('price_date', '>=', $fallbackThreshold)
-                        ->where('modal_price', '>', 0)
-                        ->orderBy('price_date', 'desc')
-                        ->orderBy('modal_price', 'desc')
-                        ->get();
-                }
-            }
 
             // Group by variety (and grade) and take the latest record per variety
             $selectedMarketPrices = $recentMarketPricesRaw
@@ -626,7 +633,9 @@ class CropController extends Controller
             'weeklyMaxTradedPrice',
             'activeModalPrice',
             'activeVarietyId',
-            'activeLocale'
+            'activeLocale',
+            'stalenessThresholdDays',
+            'cutoffDate'
         ));
     }
 
@@ -659,8 +668,7 @@ class CropController extends Controller
             $marketId = $market?->id;
         }
 
-        $varietyId = $request->filled('variety') ? (int) $request->query('variety') : null;
-        $activeLocale = $request->query('lang') ?: ($request->session()->get('locale') ?: ($request->cookie('locale') ?: app()->getLocale()));
+        $activeLocale = $request->query('lang') ?: (session('locale') ?: ($request->cookie('locale') ?: app()->getLocale()));
 
         $dailyTrends = $this->analyticsService->getDailyTrends($crop->id, $marketId, $rangeDays, $varietyId);
         $statisticalSummary = $this->analyticsService->getStatisticalSummary($crop->id, $marketId, $rangeDays, $varietyId);

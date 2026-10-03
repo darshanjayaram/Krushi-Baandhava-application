@@ -78,11 +78,12 @@
 
                 <p class="text-xs text-gray-600 max-w-md mx-auto mt-4 leading-relaxed">
                     {{ $isKn 
-                        ? 'ನಮ್ಮ ಕೃಷಿ ಬಾಂಧವ ತಂಡವು ಈ ಮಾಹಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ ಅಗತ್ಯ ಕ್ರಮ ಕೈಗೊಳ್ಳಲಿದೆ. ತ್ವರಿತ ಅಪ್‌ಡೇಟ್‌ಗಾಗಿ ವಾಟ್ಸಾಪ್ ಮೂಲಕವೂ ಸಂಪರ್ಕಿಸಬಹುದು.' 
-                        : 'Our Krushi Baandhava desk is reviewing your ticket. For immediate tracking or follow-up, chat directly on WhatsApp.' }}
+                        ? 'ನಮ್ಮ ಕೃಷಿ ಬಾಂಧವ ತಂಡವು ಈ ಮಾಹಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ ಶೀಘ್ರದಲ್ಲೇ ಅಗತ್ಯ ಕ್ರಮ ಕೈಗೊಳ್ಳಲಿದೆ.' 
+                        : 'Our Krushi Baandhava desk is reviewing your ticket and will take necessary action shortly.' }}
                 </p>
 
                 <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    {{-- WhatsApp follow up button hidden as of now; re-activate when helpdesk WhatsApp operations start
                     <a href="{{ session('feedback_success')['whatsapp_url'] }}" 
                        target="_blank" 
                        rel="noopener"
@@ -90,6 +91,7 @@
                         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.971.53 1.761.802 2.796.803h.001c3.181 0 5.768-2.587 5.768-5.766 0-3.18-2.587-5.789-5.769-5.789zm3.366 8.232c-.143.402-.832.748-1.157.794-.325.045-.733.069-2.144-.492-1.411-.561-2.47-1.745-2.614-1.936-.143-.191-1.121-1.488-1.121-2.839 0-1.35.707-2.016.958-2.274.251-.258.547-.323.73-.323.182 0 .365.002.525.01.169.008.396-.064.62.474.23.551.782 1.91.85 2.05.068.14.114.304.023.486-.091.182-.137.295-.274.453-.137.159-.288.354-.412.475-.137.135-.28.281-.12.556.16.274.71 1.171 1.523 1.895 1.047.931 1.93 1.218 2.204 1.353.274.135.434.113.594-.07.16-.182.685-.795.868-1.069.183-.274.366-.228.617-.137.251.091 1.599.754 1.873.891.274.137.457.205.525.32.068.114.068.662-.075 1.064z"/></svg>
                         <span>{{ $isKn ? 'WhatsApp ನಲ್ಲಿ ಸಂಪರ್ಕಿಸಿ' : 'Follow up on WhatsApp' }}</span>
                     </a>
+                    --}}
                     <a href="{{ route('farmer.feedback.create') }}" 
                        class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-semibold text-sm border border-[#DDD3BE] shadow-sm transition-all">
                         {{ $isKn ? 'ಮತ್ತೊಂದು ವರದಿ ಸಲ್ಲಿಸಿ' : 'Submit Another Ticket' }}
@@ -119,11 +121,12 @@
 
             <p class="text-xs text-gray-600 max-w-md mx-auto mt-4 leading-relaxed">
                 {{ $isKn 
-                    ? 'ನಮ್ಮ ಕೃಷಿ ಬಾಂಧವ ತಂಡವು ಶೀಘ್ರದಲ್ಲಿ ಪರಿಶೀಲಿಸಲಿದೆ. ಹೆಚ್ಚಿನ ವಿವರ ತಿಳಿಸಲು ವಾಟ್ಸಾಪ್ ಬಟನ್ ಬಳಸಿ.' 
-                    : 'Our Krushi Baandhava desk is reviewing your ticket. You can also chat directly on WhatsApp.' }}
+                    ? 'ನಮ್ಮ ಕೃಷಿ ಬಾಂಧವ ತಂಡವು ಈ ಮಾಹಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ ಶೀಘ್ರದಲ್ಲೇ ಅಗತ್ಯ ಕ್ರಮ ಕೈಗೊಳ್ಳಲಿದೆ.' 
+                    : 'Our Krushi Baandhava desk is reviewing your ticket and will take necessary action shortly.' }}
             </p>
 
             <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                {{-- WhatsApp follow up button hidden as of now; re-activate when helpdesk WhatsApp operations start
                 <a :href="submittedWhatsAppUrl" 
                    target="_blank" 
                    rel="noopener"
@@ -131,6 +134,7 @@
                     <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.971.53 1.761.802 2.796.803h.001c3.181 0 5.768-2.587 5.768-5.766 0-3.18-2.587-5.789-5.769-5.789zm3.366 8.232c-.143.402-.832.748-1.157.794-.325.045-.733.069-2.144-.492-1.411-.561-2.47-1.745-2.614-1.936-.143-.191-1.121-1.488-1.121-2.839 0-1.35.707-2.016.958-2.274.251-.258.547-.323.73-.323.182 0 .365.002.525.01.169.008.396-.064.62.474.23.551.782 1.91.85 2.05.068.14.114.304.023.486-.091.182-.137.295-.274.453-.137.159-.288.354-.412.475-.137.135-.28.281-.12.556.16.274.71 1.171 1.523 1.895 1.047.931 1.93 1.218 2.204 1.353.274.135.434.113.594-.07.16-.182.685-.795.868-1.069.183-.274.366-.228.617-.137.251.091 1.599.754 1.873.891.274.137.457.205.525.32.068.114.068.662-.075 1.064z"/></svg>
                     <span>{{ $isKn ? 'WhatsApp ನಲ್ಲಿ ಸಂಪರ್ಕಿಸಿ' : 'Follow up on WhatsApp' }}</span>
                 </a>
+                --}}
                 <button type="button" 
                         @click="resetForm()"
                         class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-semibold text-sm border border-[#DDD3BE] shadow-sm transition-all">
@@ -138,6 +142,7 @@
                 </button>
             </div>
         </div>
+
 
         <!-- Main Form Container -->
         <div x-show="!submittedSuccess" class="bg-white rounded-3xl border border-[#DDD3BE] shadow-sm overflow-hidden p-6 sm:p-8">

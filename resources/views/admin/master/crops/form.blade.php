@@ -302,7 +302,7 @@ function cropFormHandler() {
             const varietyRawName = item.raw_name;
 
             if (!targetGradeId) {
-                alert('Please select a target canonical grade to map.');
+                alert('Please select a target canonical variety to map.');
                 return;
             }
 
@@ -480,7 +480,7 @@ function cropFormHandler() {
                     class="px-4 py-2.5 text-xs font-bold border-b-2 rounded-t-xl transition cursor-pointer flex items-center gap-2">
                 <span>🏷️</span> Varieties & Live API Strings
                 <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800/80 font-bold">
-                    {{ $crop->varieties->count() }} Grades
+                    {{ $crop->varieties->count() }} Varieties
                 </span>
             </button>
         @endif
@@ -805,10 +805,10 @@ function cropFormHandler() {
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
                     <div>
                         <h2 class="text-base font-extrabold text-white">Commercial Varieties of {{ $crop->name }}</h2>
-                        <p class="text-xs text-slate-400">Official commercial trade grades and cultivars traded in Karnataka APMC mandis.</p>
+                        <p class="text-xs text-slate-400">Official commercial trade grades and cultivars traded in Karnataka mandis.</p>
                     </div>
                     <span class="px-3 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold">
-                        {{ $crop->varieties->count() }} Registered Grades
+                        {{ $crop->varieties->count() }} Registered Varieties
                     </span>
                 </div>
 
@@ -818,17 +818,17 @@ function cropFormHandler() {
                     <input type="hidden" name="crop_id" value="{{ $crop->id }}">
 
                     <div>
-                        <input type="text" name="name" required placeholder="Grade Name (English)*" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <input type="text" name="name" required placeholder="Variety Name (English)*" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     </div>
                     <div>
-                        <input type="text" name="name_kn" placeholder="Grade Name (Kannada)" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-kannada font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <input type="text" name="name_kn" placeholder="Variety Name (Kannada)" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-kannada font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     </div>
                     <div>
                         <input type="text" name="slug" placeholder="Slug (optional)" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     </div>
                     <div>
                         <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition shadow-sm cursor-pointer">
-                            + Add Grade
+                            + Add Variety
                         </button>
                     </div>
                 </form>
@@ -836,31 +836,200 @@ function cropFormHandler() {
                 <!-- Varieties List -->
                 @if($crop->varieties->isEmpty())
                     <div class="text-center py-8 text-xs font-medium text-slate-500 bg-slate-950/50 rounded-xl border border-dashed border-slate-800">
-                        No canonical grades registered yet. Add common grades above or map them directly from live API suggestions below.
+                        No canonical varieties registered yet. Add common varieties above or map them directly from live API suggestions below.
                     </div>
                 @else
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                         @foreach($crop->varieties as $variety)
-                            <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2.5 hover:border-slate-700 transition">
-                                <div class="flex items-start justify-between gap-2">
-                                    <div>
-                                        <div class="font-extrabold text-xs text-white">{{ $variety->name }}</div>
-                                        @if($variety->name_kn)
-                                            <div class="text-[11px] text-emerald-400 font-kannada font-semibold">{{ $variety->name_kn }}</div>
-                                        @endif
-                                        <div class="text-[10px] text-slate-500 font-mono mt-0.5">slug: {{ $variety->slug }}</div>
-                                    </div>
+                            <div x-data="{
+                                isEditing: false,
+                                isSaving: false,
+                                isDeleting: false,
+                                isDeleted: false,
+                                name: @js($variety->name),
+                                name_kn: @js($variety->name_kn ?? ''),
+                                slug: @js($variety->slug),
+                                isActive: {{ $variety->is_active ? 'true' : 'false' }},
+                                editName: @js($variety->name),
+                                editNameKn: @js($variety->name_kn ?? ''),
+                                editSlug: @js($variety->slug),
+                                editIsActive: {{ $variety->is_active ? 'true' : 'false' }},
+                                errorMessage: '',
+                                successMessage: '',
 
-                                    <form method="POST" action="{{ route('admin.varieties.destroy', $variety) }}" onsubmit="return confirm('Remove variety grade {{ $variety->name }}?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition cursor-pointer" title="Remove Variety">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                    </form>
-                                </div>
+                                startEdit() {
+                                    this.editName = this.name;
+                                    this.editNameKn = this.name_kn;
+                                    this.editSlug = this.slug;
+                                    this.editIsActive = this.isActive;
+                                    this.errorMessage = '';
+                                    this.isEditing = true;
+                                },
+                                cancelEdit() {
+                                    this.isEditing = false;
+                                    this.errorMessage = '';
+                                },
+                                autoGenerateSlug() {
+                                    if (!this.editSlug || this.editSlug === this.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) {
+                                        this.editSlug = this.editName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                                    }
+                                },
+                                async save() {
+                                    if (!this.editName.trim()) {
+                                        this.errorMessage = 'Variety name is required.';
+                                        return;
+                                    }
+                                    this.isSaving = true;
+                                    this.errorMessage = '';
+                                    try {
+                                        const res = await fetch('{{ route('admin.varieties.update', $variety) }}', {
+                                            method: 'PUT',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Accept': 'application/json',
+                                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                            },
+                                            body: JSON.stringify({
+                                                crop_id: {{ $crop->id }},
+                                                name: this.editName,
+                                                name_kn: this.editNameKn,
+                                                slug: this.editSlug,
+                                                is_active: this.editIsActive
+                                            })
+                                        });
+                                        const data = await res.json();
+                                        if (res.ok && data.success) {
+                                            this.name = data.variety.name;
+                                            this.name_kn = data.variety.name_kn || '';
+                                            this.slug = data.variety.slug;
+                                            this.isActive = data.variety.is_active;
+                                            this.isEditing = false;
+                                            this.successMessage = 'Saved!';
+                                            setTimeout(() => { this.successMessage = ''; }, 3000);
+                                        } else {
+                                            if (data.errors) {
+                                                const firstErr = Object.values(data.errors)[0];
+                                                this.errorMessage = Array.isArray(firstErr) ? firstErr[0] : firstErr;
+                                            } else {
+                                                this.errorMessage = data.message || 'Failed to update variety.';
+                                            }
+                                        }
+                                    } catch (err) {
+                                        this.errorMessage = 'Network error while updating variety.';
+                                    } finally {
+                                        this.isSaving = false;
+                                    }
+                                },
+                                async deleteVariety() {
+                                    if (!confirm('Remove variety grade \'' + this.name + '\'?')) return;
+                                    this.isDeleting = true;
+                                    try {
+                                        const res = await fetch('{{ route('admin.varieties.destroy', $variety) }}', {
+                                            method: 'DELETE',
+                                            headers: {
+                                                'Accept': 'application/json',
+                                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                            }
+                                        });
+                                        const data = await res.json();
+                                        if (res.ok && data.success) {
+                                            this.isDeleted = true;
+                                        } else {
+                                            alert(data.message || 'Failed to remove variety.');
+                                        }
+                                    } catch (err) {
+                                        alert('Network error while deleting variety.');
+                                    } finally {
+                                        this.isDeleting = false;
+                                    }
+                                }
+                            }"
+                            x-show="!isDeleted"
+                            x-transition
+                            class="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2.5 hover:border-slate-700 transition relative">
+
+                                <!-- Read-Only Mode Header -->
+                                <template x-if="!isEditing">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-extrabold text-xs text-white truncate" x-text="name"></span>
+                                                <span x-show="!isActive" class="text-[9px] px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-800/60 font-semibold uppercase">Inactive</span>
+                                            </div>
+                                            <div x-show="name_kn" class="text-[11px] text-emerald-400 font-kannada font-semibold mt-0.5" x-text="name_kn"></div>
+                                            <div class="text-[10px] text-slate-500 font-mono mt-0.5">slug: <span x-text="slug"></span></div>
+                                            <div x-show="successMessage" class="text-[10px] text-emerald-400 font-bold mt-1" x-text="successMessage"></div>
+                                        </div>
+
+                                        <div class="flex items-center gap-1 shrink-0">
+                                            <button type="button" @click="startEdit()" class="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition cursor-pointer" title="Edit Variety">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                            </button>
+                                            <button type="button" @click="deleteVariety()" :disabled="isDeleting" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition cursor-pointer disabled:opacity-50" title="Remove Variety">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Edit Mode (Async) -->
+                                <template x-if="isEditing">
+                                    <div class="space-y-2.5 pt-0.5">
+                                        <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+                                            <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                                Edit Commercial Variety
+                                            </span>
+                                            <button type="button" @click="cancelEdit()" class="text-slate-500 hover:text-slate-300 text-xs cursor-pointer">&times;</button>
+                                        </div>
+
+                                        <div x-show="errorMessage" class="p-2 text-[10px] rounded-lg bg-rose-950/70 border border-rose-800/80 text-rose-300 font-medium" x-text="errorMessage"></div>
+
+                                        <div class="space-y-1.5">
+                                            <div>
+                                                <label class="block text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Name (English) *</label>
+                                                <input type="text" x-model="editName" @input="autoGenerateSlug()" class="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:ring-1 focus:ring-emerald-500 focus:outline-none" placeholder="e.g. Rashi">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Name (Kannada)</label>
+                                                <input type="text" x-model="editNameKn" class="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-emerald-300 font-kannada font-semibold focus:ring-1 focus:ring-emerald-500 focus:outline-none" placeholder="ಉದಾ. ರಾಶಿ">
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Slug</label>
+                                                    <input type="text" x-model="editSlug" class="w-full px-2 py-1.5 text-[11px] bg-slate-900 border border-slate-700 rounded-lg text-slate-300 font-mono focus:ring-1 focus:ring-emerald-500 focus:outline-none" placeholder="auto-slug">
+                                                </div>
+                                                <div class="flex items-end pb-1.5">
+                                                    <label class="inline-flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300 select-none">
+                                                        <input type="checkbox" x-model="editIsActive" class="rounded bg-slate-900 border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer">
+                                                        <span class="font-medium">Active</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-850">
+                                            <button type="button" @click="cancelEdit()" :disabled="isSaving" class="px-2.5 py-1 text-[11px] text-slate-400 hover:text-white rounded-lg bg-slate-850 hover:bg-slate-800 transition cursor-pointer">
+                                                Cancel
+                                            </button>
+                                            <button type="button" @click="save()" :disabled="isSaving || !editName.trim()" class="px-3 py-1 text-[11px] font-bold text-white rounded-lg bg-emerald-600 hover:bg-emerald-500 transition flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50">
+                                                <template x-if="isSaving">
+                                                    <svg class="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                </template>
+                                                <span x-text="isSaving ? 'Saving...' : 'Save Changes'"></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
 
                                 <!-- Mapped Variety Strings Badge List -->
                                 <div class="pt-2 border-t border-slate-850">
@@ -980,7 +1149,7 @@ function cropFormHandler() {
                                         <div class="space-y-1.5">
                                             <div class="flex items-center gap-1.5">
                                                 <select x-model="item.selected_grade_id" class="w-full px-2 py-1 text-[11px] bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                                                    <option value="">-- Choose Grade --</option>
+                                                    <option value="">-- Choose Target Variety --</option>
                                                     @foreach($crop->varieties as $v)
                                                         <option value="{{ $v->id }}">{{ $v->name }}</option>
                                                     @endforeach
@@ -1022,16 +1191,16 @@ function cropFormHandler() {
                         <h4 class="text-xs font-extrabold text-white uppercase tracking-wider">Map Raw API Variety / Grade Strings</h4>
                     </div>
                     <p class="text-xs text-slate-400 mt-1">
-                        When daily feeds send non-standard variety names (e.g. data.gov.in sends <code class="text-emerald-400 bg-slate-950 px-1 py-0.5 rounded font-mono">"Common"</code>, <code class="text-emerald-400 bg-slate-950 px-1 py-0.5 rounded font-mono">"Fine"</code>, <code class="text-emerald-400 bg-slate-950 px-1 py-0.5 rounded font-mono">"Grade A"</code>, or <code class="text-emerald-400 bg-slate-950 px-1 py-0.5 rounded font-mono">"Dhan (Basmati)"</code>), map them here so they are classified under the right grade automatically.
+                        When daily feeds send non-standard variety names (e.g. data.gov.in sends <code class="text-emerald-400 bg-slate-950 px-1 py-0.5 rounded font-mono">"Common"</code>, <code class="text-emerald-400 bg-slate-950 px-1 py-0.5 rounded font-mono">"Fine"</code>, <code class="text-emerald-400 bg-slate-950 px-1 py-0.5 rounded font-mono">"Grade A"</code>, or <code class="text-emerald-400 bg-slate-950 px-1 py-0.5 rounded font-mono">"Dhan (Basmati)"</code>), map them here so they are classified under the right variety automatically.
                     </p>
                 </div>
 
                 <form method="POST" action="{{ route('admin.crops.variety-aliases.add', $crop) }}" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
                     @csrf
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Canonical Grade</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Canonical Variety</label>
                         <select name="crop_variety_id" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <option value="">-- Choose Grade --</option>
+                            <option value="">-- Choose Target Variety --</option>
                             @foreach($crop->varieties as $v)
                                 <option value="{{ $v->id }}">{{ $v->name }} ({{ $v->name_kn }})</option>
                             @endforeach

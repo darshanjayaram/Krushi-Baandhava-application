@@ -17,10 +17,10 @@
     </div>
 
     <!-- Filter Bar -->
-    <form method="GET" action="{{ route('admin.audit-logs.index') }}" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-3">
+    <form method="GET" action="{{ route('admin.audit-logs.index') }}" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-center gap-3">
         
         <!-- Action Filter -->
-        <select name="action" class="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+        <select name="action" class="w-full lg:w-auto px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
             <option value="">All Actions</option>
             @foreach($distinctActions as $act)
                 <option value="{{ $act }}" {{ request('action') === $act ? 'selected' : '' }}>{{ $act }}</option>
@@ -28,7 +28,7 @@
         </select>
 
         <!-- Admin User Filter -->
-        <select name="user_id" class="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+        <select name="user_id" class="w-full lg:w-auto px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
             <option value="">All Administrators</option>
             @foreach($admins as $adminUser)
                 <option value="{{ $adminUser->id }}" {{ request('user_id') == $adminUser->id ? 'selected' : '' }}>
@@ -38,20 +38,29 @@
         </select>
 
         <!-- Date Range -->
-        <input type="date" name="date_from" value="{{ request('date_from') }}" class="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500" placeholder="From Date">
-        <input type="date" name="date_to" value="{{ request('date_to') }}" class="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500" placeholder="To Date">
+        <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full lg:w-auto px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500" placeholder="From Date">
+        <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full lg:w-auto px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500" placeholder="To Date">
 
-        <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition">
-            Filter Logs
-        </button>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button type="submit" class="flex-1 sm:flex-none px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition cursor-pointer">
+                Filter Logs
+            </button>
 
-        @if(request()->hasAny(['action', 'user_id', 'date_from', 'date_to']))
-            <a href="{{ route('admin.audit-logs.index') }}" class="text-xs text-slate-400 hover:text-white transition">Reset</a>
-        @endif
+            @if(request()->hasAny(['action', 'user_id', 'date_from', 'date_to']))
+                <a href="{{ route('admin.audit-logs.index') }}" class="text-xs text-slate-400 hover:text-white transition px-2">Reset</a>
+            @endif
+        </div>
     </form>
 
     <!-- Table of Audit Logs -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <!-- Mobile Table Swipe Cue -->
+        <div class="sm:hidden px-4 py-2 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-1.5 font-medium">
+                <span>👉</span> Scroll horizontally for audit log details
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">Swipe ↔</span>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
                 <thead>
@@ -143,7 +152,7 @@
          @keydown.escape.window="diffModal = false">
         <!-- Backdrop -->
         <div x-show="diffModal" x-transition.opacity class="fixed inset-0 bg-black/80" @click="diffModal = false"></div>
-        <div @click.away="diffModal = false" class="relative z-10 bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl my-8">
+        <div @click.away="diffModal = false" class="relative z-10 bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl my-auto max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
                     <h3 class="text-base font-bold text-white flex items-center gap-2">

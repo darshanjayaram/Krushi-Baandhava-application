@@ -11,7 +11,7 @@
         </div>
 
         <a href="{{ route('admin.markets.create', ['district_id' => $districtId]) }}" 
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition active:scale-95 cursor-pointer">
+           class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition active:scale-95 cursor-pointer w-full sm:w-auto">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
             </svg>
@@ -61,6 +61,11 @@
 
     <!-- Markets Table -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <!-- Mobile Table Swipe Hint -->
+        <div class="sm:hidden flex items-center justify-between px-3.5 py-2 bg-slate-950/70 border-b border-slate-800 text-[11px] text-slate-400">
+            <span class="flex items-center gap-1.5 font-medium"><span>👈</span> <span>Swipe table horizontally</span> <span>👉</span></span>
+            <span class="text-emerald-400 font-bold">Status & Actions on right</span>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
                 <thead>

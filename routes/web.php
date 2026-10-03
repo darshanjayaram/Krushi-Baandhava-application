@@ -12,10 +12,13 @@ use App\Http\Controllers\Admin\DistrictController;
 use App\Http\Controllers\Admin\FeatureFlagController;
 use App\Http\Controllers\Admin\MarketController;
 use App\Http\Controllers\Admin\MarketPriceController;
+use App\Http\Controllers\Admin\PriceFreshnessController;
+use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\SyncLogController;
 use App\Http\Controllers\Admin\SystemSettingController;
 use App\Http\Controllers\Admin\TalukController;
 use App\Http\Controllers\Admin\UnresolvedMappingController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Farmer\CropController as FarmerCropController;
 use App\Http\Controllers\Farmer\HomeController;
 use App\Http\Controllers\Farmer\MarketProfileController;
@@ -31,6 +34,7 @@ use App\Http\Controllers\Farmer\WeatherController;
 */
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::post('/set-location', [HomeController::class, 'setLocation'])->name('set-location');
+Route::get('/reverse-geocode', [HomeController::class, 'reverseGeocode'])->name('reverse-geocode');
 
 // Language Switcher Route (Kannada <-> English)
 Route::get('/locale/{lang}', function (string $lang, \Illuminate\Http\Request $request) {
@@ -128,6 +132,7 @@ Route::prefix('admin')->group(function () {
         Route::delete('/crops/{crop}/variety-aliases/{mapping}', [CropController::class, 'removeVarietyAlias'])->name('admin.crops.variety-aliases.remove');
         Route::post('/crops-media/upload', [CropController::class, 'uploadMedia'])->name('admin.crops.media.upload');
         Route::post('/crops-media/batch-delete', [CropController::class, 'batchDeleteMedia'])->name('admin.crops.media.batch-delete');
+        Route::post('/crops/batch-delete', [CropController::class, 'batchDestroy'])->name('admin.crops.batch-delete');
         Route::resource('crops', CropController::class)->names('admin.crops');
         Route::resource('varieties', CropVarietyController::class)->only(['store', 'update', 'destroy'])->names('admin.varieties');
 
@@ -164,6 +169,7 @@ Route::prefix('admin')->group(function () {
 
         // Market Prices
         Route::get('/prices', [MarketPriceController::class, 'index'])->name('admin.prices.index');
+        Route::get('/prices/prune-preview', [MarketPriceController::class, 'prunePreview'])->name('admin.prices.prune-preview');
         Route::post('/prices/sync', [MarketPriceController::class, 'sync'])->name('admin.prices.sync');
         Route::post('/prices/sync-range', [MarketPriceController::class, 'syncRange'])->name('admin.prices.sync-range');
         Route::post('/prices/prune', [MarketPriceController::class, 'prune'])->name('admin.prices.prune');
@@ -212,18 +218,26 @@ Route::prefix('admin')->group(function () {
             ->only(['index', 'show', 'update', 'destroy'])
             ->names('admin.feedback');
 
-        // Feature Flags
-        Route::get('/feature-flags', [FeatureFlagController::class, 'index'])->name('admin.feature-flags.index');
-        Route::post('/feature-flags/{featureFlag}/toggle', [FeatureFlagController::class, 'toggle'])->name('admin.feature-flags.toggle');
-        Route::put('/feature-flags/{featureFlag}', [FeatureFlagController::class, 'update'])->name('admin.feature-flags.update');
+        // Feature Flags & System Settings (Super Admin Exclusive)
+        Route::middleware(['role:super_admin'])->group(function () {
+            Route::get('/feature-flags', [FeatureFlagController::class, 'index'])->name('admin.feature-flags.index');
+            Route::post('/feature-flags/{featureFlag}/toggle', [FeatureFlagController::class, 'toggle'])->name('admin.feature-flags.toggle');
+            Route::put('/feature-flags/{featureFlag}', [FeatureFlagController::class, 'update'])->name('admin.feature-flags.update');
 
-        // System Settings & Immediate System Operations
-        Route::get('/settings', [SystemSettingController::class, 'index'])->name('admin.settings.index');
-        Route::post('/settings', [SystemSettingController::class, 'update'])->name('admin.settings.update');
-        Route::post('/settings/clear-cache', [SystemSettingController::class, 'clearCache'])->name('admin.settings.clear-cache');
-        Route::post('/settings/update-database', [SystemSettingController::class, 'updateDatabase'])->name('admin.settings.update-database');
-        Route::post('/settings/prune-data', [SystemSettingController::class, 'pruneData'])->name('admin.settings.prune-data');
-        Route::post('/settings/trigger-forecasting', [SystemSettingController::class, 'triggerForecasting'])->name('admin.settings.trigger-forecasting');
+            Route::get('/settings', [SystemSettingController::class, 'index'])->name('admin.settings.index');
+            Route::post('/settings', [SystemSettingController::class, 'update'])->name('admin.settings.update');
+            Route::post('/settings/clear-cache', [SystemSettingController::class, 'clearCache'])->name('admin.settings.clear-cache');
+            Route::post('/settings/optimize', [SystemSettingController::class, 'optimizeApp'])->name('admin.settings.optimize');
+            Route::post('/settings/update-database', [SystemSettingController::class, 'updateDatabase'])->name('admin.settings.update-database');
+            Route::post('/settings/prune-data', [SystemSettingController::class, 'pruneData'])->name('admin.settings.prune-data');
+            Route::post('/settings/trigger-forecasting', [SystemSettingController::class, 'triggerForecasting'])->name('admin.settings.trigger-forecasting');
+        });
+
+        // Price Freshness & Staleness Rules Module (Async)
+        Route::get('/price-freshness', [PriceFreshnessController::class, 'index'])->name('admin.price-freshness.index');
+        Route::post('/price-freshness', [PriceFreshnessController::class, 'update'])->name('admin.price-freshness.update');
+        Route::post('/price-freshness/simulate', [PriceFreshnessController::class, 'simulate'])->name('admin.price-freshness.simulate');
+        Route::post('/price-freshness/reset', [PriceFreshnessController::class, 'reset'])->name('admin.price-freshness.reset');
 
         // Weather Storage & On-Demand Cache Engine
         Route::get('/weather', [\App\Http\Controllers\Admin\WeatherManagementController::class, 'index'])->name('admin.weather.index');
@@ -250,5 +264,16 @@ Route::prefix('admin')->group(function () {
         // Audit Trail Logs
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');
         Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('admin.audit-logs.show');
+
+        // Admin Profile & Security Settings
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('admin.profile.edit');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('admin.profile.password');
+
+        // Staff & Role Management (Super Admin Exclusive)
+        Route::middleware(['role:super_admin'])->group(function () {
+            Route::post('/users/{user}/toggle', [UserController::class, 'toggle'])->name('admin.users.toggle');
+            Route::resource('users', UserController::class)->names('admin.users');
+        });
     });
 });

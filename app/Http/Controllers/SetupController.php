@@ -20,8 +20,9 @@ class SetupController extends Controller
      */
     public function index()
     {
-        $lockFile = storage_path('installed');
-        $isInstalled = File::exists($lockFile);
+        if ($this->isLocked()) {
+            return $this->lockedResponse();
+        }
 
         $dbConnected = false;
         $dbError = null;
@@ -37,15 +38,6 @@ class SetupController extends Controller
                 $districtsCount = District::count();
                 $marketsCount = Market::count();
                 $cropsCount = Crop::count();
-            }
-
-            if ($districtsCount > 0 && $cropsCount > 0 && $isInstalled) {
-                return view('setup.locked', [
-                    'districtsCount' => $districtsCount,
-                    'marketsCount' => $marketsCount,
-                    'cropsCount' => $cropsCount,
-                    'installedAt' => $this->getInstalledTimestamp($lockFile),
-                ]);
             }
         } catch (\Throwable $e) {
             $dbError = $e->getMessage();
@@ -78,25 +70,25 @@ class SetupController extends Controller
             'bootstrap_cache' => is_writable(base_path('bootstrap/cache')),
         ];
 
-        return view('setup.index', compact(
-            'isInstalled',
-            'dbConnected',
-            'dbError',
-            'districtsCount',
-            'marketsCount',
-            'cropsCount',
-            'phpVersion',
-            'phpOk',
-            'extensions',
-            'allExtensionsOk',
-            'writablePaths',
-            'dbHost',
-            'dbPort',
-            'dbDatabase',
-            'dbUsername',
-            'appUrl',
-            'apiKey'
-        ));
+        return view('setup.index', [
+            'isInstalled' => false,
+            'dbConnected' => $dbConnected,
+            'dbError' => $dbError,
+            'districtsCount' => $districtsCount,
+            'marketsCount' => $marketsCount,
+            'cropsCount' => $cropsCount,
+            'phpVersion' => $phpVersion,
+            'phpOk' => $phpOk,
+            'extensions' => $extensions,
+            'allExtensionsOk' => $allExtensionsOk,
+            'writablePaths' => $writablePaths,
+            'dbHost' => $dbHost,
+            'dbPort' => $dbPort,
+            'dbDatabase' => $dbDatabase,
+            'dbUsername' => $dbUsername,
+            'appUrl' => $appUrl,
+            'apiKey' => $apiKey,
+        ]);
     }
 
     /**
@@ -104,6 +96,13 @@ class SetupController extends Controller
      */
     public function testDb(Request $request)
     {
+        if ($this->isLocked()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Setup wizard is permanently locked.',
+            ], 403);
+        }
+
         $request->validate([
             'host' => 'required|string',
             'port' => 'required',
@@ -136,6 +135,13 @@ class SetupController extends Controller
      */
     public function testApiKey(Request $request)
     {
+        if ($this->isLocked()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Setup wizard is permanently locked.',
+            ], 403);
+        }
+
         $apiKey = $request->input('api_key');
         if (empty($apiKey)) {
             return response()->json([
@@ -175,14 +181,8 @@ class SetupController extends Controller
      */
     public function run(Request $request)
     {
-        $lockFile = storage_path('installed');
-        if (File::exists($lockFile)) {
-            return response()->view('setup.locked', [
-                'districtsCount' => District::count(),
-                'marketsCount' => Market::count(),
-                'cropsCount' => Crop::count(),
-                'installedAt' => $this->getInstalledTimestamp($lockFile),
-            ], 403);
+        if ($this->isLocked()) {
+            return $this->lockedResponse();
         }
 
         $request->validate([
@@ -283,6 +283,7 @@ class SetupController extends Controller
             Artisan::call('optimize:clear');
 
             // 10. Permanently Lock Setup Wizard
+            $lockFile = storage_path('installed');
             File::put($lockFile, json_encode([
                 'installed_at' => now()->toIso8601String(),
                 'version' => '1.0.0',
@@ -292,10 +293,127 @@ class SetupController extends Controller
                 'crops_count' => Crop::count(),
             ], JSON_PRETTY_PRINT));
 
+            $this->updateEnvironmentFile([
+                'APP_INSTALLED' => 'true',
+                'ENABLE_SETUP_WIZARD' => 'false',
+            ]);
+
             return redirect()->route('admin.login')->with('success', 'Krushi Baandhava has been installed and secured successfully! Setup is now permanently locked. Please log in with your Super Admin account.');
 
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', 'Installation failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check if setup is permanently locked.
+     */
+    protected function isLocked(): bool
+    {
+        $lockFile = storage_path('installed');
+        if (File::exists($lockFile)) {
+            return true;
+        }
+
+        // Check environment locks
+        $appInstalled = filter_var(env('APP_INSTALLED', false), FILTER_VALIDATE_BOOLEAN);
+        $enableWizard = env('ENABLE_SETUP_WIZARD') !== null 
+            ? filter_var(env('ENABLE_SETUP_WIZARD'), FILTER_VALIDATE_BOOLEAN) 
+            : null;
+
+        if ($appInstalled || $enableWizard === false) {
+            $this->ensureLockFileExists('Environment set to installed or wizard disabled');
+            return true;
+        }
+
+        // In production, setup is strictly locked unless explicitly ENABLE_SETUP_WIZARD=true
+        if (app()->isProduction() && $enableWizard !== true) {
+            $this->ensureLockFileExists('Production environment automatic lockdown');
+            return true;
+        }
+
+        // Auto-detect existing active database schema and catalog/users
+        try {
+            DB::connection()->getPdo();
+
+            $hasUsers = \Illuminate\Support\Facades\Schema::hasTable('users') 
+                && User::where('role', '!=', User::ROLE_FARMER)->exists();
+
+            $hasData = \Illuminate\Support\Facades\Schema::hasTable('districts') 
+                && District::count() > 0 
+                && \Illuminate\Support\Facades\Schema::hasTable('crops') 
+                && Crop::count() > 0;
+
+            if ($hasUsers || $hasData) {
+                $this->ensureLockFileExists('Active database detected with existing users or agricultural data');
+                $this->updateEnvironmentFile([
+                    'APP_INSTALLED' => 'true',
+                    'ENABLE_SETUP_WIZARD' => 'false',
+                ]);
+                return true;
+            }
+        } catch (\Throwable $e) {
+            // Database not yet connected or tables don't exist yet
+        }
+
+        return false;
+    }
+
+    /**
+     * Return standard 403 response with locked view.
+     */
+    protected function lockedResponse()
+    {
+        $districtsCount = 0;
+        $marketsCount = 0;
+        $cropsCount = 0;
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('districts')) {
+                $districtsCount = District::count();
+                $marketsCount = Market::count();
+                $cropsCount = Crop::count();
+            }
+        } catch (\Throwable $e) {
+            // DB not reachable
+        }
+
+        return response()->view('setup.locked', [
+            'districtsCount' => $districtsCount,
+            'marketsCount' => $marketsCount,
+            'cropsCount' => $cropsCount,
+            'installedAt' => $this->getInstalledTimestamp(storage_path('installed')),
+        ], 403);
+    }
+
+    /**
+     * Ensure the storage/installed lockfile exists.
+     */
+    protected function ensureLockFileExists(string $reason = 'Installed'): void
+    {
+        $lockFile = storage_path('installed');
+        if (!File::exists($lockFile)) {
+            try {
+                $districtsCount = 0;
+                $marketsCount = 0;
+                $cropsCount = 0;
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('districts')) {
+                    $districtsCount = District::count();
+                    $marketsCount = Market::count();
+                    $cropsCount = Crop::count();
+                }
+
+                File::put($lockFile, json_encode([
+                    'installed_at' => now()->toIso8601String(),
+                    'reason' => $reason,
+                    'districts_count' => $districtsCount,
+                    'markets_count' => $marketsCount,
+                    'crops_count' => $cropsCount,
+                ], JSON_PRETTY_PRINT));
+            } catch (\Throwable $e) {
+                @file_put_contents($lockFile, 'LOCKED: ' . now()->toIso8601String());
+            }
         }
     }
 
@@ -334,6 +452,9 @@ class SetupController extends Controller
     protected function getInstalledTimestamp(string $lockFile): string
     {
         try {
+            if (!File::exists($lockFile)) {
+                return 'Active System';
+            }
             $data = json_decode(File::get($lockFile), true);
             return $data['installed_at'] ?? 'Previously Installed';
         } catch (\Throwable $e) {

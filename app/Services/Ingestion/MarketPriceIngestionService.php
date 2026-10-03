@@ -543,10 +543,10 @@ class MarketPriceIngestionService
     /**
      * Resolve raw variety string to CropVariety model.
      */
-    protected function resolveVariety(int $cropId, ?string $varietyName, ?int $dataSourceId = null): ?CropVariety
+    public function resolveVariety(int $cropId, ?string $varietyName, ?int $dataSourceId = null): ?CropVariety
     {
         if (empty($varietyName)) {
-            return CropVariety::where('crop_id', $cropId)->first();
+            return $this->getGenericVarietyForCrop($cropId);
         }
 
         $clean = trim($varietyName);
@@ -584,7 +584,56 @@ class MarketPriceIngestionService
             })
             ->first();
 
-        return $variety ?: CropVariety::where('crop_id', $cropId)->first();
+        if ($variety) {
+            return $variety;
+        }
+
+        // 4. Intelligent prefix stripping: e.g. "Paddy Sona" -> "Sona", "Paddy (Sona)" -> "Sona"
+        $crop = Crop::find($cropId);
+        if ($crop) {
+            $stripped = trim(preg_replace('/^' . preg_quote($crop->name, '/') . '\s*[\(\-]?\s*/i', '', $clean));
+            $stripped = trim(preg_replace('/[\)]$/', '', $stripped));
+            if ($stripped !== '' && strtolower($stripped) !== strtolower($clean)) {
+                $subVariety = CropVariety::where('crop_id', $cropId)
+                    ->where(function ($q) use ($stripped) {
+                        $q->where('name', 'like', "%{$stripped}%")
+                            ->orWhere('slug', 'like', "%" . Str::slug($stripped) . "%");
+                    })
+                    ->first();
+
+                if ($subVariety) {
+                    return $subVariety;
+                }
+            }
+        }
+
+        // 5. Fallback to generic variety (matching crop name, "Common", "Standard", etc.)
+        return $this->getGenericVarietyForCrop($cropId);
+    }
+
+    /**
+     * Get a sensible generic variety for a crop rather than picking a specific cultivar at random.
+     */
+    protected function getGenericVarietyForCrop(int $cropId): ?CropVariety
+    {
+        $crop = Crop::find($cropId);
+        if ($crop) {
+            $generic = CropVariety::where('crop_id', $cropId)
+                ->where(function ($q) use ($crop) {
+                    $q->where('name', $crop->name)
+                        ->orWhere('name', 'Common')
+                        ->orWhere('name', 'Standard')
+                        ->orWhere('name', 'Average')
+                        ->orWhere('name', 'General');
+                })
+                ->first();
+
+            if ($generic) {
+                return $generic;
+            }
+        }
+
+        return CropVariety::where('crop_id', $cropId)->first();
     }
 
     /**
@@ -607,72 +656,13 @@ class MarketPriceIngestionService
                 ->get();
         }
 
-        // 1. Direct DataSource mapping with District match
-        if ($cleanDistrict) {
-            $exactWithDistrict = MarketSourceMapping::where('data_source_id', $dataSourceId)
-                ->where('source_market_name', $cleanMarket)
-                ->where('source_district_name', $cleanDistrict)
-                ->with(['market.district.state'])
-                ->first();
-
-            if ($exactWithDistrict && $exactWithDistrict->market) {
-                $m = $exactWithDistrict->market;
-                if ($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') {
-                    return $this->resolvedMarketsCache[$cacheKey] = $m;
-                }
-            }
-        }
-
-        // 2. Direct DataSource mapping without District match
-        $aliasMapping = MarketSourceMapping::where('data_source_id', $dataSourceId)
-            ->where('source_market_name', $cleanMarket)
-            ->whereNull('source_district_name')
-            ->with(['market.district.state'])
-            ->first();
-
-        if ($aliasMapping && $aliasMapping->market) {
-            $m = $aliasMapping->market;
-            if ($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') {
-                return $this->resolvedMarketsCache[$cacheKey] = $m;
-            }
-        }
-
-        // 3. Global verified mapping fallback across any data source
-        $globalKey = "global:{$cleanMarket}";
-        if (array_key_exists($globalKey, $this->resolvedMarketsCache)) {
-            $m = $this->resolvedMarketsCache[$globalKey];
-            if ($m !== null) {
-                return $this->resolvedMarketsCache[$cacheKey] = $m;
-            }
-        } else {
-            $globalMarketMapping = MarketSourceMapping::where('source_market_name', $cleanMarket)
-                ->where('is_verified', true)
-                ->with(['market.district.state'])
-                ->first();
-
-            if ($globalMarketMapping && $globalMarketMapping->market) {
-                $m = $globalMarketMapping->market;
-                if ($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') {
-                    $this->resolvedMarketsCache[$globalKey] = $m;
-                    return $this->resolvedMarketsCache[$cacheKey] = $m;
-                }
-            }
-            $this->resolvedMarketsCache[$globalKey] = null;
-        }
-
-        // 4. In-memory intelligent matching against Karnataka markets
         $normalizedSearch = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $cleanMarket)));
 
+        // 1. Primacy: Direct Canonical Karnataka APMC Market Match
+        // If the source market name directly matches a canonical APMC market, prioritize it!
         foreach ($this->karnatakaMarketsCache as $mandi) {
             $mName = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $mandi->name)));
-            if (
-                $mName === $normalizedSearch ||
-                strtolower($mandi->slug) === Str::slug($cleanMarket) ||
-                $mandi->name_kn === $cleanMarket ||
-                str_starts_with($mName, $normalizedSearch) ||
-                str_starts_with($normalizedSearch, $mName)
-            ) {
-                // If district name is provided, verify it matches the market's district if possible
+            if ($mName === $normalizedSearch || strtolower($mandi->slug) === Str::slug($cleanMarket) || $mandi->name_kn === $cleanMarket) {
                 if ($cleanDistrict && $mandi->district) {
                     $distClean = strtolower(trim(preg_replace('/\b(district|dist)\b/i', '', $cleanDistrict)));
                     $mDistClean = strtolower(trim(preg_replace('/\b(district|dist)\b/i', '', $mandi->district->name)));
@@ -685,7 +675,92 @@ class MarketPriceIngestionService
             }
         }
 
-        // 5. Fallback: direct search in markets table strictly restricted to Karnataka
+        // 2. Direct DataSource mapping with District match
+        if ($cleanDistrict) {
+            $exactWithDistrict = MarketSourceMapping::where('data_source_id', $dataSourceId)
+                ->where('source_market_name', $cleanMarket)
+                ->where('source_district_name', $cleanDistrict)
+                ->with(['market.district.state'])
+                ->first();
+
+            if ($exactWithDistrict && $exactWithDistrict->market) {
+                $m = $exactWithDistrict->market;
+                if (($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') && $this->isPlausibleMarketMatch($cleanMarket, $m)) {
+                    return $this->resolvedMarketsCache[$cacheKey] = $m;
+                }
+            }
+        }
+
+        // 3. Direct DataSource mapping (matches aliases without requiring district match)
+        $aliasMapping = MarketSourceMapping::where('data_source_id', $dataSourceId)
+            ->where('source_market_name', $cleanMarket)
+            ->with(['market.district.state'])
+            ->first();
+
+        if ($aliasMapping && $aliasMapping->market) {
+            $m = $aliasMapping->market;
+            if (($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') && $this->isPlausibleMarketMatch($cleanMarket, $m)) {
+                return $this->resolvedMarketsCache[$cacheKey] = $m;
+            }
+        }
+
+        // 4. Global verified mapping fallback across any data source (prioritizing standard APMC markets)
+        $globalKey = "global:{$cleanMarket}";
+        if (array_key_exists($globalKey, $this->resolvedMarketsCache)) {
+            $m = $this->resolvedMarketsCache[$globalKey];
+            if ($m !== null) {
+                return $this->resolvedMarketsCache[$cacheKey] = $m;
+            }
+        } else {
+            $globalMarketMapping = MarketSourceMapping::where('source_market_name', $cleanMarket)
+                ->where('is_verified', true)
+                ->whereHas('market', function ($q) {
+                    $q->where('market_type', 'APMC');
+                })
+                ->with(['market.district.state'])
+                ->first();
+
+            if (!$globalMarketMapping) {
+                $globalMarketMapping = MarketSourceMapping::where('source_market_name', $cleanMarket)
+                    ->where('is_verified', true)
+                    ->with(['market.district.state'])
+                    ->first();
+            }
+
+            if ($globalMarketMapping && $globalMarketMapping->market) {
+                $m = $globalMarketMapping->market;
+                if (($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') && $this->isPlausibleMarketMatch($cleanMarket, $m)) {
+                    $this->resolvedMarketsCache[$globalKey] = $m;
+                    return $this->resolvedMarketsCache[$cacheKey] = $m;
+                }
+            }
+            $this->resolvedMarketsCache[$globalKey] = null;
+        }
+
+        // 5. In-memory intelligent prefix/suffix matching against Karnataka markets
+        foreach ($this->karnatakaMarketsCache as $mandi) {
+            $mName = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $mandi->name)));
+            if (
+                str_starts_with($mName, $normalizedSearch) ||
+                (strlen($normalizedSearch) >= 4 && str_starts_with($normalizedSearch, $mName))
+            ) {
+                if ($cleanDistrict && $mandi->district) {
+                    $distClean = strtolower(trim(preg_replace('/\b(district|dist)\b/i', '', $cleanDistrict)));
+                    $mDistClean = strtolower(trim(preg_replace('/\b(district|dist)\b/i', '', $mandi->district->name)));
+                    if ($distClean === $mDistClean || str_contains($mDistClean, $distClean) || str_contains($distClean, $mDistClean)) {
+                        if ($this->isPlausibleMarketMatch($cleanMarket, $mandi)) {
+                            return $this->resolvedMarketsCache[$cacheKey] = $mandi;
+                        }
+                    }
+                } else {
+                    if ($this->isPlausibleMarketMatch($cleanMarket, $mandi)) {
+                        return $this->resolvedMarketsCache[$cacheKey] = $mandi;
+                    }
+                }
+            }
+        }
+
+        // 6. Fallback: direct search in markets table strictly restricted to Karnataka
         $clean = trim($sourceMarketName);
         $market = Market::karnataka()
             ->where(function ($q) use ($clean) {
@@ -695,7 +770,82 @@ class MarketPriceIngestionService
             })
             ->first();
 
-        return $this->resolvedMarketsCache[$cacheKey] = $market;
+        if ($market && $this->isPlausibleMarketMatch($cleanMarket, $market)) {
+            return $this->resolvedMarketsCache[$cacheKey] = $market;
+        }
+
+        return $this->resolvedMarketsCache[$cacheKey] = null;
+    }
+
+    /**
+     * Validate that a source market name plausibly belongs to the target Market.
+     * Prevents cross-mandi misattributions (e.g. Chintamani -> Chikkaballapura).
+     */
+    public function isPlausibleMarketMatch(string $sourceMarketName, Market $market): bool
+    {
+        $cleanSource = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $sourceMarketName)));
+        $cleanTarget = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $market->name)));
+
+        // 1. Direct equality or slug equality
+        if ($cleanSource === $cleanTarget || strtolower($market->slug) === Str::slug($sourceMarketName)) {
+            return true;
+        }
+
+        // 2. Substring match
+        if (str_contains($cleanTarget, $cleanSource) || str_contains($cleanSource, $cleanTarget)) {
+            return true;
+        }
+
+        // 3. String similarity >= 65% (handles spelling variations like Shimoga/Shivamogga, Belgaum/Belagavi)
+        similar_text($cleanSource, $cleanTarget, $percent);
+        if ($percent >= 65.0) {
+            return true;
+        }
+
+        // 4. Check if explicitly listed in KarnatakaMandiDirectory aliases for this market (by code or canonical name)
+        static $directoryAliasesByCode = null;
+        static $directoryAliasesByName = null;
+        if ($directoryAliasesByCode === null) {
+            $directoryAliasesByCode = [];
+            $directoryAliasesByName = [];
+            foreach (\App\Support\KarnatakaMandiDirectory::all() as $item) {
+                $code = $item['code'] ?? null;
+                $cleanDirName = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $item['name'] ?? '')));
+                if (!empty($item['raw_aliases'])) {
+                    foreach ($item['raw_aliases'] as $alias) {
+                        $normAlias = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $alias)));
+                        if ($code) {
+                            $directoryAliasesByCode[$code][] = $normAlias;
+                        }
+                        if ($cleanDirName !== '') {
+                            $directoryAliasesByName[$cleanDirName][] = $normAlias;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isset($directoryAliasesByCode[$market->code]) && in_array($cleanSource, $directoryAliasesByCode[$market->code], true)) {
+            return true;
+        }
+
+        if (isset($directoryAliasesByName[$cleanTarget]) && in_array($cleanSource, $directoryAliasesByName[$cleanTarget], true)) {
+            return true;
+        }
+
+        // 5. Fatal conflict check: if the source matches a DIFFERENT canonical Karnataka APMC market, reject!
+        $otherCanonical = $this->karnatakaMarketsCache?->first(function ($m) use ($cleanSource, $market) {
+            if ($m->id === $market->id) return false;
+            $cleanName = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $m->name)));
+            return $cleanName === $cleanSource;
+        });
+
+        if ($otherCanonical) {
+            \Log::warning("Market mapping rejected: source '{$sourceMarketName}' was mapped to '{$market->name}' (ID: {$market->id}), but distinct canonical market '{$otherCanonical->name}' (ID: {$otherCanonical->id}) exists!");
+            return false;
+        }
+
+        return false;
     }
 
     /**

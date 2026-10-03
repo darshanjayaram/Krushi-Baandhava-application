@@ -14,19 +14,19 @@
             </h1>
             <p class="text-sm text-slate-400 font-medium">Canonicalized, deduplicated APMC mandi price feeds from Karnataka State APMC (KRAMA), Official AGMARKNET, data.gov.in, TSS Sirsi, and commodity boards.</p>
         </div>
-        <div class="flex items-center flex-wrap gap-2">
-            <button @click="archiveDrawerOpen = !archiveDrawerOpen" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shadow-sm cursor-pointer">
-                <span>📅 Archive & Volume</span>
-                <span class="text-[10px] px-1.5 py-0.2 bg-slate-800 text-cyan-400 rounded-md font-mono" x-text="archiveDrawerOpen ? '▲ Hide' : '▼ View'"></span>
+        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <button @click="archiveDrawerOpen = !archiveDrawerOpen" type="button" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shadow-sm cursor-pointer">
+                <span>📅 Archive</span>
+                <span class="text-[10px] px-1.5 py-0.5 bg-slate-800 text-cyan-400 rounded-md font-mono" x-text="archiveDrawerOpen ? '▲' : '▼'"></span>
             </button>
-            <button @click="pruneModalOpen = true" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-300 bg-slate-900 border border-rose-900/60 rounded-xl hover:bg-rose-950/60 transition shadow-sm cursor-pointer">
-                <span>🗑️ Prune & Retention</span>
+            <button @click="openPruneModal()" type="button" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-300 bg-slate-900 border border-rose-900/60 rounded-xl hover:bg-rose-950/60 transition shadow-sm cursor-pointer">
+                <span>🗑️ Prune</span>
             </button>
-            <a href="{{ route('admin.sync-logs.index') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shadow-sm">
-                <span>📜 Sync Logs</span>
+            <a href="{{ route('admin.sync-logs.index') }}" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shadow-sm">
+                <span>📜 Logs</span>
             </a>
-            <button @click="resetSyncModal(); syncModalOpen = true" type="button" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
-                <span>⚡ Run Ingestion Sync</span>
+            <button @click="resetSyncModal(); syncModalOpen = true" type="button" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
+                <span>⚡ Run Sync</span>
             </button>
         </div>
     </div>
@@ -262,6 +262,11 @@
 
     <!-- Data Table Card -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <!-- Mobile Table Swipe Hint -->
+        <div class="sm:hidden flex items-center justify-between px-3.5 py-2 bg-slate-950/70 border-b border-slate-800 text-[11px] text-slate-400">
+            <span class="flex items-center gap-1.5 font-medium"><span>👈</span> <span>Swipe table horizontally</span> <span>👉</span></span>
+            <span class="text-emerald-400 font-bold">Rates & Actions on right</span>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-300">
                 <thead class="bg-slate-950/80 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
@@ -378,7 +383,7 @@
              x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
-             class="relative z-10 bg-slate-900 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-700 text-white my-8"
+             class="relative z-10 bg-slate-900 rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl border border-slate-700 text-white my-auto max-h-[90vh] overflow-y-auto"
              @click.away="syncConsoleState === 'syncing' ? null : syncModalOpen = false">
             
             <!-- Dynamic Header -->
@@ -610,68 +615,94 @@
                 </form>
             </div>
 
-            <!-- STATE 2: SYNCING (LIVE PROGRESS CONSOLE) -->
-            <div x-show="syncConsoleState === 'syncing'" class="py-6 space-y-6">
+            <!-- STATE 2: SYNCING (LIVE REAL-TIME STREAMING CONSOLE) -->
+            <div x-show="syncConsoleState === 'syncing'" class="py-5 space-y-4">
                 <!-- Elapsed Time Badge & Mode -->
-                <div class="flex items-center justify-between">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-950/80 border border-emerald-800/80 rounded-full text-xs font-bold text-emerald-400">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span x-text="syncMode === 'range' ? 'Historical Range Backfill' : 'Single Date Feed Ingestion'"></span>
-                    </span>
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-950/80 border border-emerald-800/80 rounded-full text-xs font-bold text-emerald-400">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span x-text="syncMode === 'range' ? 'Historical Range Backfill' : 'Single Date Feed Ingestion'"></span>
+                        </span>
+                        <template x-if="syncMode === 'range' && totalSlices > 1">
+                            <span class="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[11px] font-mono font-bold"
+                                  x-text="'Batch ' + (currentSliceIndex + 1) + ' of ' + totalSlices">
+                            </span>
+                        </template>
+                    </div>
                     <span class="text-xs font-mono font-bold text-slate-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
                         ⏱️ <span x-text="syncElapsedSeconds">0.0</span>s elapsed
                     </span>
                 </div>
 
                 <!-- Animated Glowing Progress Bar -->
-                <div class="space-y-2">
+                <div class="space-y-1.5 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/80">
                     <div class="flex items-center justify-between text-xs font-bold">
-                        <span class="text-slate-300 truncate max-w-[280px]" x-text="syncProgressStage">Connecting...</span>
-                        <span class="text-emerald-400 font-mono text-sm" x-text="syncProgressPercent + '%'">0%</span>
+                        <span class="text-slate-200 truncate max-w-sm flex items-center gap-1.5">
+                            <span class="animate-spin text-emerald-400" x-show="syncProgressPercent < 100">⟳</span>
+                            <span x-text="syncProgressStage">Connecting to Mandi Feeds...</span>
+                        </span>
+                        <span class="text-emerald-400 font-mono text-sm font-black" x-text="syncProgressPercent + '%'">0%</span>
                     </div>
-                    <div class="w-full bg-slate-950 border border-slate-800 rounded-full h-3.5 p-0.5 overflow-hidden">
+                    <div class="w-full bg-slate-900 border border-slate-800 rounded-full h-3 p-0.5 overflow-hidden">
                         <div class="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
                              :style="'width: ' + syncProgressPercent + '%'"></div>
                     </div>
                 </div>
 
-                <!-- Stage Timeline Steps -->
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
-                    <div class="flex items-center gap-3" :class="syncProgressPercent >= 20 ? 'text-emerald-400' : 'text-slate-500'">
-                        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border"
-                              :class="syncProgressPercent >= 20 ? 'border-emerald-500 bg-emerald-950 text-emerald-400' : 'border-slate-700 bg-slate-900 text-slate-500'">
-                            ✓
-                        </span>
-                        <span class="font-medium">Handshake with Official AGMARKNET / KRAMA mandi feeds</span>
+                <!-- Live Cumulative Counters (Ticks up in real-time) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2.5 text-center">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Feeds Ingested</div>
+                        <div class="text-lg font-black text-blue-400 mt-0.5" x-text="(syncSummary.received || 0).toLocaleString()">0</div>
                     </div>
-                    <div class="flex items-center gap-3" :class="syncProgressPercent >= 50 ? 'text-emerald-400' : 'text-slate-500'">
-                        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border"
-                              :class="syncProgressPercent >= 50 ? 'border-emerald-500 bg-emerald-950 text-emerald-400' : 'border-slate-700 bg-slate-900 text-slate-500'">
-                            <span x-show="syncProgressPercent < 50" class="animate-spin">⟳</span>
-                            <span x-show="syncProgressPercent >= 50">✓</span>
-                        </span>
-                        <span class="font-medium">SHA-256 deduplication & entity resolution (Crops, Markets, Varieties)</span>
+                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2.5 text-center">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">New Inserted</div>
+                        <div class="text-lg font-black text-emerald-400 mt-0.5" x-text="(syncSummary.inserted || 0).toLocaleString()">0</div>
                     </div>
-                    <div class="flex items-center gap-3" :class="syncProgressPercent >= 75 ? 'text-emerald-400' : 'text-slate-500'">
-                        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border"
-                              :class="syncProgressPercent >= 75 ? 'border-emerald-500 bg-emerald-950 text-emerald-400' : 'border-slate-700 bg-slate-900 text-slate-500'">
-                            <span x-show="syncProgressPercent < 75" class="animate-spin">⟳</span>
-                            <span x-show="syncProgressPercent >= 75">✓</span>
-                        </span>
-                        <span class="font-medium">Writing canonical prices & archiving raw payloads</span>
+                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2.5 text-center">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Updated</div>
+                        <div class="text-lg font-black text-cyan-400 mt-0.5" x-text="(syncSummary.updated || 0).toLocaleString()">0</div>
                     </div>
-                    <div class="flex items-center gap-3" :class="syncProgressPercent >= 90 ? 'text-emerald-400' : 'text-slate-500'">
-                        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border"
-                              :class="syncProgressPercent >= 90 ? 'border-emerald-500 bg-emerald-950 text-emerald-400' : 'border-slate-700 bg-slate-900 text-slate-500'">
-                            <span x-show="syncProgressPercent < 90" class="animate-spin">⟳</span>
-                            <span x-show="syncProgressPercent >= 90">✓</span>
-                        </span>
-                        <span class="font-medium">Aggregating price analytics & forecast telemetry</span>
+                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2.5 text-center">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Deduplicated</div>
+                        <div class="text-lg font-black text-slate-300 mt-0.5" x-text="(syncSummary.duplicate || 0).toLocaleString()">0</div>
                     </div>
                 </div>
 
-                <div class="text-center text-[11px] text-slate-500 italic">
-                    Please keep this window open while the server completes the ingestion pipeline.
+                <!-- Real-Time Activity Feed Terminal (Live Logs Streaming) -->
+                <div class="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-inner">
+                    <div class="px-3.5 py-2 bg-slate-900/90 border-b border-slate-800/80 flex items-center justify-between text-xs font-bold">
+                        <div class="flex items-center gap-2 text-slate-300">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>Live Ingestion Activity Stream</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-mono" x-text="syncLiveLogs.length + ' events logged'"></span>
+                    </div>
+                    <div class="p-3 max-h-44 overflow-y-auto space-y-1.5 font-mono text-[11px] scrollbar-thin" id="syncLiveLogContainer">
+                        <template x-for="(log, idx) in syncLiveLogs" :key="idx">
+                            <div class="flex items-start gap-2 leading-relaxed">
+                                <span class="text-slate-500 text-[10px] shrink-0 font-mono" x-text="'[' + log.time + ']'"></span>
+                                <span :class="log.type === 'success' ? 'text-emerald-300' : (log.type === 'error' ? 'text-rose-400' : (log.type === 'info' ? 'text-cyan-300' : 'text-slate-300'))" 
+                                      x-text="log.text">
+                                </span>
+                            </div>
+                        </template>
+                        <template x-if="syncLiveLogs.length === 0">
+                            <div class="text-slate-500 italic text-[11px]">Connecting to upstream APMC Mandi feeds & initializing time slices...</div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                    <span class="italic">Slices are injected chunk-by-chunk to prevent timeouts and preserve memory.</span>
+                    <template x-if="syncMode === 'range' && !abortSyncRequested">
+                        <button type="button" 
+                                @click="abortSyncRequested = true; addLiveLog('⚠️ Stop requested. Sync will finish gracefully after current batch.', 'info')" 
+                                class="text-slate-400 hover:text-rose-400 transition underline cursor-pointer font-medium">
+                            Stop after current batch
+                        </button>
+                    </template>
                 </div>
             </div>
 
@@ -838,7 +869,7 @@
              x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
-             class="relative z-10 bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-700 text-white my-8"
+             class="relative z-10 bg-slate-900 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-700 text-white my-auto max-h-[90vh] overflow-y-auto"
              @click.away="pruneModalOpen = false">
             
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -851,13 +882,70 @@
                 <button @click="pruneModalOpen = false" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">✕</button>
             </div>
 
-            <form method="POST" action="{{ route('admin.prices.prune') }}" class="mt-4 space-y-4" onsubmit="return confirm('Are you sure you want to execute this pruning operation? All monthly trends will be preserved.');">
+            <form @submit.prevent="executeAsyncPrune()" class="mt-4 space-y-4">
                 @csrf
 
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pruning Strategy</label>
-                    <div class="space-y-2">
-                        <!-- Strategy 1: Age Based -->
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Pruning Strategy</label>
+                        <button type="button" @click="fetchPrunePreview()" :disabled="prunePreviewLoading" class="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer">
+                            <span :class="prunePreviewLoading ? 'animate-spin' : ''">🔄</span>
+                            <span x-text="prunePreviewLoading ? 'Refreshing...' : 'Refresh Metrics'"></span>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <!-- Strategy 1 (NEW & RECOMMENDED): Inactive / Disabled Crops Targeted Cleanup -->
+                        <label class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'inactive_crops' ? 'border-amber-500 bg-amber-950/25 shadow-sm' : ''">
+                            <input type="radio" name="strategy" value="inactive_crops" x-model="pruneStrategy" class="mt-0.5 text-amber-500 focus:ring-amber-500">
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <div class="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                                        <span>🎯</span>
+                                        <span>Prune Records for Inactive Crops (Targeted Cleanup)</span>
+                                    </div>
+                                    <template x-if="prunePreviewData">
+                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800/80 font-bold"
+                                              x-text="(prunePreviewData.inactive_records_count || 0).toLocaleString() + ' records across ' + (prunePreviewData.inactive_crops_count || 0) + ' crops'">
+                                        </span>
+                                    </template>
+                                </div>
+                                <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                                    Safely removes historical daily trade records <strong class="text-white">only for deactivated commodities</strong> (<code class="text-amber-300 font-mono text-[10px]">is_active = false</code>). Preserves all historical rates and forecasts for your active crops.
+                                </p>
+                                
+                                <div x-show="pruneStrategy === 'inactive_crops'" class="mt-3 space-y-2.5">
+                                    <!-- Comparison Stats -->
+                                    <div class="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                                        <div>
+                                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Protected Active Crops:</span>
+                                            <span class="text-emerald-400 font-black text-xs" x-text="(prunePreviewData?.active_crops_count ?? '...') + ' Active (' + (prunePreviewData?.active_records_count?.toLocaleString() ?? '...') + ' rows)'"></span>
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Targeted For Pruning:</span>
+                                            <span class="text-rose-400 font-black text-xs" x-text="(prunePreviewData?.inactive_crops_count ?? '...') + ' Inactive (' + (prunePreviewData?.inactive_records_count?.toLocaleString() ?? '...') + ' rows)'"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Inactive Crops Drawer -->
+                                    <div x-data="{ showList: false }" class="pt-0.5">
+                                        <button type="button" @click="showList = !showList" class="text-[11px] font-bold text-amber-400 hover:text-amber-300 transition flex items-center gap-1 cursor-pointer">
+                                            <span x-text="showList ? '▲ Hide Crop List' : '▼ Inspect All Inactive Crops (' + (prunePreviewData?.inactive_crops_count ?? 0) + ')'"></span>
+                                        </button>
+                                        <div x-show="showList" class="mt-2 max-h-36 overflow-y-auto p-2 bg-slate-950 rounded-xl border border-slate-800 flex flex-wrap gap-1.5 scrollbar-thin">
+                                            <template x-for="c in prunePreviewData?.inactive_crops || []" :key="c.id">
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-slate-900 border border-slate-800 text-slate-300">
+                                                    <span class="text-white font-medium" x-text="c.name"></span>
+                                                    <span class="text-slate-500 font-mono" x-text="'(' + c.records_count.toLocaleString() + ')'"></span>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Strategy 2: Age Based -->
                         <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'age' ? 'border-emerald-600 bg-emerald-950/20' : ''">
                             <input type="radio" name="strategy" value="age" x-model="pruneStrategy" class="mt-0.5 text-emerald-500 focus:ring-emerald-500">
                             <div>
@@ -874,7 +962,7 @@
                             </div>
                         </label>
 
-                        <!-- Strategy 2: Specific Period -->
+                        <!-- Strategy 3: Specific Period -->
                         <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'period' ? 'border-emerald-600 bg-emerald-950/20' : ''">
                             <input type="radio" name="strategy" value="period" x-model="pruneStrategy" class="mt-0.5 text-emerald-500 focus:ring-emerald-500">
                             <div class="flex-1">
@@ -904,6 +992,12 @@
                     </div>
                 </div>
 
+                <!-- Async Status Box / Alerts -->
+                <div x-show="pruneAsyncError" class="p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2" style="display: none;">
+                    <span>⚠️</span>
+                    <span x-text="pruneAsyncError"></span>
+                </div>
+
                 <!-- Safety Guard Guarantee -->
                 <div class="bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-800/60 flex items-start gap-2.5 text-xs text-emerald-200">
                     <span class="text-base shrink-0">🛡️</span>
@@ -917,15 +1011,35 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" @click="pruneModalOpen = false" class="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer">
+                    <button type="button" @click="pruneModalOpen = false" :disabled="pruneExecuting" class="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer disabled:opacity-50">
                         Cancel
                     </button>
-                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-500 transition shadow-sm cursor-pointer">
-                        ⚠️ Execute Safe Prune
+                    <button type="submit" :disabled="pruneExecuting || (pruneStrategy === 'inactive_crops' && (prunePreviewData?.inactive_records_count ?? 0) === 0)" 
+                            class="px-5 py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-500 transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                        <template x-if="pruneExecuting">
+                            <span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        </template>
+                        <span x-text="pruneExecuting ? 'Pruning in Chunks...' : '⚠️ Execute Safe Prune'"></span>
                     </button>
                 </div>
             </form>
         </div>
+    </div>
+
+    <!-- Floating Toast Notification -->
+    <div x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+         class="fixed bottom-6 right-6 z-50 max-w-md p-4 rounded-2xl shadow-2xl border backdrop-blur-md flex items-center gap-3"
+         :class="toast.type === 'success' ? 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200 shadow-emerald-950/60' : (toast.type === 'warning' ? 'bg-amber-950/95 border-amber-500/50 text-amber-200 shadow-amber-950/60' : 'bg-rose-950/95 border-rose-500/50 text-rose-200 shadow-rose-950/60')"
+         style="display: none;">
+        <span class="text-xl" x-text="toast.type === 'success' ? '✅' : (toast.type === 'warning' ? '⚠️' : '❌')"></span>
+        <div class="text-xs font-semibold leading-relaxed flex-1" x-text="toast.message"></div>
+        <button type="button" @click="toast.show = false" class="text-slate-400 hover:text-white text-xs p-1">✕</button>
     </div>
 
 </div>
@@ -951,6 +1065,10 @@ function pricesManager() {
         syncSources: [],
         syncRejections: [],
         syncErrorMessage: '',
+        syncLiveLogs: [],
+        totalSlices: 0,
+        currentSliceIndex: 0,
+        abortSyncRequested: false,
         forceSync: false,
         pruneModalOpen: false,
         archiveDrawerOpen: false,
@@ -960,10 +1078,20 @@ function pricesManager() {
         fromDate: '{{ date('Y-m-d', strtotime('-90 days')) }}',
         toDate: '{{ date('Y-m-d') }}',
         updateAnalytics: true,
-        pruneStrategy: 'age',
+        pruneStrategy: 'inactive_crops',
         pruneDays: 365,
         pruneYear: '{{ count($availableYears) > 1 ? $availableYears[1] : (date('Y') - 1) }}',
         pruneMonth: '',
+        pruneExecuting: false,
+        prunePreviewLoading: false,
+        prunePreviewData: null,
+        pruneAsyncError: '',
+        toast: {
+            show: false,
+            message: '',
+            type: 'success',
+            timeout: null
+        },
         agmarknetSourceId: '{{ $dataSources->firstWhere('code', 'agmarknet_official')?->id ?? 4 }}',
         agmarknetCaptchaKey: '',
         agmarknetCaptchaImage: '',
@@ -1034,11 +1162,91 @@ function pricesManager() {
             this.fromDate = start.toISOString().split('T')[0];
         },
 
+        showToast(message, type = 'success') {
+            this.toast.message = message;
+            this.toast.type = type;
+            this.toast.show = true;
+            if (this.toast.timeout) clearTimeout(this.toast.timeout);
+            this.toast.timeout = setTimeout(() => {
+                this.toast.show = false;
+            }, 6000);
+        },
+
+        async openPruneModal() {
+            this.pruneStrategy = 'inactive_crops';
+            this.pruneAsyncError = '';
+            this.pruneModalOpen = true;
+            await this.fetchPrunePreview();
+        },
+
+        async fetchPrunePreview() {
+            this.prunePreviewLoading = true;
+            try {
+                const res = await fetch('{{ route('admin.prices.prune-preview') }}', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.prunePreviewData = data;
+                }
+            } catch (err) {
+                console.warn('Failed to load prune preview metrics:', err);
+            } finally {
+                this.prunePreviewLoading = false;
+            }
+        },
+
+        async executeAsyncPrune() {
+            if (!confirm('Execute this safe pruning operation? Monthly trends and active crop forecasts are permanently preserved.')) {
+                return;
+            }
+
+            this.pruneExecuting = true;
+            this.pruneAsyncError = '';
+
+            try {
+                const res = await fetch('{{ route('admin.prices.prune') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        strategy: this.pruneStrategy,
+                        older_than_days: this.pruneDays,
+                        year: this.pruneYear,
+                        month: this.pruneMonth
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    this.pruneModalOpen = false;
+                    this.showToast(data.message, 'success');
+                    await this.fetchPrunePreview();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2200);
+                } else {
+                    this.pruneAsyncError = data.message || 'Pruning operation completed with no records removed.';
+                    this.showToast(this.pruneAsyncError, 'warning');
+                }
+            } catch (err) {
+                this.pruneAsyncError = 'Request failed: ' + (err.message || 'Server error during pruning');
+                this.showToast(this.pruneAsyncError, 'error');
+            } finally {
+                this.pruneExecuting = false;
+            }
+        },
+
         openPruneForPeriod(yr, mo) {
             this.pruneStrategy = 'period';
             this.pruneYear = yr;
             this.pruneMonth = mo;
             this.pruneModalOpen = true;
+            this.fetchPrunePreview();
         },
 
         resetSyncModal() {
@@ -1046,6 +1254,10 @@ function pricesManager() {
             this.syncProgressPercent = 0;
             this.syncProgressStage = '';
             this.syncElapsedSeconds = 0;
+            this.syncLiveLogs = [];
+            this.totalSlices = 0;
+            this.currentSliceIndex = 0;
+            this.abortSyncRequested = false;
             this.forceSync = false;
             this.agmarknetCaptchaCode = '';
             this.syncSummary = {
@@ -1065,41 +1277,79 @@ function pricesManager() {
             }
         },
 
+        splitRangeIntoSlices(fromStr, toStr, sliceDays = 25) {
+            const slices = [];
+            let cur = new Date(fromStr + 'T00:00:00');
+            const end = new Date(toStr + 'T00:00:00');
+
+            if (isNaN(cur.getTime()) || isNaN(end.getTime()) || cur > end) {
+                return [{ from: fromStr, to: toStr }];
+            }
+
+            while (cur <= end) {
+                const sliceEnd = new Date(cur);
+                sliceEnd.setDate(sliceEnd.getDate() + (sliceDays - 1));
+                const effectiveEnd = sliceEnd > end ? end : sliceEnd;
+
+                slices.push({
+                    from: cur.toISOString().split('T')[0],
+                    to: effectiveEnd.toISOString().split('T')[0]
+                });
+
+                cur = new Date(effectiveEnd);
+                cur.setDate(cur.getDate() + 1);
+            }
+            return slices.length > 0 ? slices : [{ from: fromStr, to: toStr }];
+        },
+
+        addLiveLog(text, type = 'default') {
+            const now = new Date();
+            const time = now.toTimeString().split(' ')[0];
+            this.syncLiveLogs.push({ time, text, type });
+            if (this.syncLiveLogs.length > 300) {
+                this.syncLiveLogs.shift();
+            }
+            this.$nextTick(() => {
+                const container = document.getElementById('syncLiveLogContainer');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            });
+        },
+
         startProgressAnimation(mode) {
             this.syncConsoleState = 'syncing';
-            this.syncProgressPercent = 12;
+            this.syncProgressPercent = 8;
             this.syncElapsedSeconds = 0;
             this.syncProgressStage = mode === 'range' 
                 ? 'Connecting to Official AGMARKNET / KRAMA historical archive...'
                 : 'Connecting to upstream APMC mandi feeds...';
 
+            if (this.syncTimerInterval) clearInterval(this.syncTimerInterval);
             this.syncTimerInterval = setInterval(() => {
                 this.syncElapsedSeconds = +(this.syncElapsedSeconds + 0.5).toFixed(1);
             }, 500);
 
-            const stages = mode === 'range' ? [
-                { at: 28, text: 'Querying Karnataka district auction logs...' },
-                { at: 52, text: 'Hashing payloads with SHA-256 to isolate duplicates...' },
-                { at: 74, text: 'Upserting canonical records & resolving market entities...' },
-                { at: 88, text: 'Pre-aggregating monthly statistics & price projection models...' }
-            ] : [
-                { at: 35, text: 'Retrieving official auction trade payloads...' },
-                { at: 65, text: 'Normalizing varieties & checking SHA-256 duplicate checksums...' },
-                { at: 85, text: 'Writing canonical records into database...' }
-            ];
+            if (mode === 'single') {
+                const stages = [
+                    { at: 35, text: 'Retrieving official auction trade payloads...' },
+                    { at: 65, text: 'Normalizing varieties & checking SHA-256 duplicate checksums...' },
+                    { at: 85, text: 'Writing canonical records into database...' }
+                ];
+                let stageIdx = 0;
+                if (this.syncProgressInterval) clearInterval(this.syncProgressInterval);
+                this.syncProgressInterval = setInterval(() => {
+                    if (this.syncProgressPercent < 90) {
+                        this.syncProgressPercent += Math.floor(Math.random() * 8) + 4;
+                        if (this.syncProgressPercent > 90) this.syncProgressPercent = 90;
 
-            let stageIdx = 0;
-            this.syncProgressInterval = setInterval(() => {
-                if (this.syncProgressPercent < 92) {
-                    this.syncProgressPercent += Math.floor(Math.random() * 7) + 3;
-                    if (this.syncProgressPercent > 92) this.syncProgressPercent = 92;
-
-                    if (stageIdx < stages.length && this.syncProgressPercent >= stages[stageIdx].at) {
-                        this.syncProgressStage = stages[stageIdx].text;
-                        stageIdx++;
+                        if (stageIdx < stages.length && this.syncProgressPercent >= stages[stageIdx].at) {
+                            this.syncProgressStage = stages[stageIdx].text;
+                            stageIdx++;
+                        }
                     }
-                }
-            }, 500);
+                }, 500);
+            }
         },
 
         finishProgress(data) {
@@ -1107,18 +1357,18 @@ function pricesManager() {
             if (this.syncProgressInterval) clearInterval(this.syncProgressInterval);
             this.syncProgressPercent = 100;
             this.syncProgressStage = 'Ingestion complete!';
-            this.syncSummary = data.summary || {
-                received: 0,
-                inserted: 0,
-                updated: 0,
-                duplicate: 0,
-                rejected: 0
-            };
-            this.syncSources = data.sources || [];
-            this.syncRejections = data.rejections || [];
+            if (data && data.summary) {
+                this.syncSummary = data.summary;
+            }
+            if (data && data.sources) {
+                this.syncSources = data.sources;
+            }
+            if (data && data.rejections) {
+                this.syncRejections = data.rejections;
+            }
             setTimeout(() => {
                 this.syncConsoleState = 'completed';
-            }, 350);
+            }, 450);
         },
 
         handleSyncError(msg) {
@@ -1129,58 +1379,183 @@ function pricesManager() {
         },
 
         async runSync(mode) {
-            this.startProgressAnimation(mode);
+            this.syncConsoleState = 'syncing';
+            this.syncProgressPercent = 4;
+            this.syncLiveLogs = [];
+            this.abortSyncRequested = false;
+            this.syncSummary = {
+                received: 0,
+                inserted: 0,
+                updated: 0,
+                duplicate: 0,
+                rejected: 0
+            };
+            this.syncSources = [];
+            this.syncRejections = [];
+            this.syncErrorMessage = '';
+
+            if (this.syncTimerInterval) clearInterval(this.syncTimerInterval);
+            this.syncElapsedSeconds = 0;
+            this.syncTimerInterval = setInterval(() => {
+                this.syncElapsedSeconds = +(this.syncElapsedSeconds + 0.5).toFixed(1);
+            }, 500);
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
-            let url = '';
-            let payload = {};
+            const selectedCropObj = this.availableCrops.find(c => String(c.id) === String(this.selectedCrop));
+            const cropLabel = selectedCropObj ? (selectedCropObj.name || selectedCropObj.kannada_name) : 'All Active Crops';
 
             if (mode === 'single') {
-                url = '{{ route('admin.prices.sync') }}';
-                payload = {
-                    data_source_id: this.selectedSource || null,
-                    crop_id: this.selectedCrop || null,
-                    target_date: this.targetDate,
-                    force: this.forceSync ? 1 : 0,
-                    captcha_key: this.agmarknetCaptchaKey || null,
-                    captcha_code: this.agmarknetCaptchaCode || null,
-                };
-            } else {
-                url = '{{ route('admin.prices.sync-range') }}';
-                payload = {
-                    data_source_id: this.selectedSource || null,
-                    crop_id: this.selectedCrop || null,
-                    from_date: this.fromDate,
-                    to_date: this.toDate,
-                    update_analytics: this.updateAnalytics ? 1 : 0,
-                    force: this.forceSync ? 1 : 0,
-                    captcha_key: this.agmarknetCaptchaKey || null,
-                    captcha_code: this.agmarknetCaptchaCode || null,
-                };
+                this.startProgressAnimation('single');
+                this.syncProgressStage = `Connecting to Mandi Feeds for ${this.targetDate}...`;
+                this.addLiveLog(`🚀 Starting single-day ingestion for ${cropLabel} on ${this.targetDate}`, 'info');
+
+                try {
+                    const resp = await fetch('{{ route('admin.prices.sync') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({
+                            data_source_id: this.selectedSource || null,
+                            crop_id: this.selectedCrop || null,
+                            target_date: this.targetDate,
+                            force: this.forceSync ? 1 : 0,
+                            captcha_key: this.agmarknetCaptchaKey || null,
+                            captcha_code: this.agmarknetCaptchaCode || null,
+                        })
+                    });
+
+                    const data = await resp.json();
+                    if (!resp.ok || !data.ok) {
+                        const errMsg = data.message || 'Server returned status ' + resp.status;
+                        this.addLiveLog(`❌ Sync failed: ${errMsg}`, 'error');
+                        this.handleSyncError(errMsg);
+                        return;
+                    }
+
+                    const mNames = data.synced_markets && data.synced_markets.length 
+                        ? ` across ${data.synced_markets.slice(0, 4).join(', ')}` 
+                        : '';
+                    const insCount = data.summary?.inserted || 0;
+                    const dupCount = data.summary?.duplicate || 0;
+                    this.addLiveLog(`✅ Complete: ${data.summary?.received || 0} feeds (${insCount} inserted, ${dupCount} duplicates)${mNames}`, insCount > 0 ? 'success' : 'default');
+                    this.finishProgress(data);
+                } catch (err) {
+                    this.addLiveLog(`❌ Network error: ${err.message}`, 'error');
+                    this.handleSyncError(err.message || 'Network request failed');
+                }
+                return;
             }
 
-            try {
-                const resp = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                    },
-                    body: JSON.stringify(payload)
-                });
+            // MODE === 'range': Chunked Slices Ingestion
+            const slices = this.splitRangeIntoSlices(this.fromDate, this.toDate, 25);
+            this.totalSlices = slices.length;
+            this.addLiveLog(`🗓️ Initializing backfill for ${cropLabel} from ${this.fromDate} to ${this.toDate} (${slices.length} batch slices)`, 'info');
 
-                const data = await resp.json();
-
-                if (!resp.ok || !data.ok) {
-                    this.handleSyncError(data.message || 'Server returned status ' + resp.status);
-                    return;
+            for (let i = 0; i < slices.length; i++) {
+                if (this.abortSyncRequested) {
+                    this.addLiveLog(`⏹️ Sync gracefully halted by user at batch ${i + 1}/${slices.length}.`, 'info');
+                    break;
                 }
 
-                this.finishProgress(data);
-            } catch (err) {
-                this.handleSyncError(err.message || 'Network request failed');
+                this.currentSliceIndex = i + 1;
+                const slice = slices[i];
+                const isLastSlice = (i === slices.length - 1) || this.abortSyncRequested;
+                
+                // Starting percentage for this slice
+                const sliceBasePercent = Math.round((i / slices.length) * 100);
+                this.syncProgressPercent = Math.max(sliceBasePercent, 4);
+                this.syncProgressStage = `Batch ${i + 1}/${slices.length}: Ingesting ${slice.from} to ${slice.to}...`;
+                
+                this.addLiveLog(`⚡ [Batch ${i + 1}/${slices.length}] Querying ${slice.from} → ${slice.to}...`, 'info');
+
+                try {
+                    const resp = await fetch('{{ route('admin.prices.sync-range') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({
+                            data_source_id: this.selectedSource || null,
+                            crop_id: this.selectedCrop || null,
+                            from_date: slice.from,
+                            to_date: slice.to,
+                            update_analytics: this.updateAnalytics ? 1 : 0,
+                            skip_forecasts: isLastSlice ? 0 : 1, // Only final slice computes heavy Prophet/time-series models
+                            force: this.forceSync ? 1 : 0,
+                            captcha_key: this.agmarknetCaptchaKey || null,
+                            captcha_code: this.agmarknetCaptchaCode || null,
+                        })
+                    });
+
+                    const data = await resp.json();
+
+                    if (!resp.ok || !data.ok) {
+                        const errMsg = data.message || `HTTP ${resp.status} on batch ${slice.from} to ${slice.to}`;
+                        this.addLiveLog(`❌ Error on batch ${i + 1}: ${errMsg}`, 'error');
+                        this.handleSyncError(errMsg);
+                        return;
+                    }
+
+                    // Accumulate metrics
+                    if (data.summary) {
+                        this.syncSummary.received += data.summary.received || 0;
+                        this.syncSummary.inserted += data.summary.inserted || 0;
+                        this.syncSummary.updated += data.summary.updated || 0;
+                        this.syncSummary.duplicate += data.summary.duplicate || 0;
+                        this.syncSummary.rejected += data.summary.rejected || 0;
+                    }
+
+                    // Merge sources
+                    if (Array.isArray(data.sources)) {
+                        for (const s of data.sources) {
+                            if (!this.syncSources.some(existing => (existing.code || existing) === (s.code || s))) {
+                                this.syncSources.push(s);
+                            }
+                        }
+                    }
+
+                    // Merge rejections
+                    if (Array.isArray(data.rejections)) {
+                        for (const r of data.rejections) {
+                            if (!this.syncRejections.some(existing => existing.id === r.id)) {
+                                this.syncRejections.push(r);
+                            }
+                        }
+                    }
+
+                    const mNames = data.synced_markets && data.synced_markets.length 
+                        ? ` (Mandi: ${data.synced_markets.slice(0, 3).join(', ')})` 
+                        : '';
+                    const insertedCount = data.summary?.inserted || 0;
+                    const dupCount = data.summary?.duplicate || 0;
+                    
+                    const logType = insertedCount > 0 ? 'success' : 'default';
+                    this.addLiveLog(`✓ Batch ${i + 1}/${slices.length} finished: +${insertedCount} new, ${dupCount} duplicate${mNames}`, logType);
+
+                    // Update completed percentage
+                    this.syncProgressPercent = Math.round(((i + 1) / slices.length) * 100);
+
+                } catch (err) {
+                    this.addLiveLog(`❌ Network error on batch ${i + 1} (${slice.from} → ${slice.to}): ${err.message}`, 'error');
+                    this.handleSyncError(err.message || 'Network request failed during batch sync');
+                    return;
+                }
             }
+
+            this.syncProgressPercent = 100;
+            this.syncProgressStage = 'All batches completed!';
+            this.addLiveLog(`🎉 Finished! Total ${this.syncSummary.inserted.toLocaleString()} records inserted, ${this.syncSummary.duplicate.toLocaleString()} duplicates deduplicated.`, 'success');
+
+            this.finishProgress({
+                summary: this.syncSummary,
+                sources: this.syncSources,
+                rejections: this.syncRejections
+            });
         }
     };
 }

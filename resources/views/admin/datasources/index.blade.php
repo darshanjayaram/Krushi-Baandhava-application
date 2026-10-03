@@ -48,20 +48,20 @@
             </h1>
             <p class="text-sm text-slate-400 font-medium">Manage external APMC feeds, commodity boards, credential encryption & live connection health.</p>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <button type="button" 
                     @click="runSyncAll('{{ route('admin.datasources.sync-all') }}')" 
-                    class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-cyan-300 bg-cyan-950/80 border border-cyan-800 rounded-xl hover:bg-cyan-900 transition shadow-sm cursor-pointer"
+                    class="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3.5 py-2.5 sm:py-2 text-xs font-bold text-cyan-300 bg-cyan-950/80 border border-cyan-800 rounded-xl hover:bg-cyan-900 transition shadow-sm cursor-pointer"
                     :class="syncLoading && activeSyncSourceId === 'all' ? 'ring-2 ring-cyan-500' : ''"
                     title="Run batch ingestion sync for all active data sources for today">
                 <span class="text-sm" :class="syncLoading && activeSyncSourceId === 'all' ? 'animate-spin inline-block' : ''">🔄</span>
                 <span>Sync All Sources (Today: {{ now()->format('d M') }})</span>
             </button>
-            <a href="{{ route('admin.sync-logs.index') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shadow-sm">
+            <a href="{{ route('admin.sync-logs.index') }}" class="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3.5 py-2.5 sm:py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shadow-sm">
                 <span>📜 Ingestion Logs</span>
             </a>
-            <a href="{{ route('admin.datasources.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm">
-                <span>+</span> Register Data Source
+            <a href="{{ route('admin.datasources.create') }}" class="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-4 py-2.5 sm:py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm">
+                <span>+ Register Source</span>
             </a>
         </div>
     </div>
@@ -304,11 +304,19 @@
 
     <!-- Data Sources Table Card -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="px-4 sm:px-6 py-4 border-b border-slate-800 flex items-center justify-between">
             <h2 class="font-bold text-white flex items-center gap-2">
                 <span>🔌</span> Configured Providers ({{ $dataSources->total() }})
             </h2>
             <div class="text-xs font-semibold text-slate-400">cPanel Async Batch Compatible</div>
+        </div>
+
+        <!-- Mobile Table Swipe Cue -->
+        <div class="sm:hidden px-4 py-2 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-1.5 font-medium">
+                <span>👉</span> Scroll horizontally for adapters & actions
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">Swipe ↔</span>
         </div>
 
         <div class="overflow-x-auto">

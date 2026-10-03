@@ -145,4 +145,35 @@ class Crop extends Model
         }
         return $this->name_kn ?: $this->name;
     }
+
+    /**
+     * Get the staleness threshold in days for this crop.
+     * Evaluates per-category override first; falls back to global default.
+     */
+    public function getStalenessThresholdDays(): int
+    {
+        $globalDays = (int) SystemSetting::get('crop_price_staleness_days', 14);
+        $categoryDaysMap = SystemSetting::get('category_price_staleness_days', []);
+
+        if (is_array($categoryDaysMap) && $this->category && !empty($this->category->slug)) {
+            $catSlug = $this->category->slug;
+            if (isset($categoryDaysMap[$catSlug]) && is_numeric($categoryDaysMap[$catSlug])) {
+                return max(1, (int) $categoryDaysMap[$catSlug]);
+            }
+        }
+
+        return max(1, $globalDays);
+    }
+
+    /**
+     * Get the freshness cutoff date (YYYY-MM-DD).
+     * Any price date strictly older than this date is considered stale.
+     */
+    public function getFreshnessCutoffDate(?string $anchorDate = null): string
+    {
+        $days = $this->getStalenessThresholdDays();
+        $anchor = $anchorDate ? \Carbon\Carbon::parse($anchorDate) : \Carbon\Carbon::today();
+
+        return $anchor->subDays($days)->toDateString();
+    }
 }

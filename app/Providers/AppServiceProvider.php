@@ -62,8 +62,13 @@ class AppServiceProvider extends ServiceProvider
                 $activeDistrict = $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
             }
 
+            $activeLocalArea = $request->cookie('selected_local_area') ?? session('selected_local_area');
+            $activeLocalAreaKn = $request->cookie('selected_local_area_kn') ?? session('selected_local_area_kn');
+
             $view->with('allDistricts', $allDistricts)
-                 ->with('activeDistrict', $activeDistrict);
+                 ->with('activeDistrict', $activeDistrict)
+                 ->with('activeLocalArea', $activeLocalArea)
+                 ->with('activeLocalAreaKn', $activeLocalAreaKn);
         });
     }
 }

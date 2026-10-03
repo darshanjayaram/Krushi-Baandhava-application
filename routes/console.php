@@ -124,5 +124,16 @@ Schedule::command('krushi:prune-prices --days=365')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/prune_nightly.log'));
 
-
-
+/*
+|--------------------------------------------------------------------------
+| Automated Daily Data Integrity Auditor (KRAMA 1:1 Fidelity & Zero Ghost Mandis)
+|--------------------------------------------------------------------------
+|
+| Nightly audit & auto-reconciliation: 20:30 IST (after evening KRAMA sync)
+|
+*/
+Schedule::command('data:audit-integrity --days=3 --fix')
+    ->dailyAt('20:30')
+    ->withoutOverlapping(30)
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/audit_integrity.log'));

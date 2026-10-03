@@ -238,8 +238,13 @@ class HomeController extends Controller
             }
         }
 
+        $activeLocalArea = $request->cookie('selected_local_area') ?? session('selected_local_area');
+        $activeLocalAreaKn = $request->cookie('selected_local_area_kn') ?? session('selected_local_area_kn');
+
         return view('farmer.home', compact(
             'activeDistrict',
+            'activeLocalArea',
+            'activeLocalAreaKn',
             'allDistricts',
             'latestPrices',
             'categories',
@@ -265,6 +270,140 @@ class HomeController extends Controller
     }
 
     /**
+     * Reverse geocode GPS coordinates to identify hyperlocal town/suburb/village name
+     * using OpenStreetMap Nominatim with bilingual Kannada/English support, concurrent pooling, and 24-hr caching.
+     */
+    public function reverseGeocode(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $lat = $request->query('lat');
+        $lon = $request->query('lon');
+
+        if (!$lat || !$lon || !is_numeric($lat) || !is_numeric($lon)) {
+            return response()->json(['success' => false, 'message' => 'Invalid coordinates'], 400);
+        }
+
+        // Round to 3 decimal places (~1km radius) for high cache hit rate across local farmers
+        $latRound = round((float) $lat, 3);
+        $lonRound = round((float) $lon, 3);
+        $cacheKey = "krushi_rev_geo_{$latRound}_{$lonRound}";
+
+        $result = \Illuminate\Support\Facades\Cache::remember($cacheKey, 86400, function () use ($latRound, $lonRound) {
+            try {
+                // Fetch English and Kannada details concurrently in parallel using Http::pool (zoom 14 for town/city level)
+                $responses = \Illuminate\Support\Facades\Http::pool(fn ($pool) => [
+                    $pool->withoutVerifying()
+                        ->withHeaders(['User-Agent' => 'KrushiBaandhava/1.0 (https://krushibaandhava.in; contact@krushibaandhava.in)'])
+                        ->timeout(3.0)
+                        ->get('https://nominatim.openstreetmap.org/reverse', [
+                            'format' => 'jsonv2',
+                            'lat' => $latRound,
+                            'lon' => $lonRound,
+                            'zoom' => 14,
+                            'accept-language' => 'en',
+                        ]),
+                    $pool->withoutVerifying()
+                        ->withHeaders(['User-Agent' => 'KrushiBaandhava/1.0 (https://krushibaandhava.in; contact@krushibaandhava.in)'])
+                        ->timeout(3.0)
+                        ->get('https://nominatim.openstreetmap.org/reverse', [
+                            'format' => 'jsonv2',
+                            'lat' => $latRound,
+                            'lon' => $lonRound,
+                            'zoom' => 14,
+                            'accept-language' => 'kn,en',
+                        ]),
+                ]);
+
+                $resEn = $responses[0] instanceof \Illuminate\Http\Client\Response && $responses[0]->successful() ? $responses[0]->json() : null;
+                $resKn = $responses[1] instanceof \Illuminate\Http\Client\Response && $responses[1]->successful() ? $responses[1]->json() : null;
+
+                $addrEn = $resEn['address'] ?? [];
+                $addrKn = $resKn['address'] ?? [];
+
+                // Smart hierarchical extraction: city/town first (except metro Bengaluru where suburb/locality is preferred)
+                $extractPlace = function (array $data) {
+                    $addr = $data['address'] ?? [];
+                    $city = $addr['city'] ?? null;
+                    $town = $addr['town'] ?? null;
+                    $suburb = $addr['suburb'] ?? null;
+                    $quarter = $addr['quarter'] ?? null;
+                    $village = $addr['village'] ?? null;
+                    $neighbourhood = $addr['neighbourhood'] ?? null;
+                    $hamlet = $addr['hamlet'] ?? null;
+
+                    // 1. Bengaluru / Bangalore Metro: locality/suburb/quarter is the primary identity (e.g. Kothanur, Yelahanka)
+                    $isBengaluru = $city && preg_match('/bengaluru|bangalore/i', $city);
+                    if ($isBengaluru) {
+                        $local = $quarter ?: ($suburb ?: ($neighbourhood ?: null));
+                        if ($local) {
+                            return $local;
+                        }
+                        return $city;
+                    }
+
+                    // 2. Recognized market town (e.g. Maddur, Tiptur, Arsikere, Sirsi, Gokak, Bailhongal)
+                    if ($town) {
+                        return $town;
+                    }
+
+                    // 3. Recognized City across Karnataka (e.g. Shivamogga, Hubballi, Mysuru, Belagavi, Mangaluru, Davanagere)
+                    if ($city) {
+                        return $city;
+                    }
+
+                    // 4. Suburb / Village for rural or semi-urban areas
+                    if ($suburb) return $suburb;
+                    if ($village) return $village;
+                    if ($quarter) return $quarter;
+
+                    // 5. County/Taluk check (e.g. "Madduru taluk" -> "Maddur")
+                    if (!empty($addr['county'])) {
+                        $cleanCounty = trim(preg_replace('/\b(taluk|taluka|hobli)\b/iu', '', $addr['county']));
+                        if (!empty($cleanCounty)) {
+                            return $cleanCounty;
+                        }
+                    }
+
+                    // 6. Hamlet / Neighbourhood / Root Name fallback
+                    if ($hamlet) return $hamlet;
+                    if ($neighbourhood) return $neighbourhood;
+
+                    return !empty($data['name']) ? trim($data['name']) : null;
+                };
+
+                $placeEn = $resEn ? $extractPlace($resEn) : null;
+                $placeKn = $resKn ? $extractPlace($resKn) : null;
+
+                if (!$placeEn && !$placeKn) {
+                    return null;
+                }
+
+                return [
+                    'local_area' => $placeEn ?: $placeKn,
+                    'local_area_kn' => $placeKn ?: $placeEn,
+                    'postcode' => $addrEn['postcode'] ?? $addrKn['postcode'] ?? null,
+                    'city' => $addrEn['city'] ?? $addrEn['town'] ?? null,
+                    'state_district' => $addrEn['state_district'] ?? null,
+                ];
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Reverse geocode failed for {$latRound}, {$lonRound}: " . $e->getMessage());
+                return null;
+            }
+        });
+
+        if ($result) {
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Location place name not found'
+        ], 404);
+    }
+
+    /**
      * Persist user's selected or GPS detected district in session and cookie.
      */
     public function setLocation(Request $request): \Illuminate\Http\JsonResponse
@@ -272,6 +411,8 @@ class HomeController extends Controller
         $districtId = $request->input('district_id');
         $lat = $request->input('latitude');
         $lon = $request->input('longitude');
+        $localArea = $request->input('local_area');
+        $localAreaKn = $request->input('local_area_kn');
 
         $district = null;
         if ($districtId) {
@@ -305,6 +446,21 @@ class HomeController extends Controller
             session(['selected_district_id' => $district->id]);
             cookie()->queue('selected_district_id', $district->id, 525600);
 
+            // Persist or clear hyper-local place name
+            if ($localArea) {
+                session([
+                    'selected_local_area' => $localArea,
+                    'selected_local_area_kn' => $localAreaKn ?: $localArea,
+                ]);
+                cookie()->queue('selected_local_area', $localArea, 525600);
+                cookie()->queue('selected_local_area_kn', $localAreaKn ?: $localArea, 525600);
+            } else {
+                // User explicitly selected district from dropdown: clear previous GPS local area
+                session()->forget(['selected_local_area', 'selected_local_area_kn']);
+                cookie()->queue(cookie()->forget('selected_local_area'));
+                cookie()->queue(cookie()->forget('selected_local_area_kn'));
+            }
+
             // If farmer gave GPS coordinates, sync farm-level weather on demand
             if ($lat && $lon) {
                 try {
@@ -332,6 +488,8 @@ class HomeController extends Controller
                 'district_id' => $district->id,
                 'district_name' => $district->name,
                 'district_name_kn' => $district->name_kn,
+                'local_area' => $localArea,
+                'local_area_kn' => $localAreaKn ?: $localArea,
                 'weather' => $todayWeather ? [
                     'temperature' => round($todayWeather->current_temperature ?? $todayWeather->temp_max ?? 28),
                     'temp_max' => round($todayWeather->temp_max ?? 30),

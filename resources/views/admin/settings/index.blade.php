@@ -40,8 +40,8 @@
             </div>
         </div>
 
-        <!-- 2-Column Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+        <!-- 3-Column Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             <!-- Card 1: Application Caches -->
             <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700/80 transition">
                 <div>
@@ -49,7 +49,7 @@
                         <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        <span>Application Caches</span>
+                        <span>Clear Caches</span>
                     </div>
                     <p class="text-xs text-slate-400 mt-2 leading-relaxed">
                         Clears view cache, compiled routes, config cache, and application memory stores.
@@ -68,7 +68,33 @@
                 </form>
             </div>
 
-            <!-- Card 2: Database Schema -->
+            <!-- Card 2: Production Speed Optimization -->
+            <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700/80 transition">
+                <div>
+                    <div class="flex items-center gap-2 text-white font-bold text-sm">
+                        <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Production Speed</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                        Pre-compiles routes, configuration, and views into cached files for fastest page loads.
+                    </p>
+                </div>
+                <form action="{{ route('admin.settings.optimize') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="tab" :value="currentTab">
+                    <button type="submit" 
+                            class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+                        <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Optimize for Production</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Card 3: Database Schema & Migrations -->
             <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700/80 transition">
                 <div>
                     <div class="flex items-center gap-2 text-white font-bold text-sm">
@@ -107,6 +133,7 @@
                 'general' => ['name' => 'General & Platform Branding', 'icon' => '🏛️'],
                 'pwa' => ['name' => 'Mobile App & PWA', 'icon' => '📱'],
                 'weather' => ['name' => 'Weather Services', 'icon' => '🌤️'],
+                'maps' => ['name' => 'Interactive Maps & Route Tiles', 'icon' => '🗺️'],
                 'data_sources' => ['name' => 'Data Sync Feeds', 'icon' => '🔄'],
                 'forecasting' => ['name' => 'Price Forecasting', 'icon' => '📈'],
                 'performance' => ['name' => 'Performance & Cache', 'icon' => '⚡'],
@@ -411,6 +438,9 @@
                                       class="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-sans leading-relaxed"></textarea>
                             <p class="text-[10px] text-slate-500">Supporting subtitle displayed under the English headline.</p>
                         </div>
+                    </div>
+                </div>
+
                 <!-- ============================================================== -->
                 <!-- DEDICATED FOOTER CMS CALLOUT                                   -->
                 <!-- ============================================================== -->
@@ -560,6 +590,276 @@
                 </div>
             @endif
 
+            @if($groupName === 'maps')
+                @php
+                    $currentApiKey = \App\Models\SystemSetting::get('map_api_key', '');
+                    $currentProvider = \App\Models\SystemSetting::get('map_tile_provider', 'carto_voyager');
+                    $currentCustomUrl = \App\Models\SystemSetting::get('map_custom_tile_url', '');
+                @endphp
+
+                <!-- Leaflet Local Assets for Live Admin Map Verification -->
+                <link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}"/>
+                <script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
+
+                <script>
+                    function adminMapSettings(initialApiKey, initialProvider, initialCustomUrl) {
+                        return {
+                            apiKey: initialApiKey || '',
+                            provider: initialProvider || 'carto_voyager',
+                            customUrl: initialCustomUrl || '',
+                            showKey: false,
+                            previewMap: null,
+                            tileLayer: null,
+                            initMap() {
+                                this.$nextTick(() => {
+                                    const container = document.getElementById('adminMapPreview');
+                                    if (!container || typeof L === 'undefined') return;
+                                    if (this.previewMap) {
+                                        this.updateTiles();
+                                        return;
+                                    }
+                                    this.previewMap = L.map('adminMapPreview', {
+                                        center: [13.9299, 75.5681],
+                                        zoom: 7,
+                                        zoomControl: true,
+                                        scrollWheelZoom: false
+                                    });
+
+                                    // Sample Mandi Pin (Shivamogga)
+                                    const testPin = L.divIcon({
+                                        className: 'admin-preview-pin',
+                                        html: '<div style="width:32px;height:32px;border-radius:50%;background:#059669;border:3px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;box-shadow:0 4px 6px rgba(0,0,0,0.4);">🌾</div>',
+                                        iconSize: [32, 32],
+                                        iconAnchor: [16, 16]
+                                    });
+                                    L.marker([13.9299, 75.5681], { icon: testPin })
+                                        .bindPopup('<div style="font-family:sans-serif;font-size:12px;"><strong style="color:#059669;">Shivamogga Mandi</strong><br><small style="color:#64748b;">Karnataka Geospatial Anchor</small></div>')
+                                        .addTo(this.previewMap);
+
+                                    this.updateTiles();
+                                });
+                            },
+                            updateTiles() {
+                                if (!this.previewMap || typeof L === 'undefined') return;
+                                if (this.tileLayer) {
+                                    this.previewMap.removeLayer(this.tileLayer);
+                                }
+
+                                let url = '';
+                                let attribution = '&copy; OpenStreetMap &copy; CARTO';
+                                let subdomains = 'abcd';
+                                const key = (this.apiKey || '').trim();
+
+                                if (this.provider === 'custom' && this.customUrl.trim() !== '') {
+                                    url = this.customUrl.trim();
+                                    if (key && url.includes('{api_key}')) {
+                                        url = url.replace('{api_key}', encodeURIComponent(key));
+                                    } else if (key && !url.includes('api_key=')) {
+                                        url += (url.includes('?') ? '&' : '?') + 'api_key=' + encodeURIComponent(key);
+                                    }
+                                } else if (this.provider === 'osm_standard') {
+                                    url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+                                    attribution = '&copy; OpenStreetMap contributors';
+                                    subdomains = 'abc';
+                                } else if (this.provider === 'carto_positron') {
+                                    url = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' + (key ? ('?api_key=' + encodeURIComponent(key)) : '');
+                                } else {
+                                    // Default carto_voyager
+                                    url = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' + (key ? ('?api_key=' + encodeURIComponent(key)) : '');
+                                }
+
+                                this.tileLayer = L.tileLayer(url, {
+                                    attribution: attribution,
+                                    maxZoom: 18,
+                                    subdomains: subdomains
+                                }).addTo(this.previewMap);
+                            }
+                        };
+                    }
+                </script>
+
+                <!-- Dedicated Interactive Maps & Cartography Card -->
+                <div class="space-y-6"
+                     x-data="adminMapSettings(@js($currentApiKey), @js($currentProvider), @js($currentCustomUrl))"
+                     x-init="
+                        initMap();
+                        $watch('$parent.currentTab', val => {
+                            if (val === 'maps') {
+                                setTimeout(() => {
+                                    if (previewMap) {
+                                        previewMap.invalidateSize();
+                                        updateTiles();
+                                    } else {
+                                        initMap();
+                                    }
+                                }, 150);
+                            }
+                        });
+                     ">
+
+                    <!-- Informational Callout Box -->
+                    <div class="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/20 text-xs text-emerald-200/90 flex items-start gap-3 leading-relaxed">
+                        <span class="text-xl shrink-0">💡</span>
+                        <div class="space-y-1">
+                            <strong class="text-white font-semibold text-sm">CARTO Basemaps API Key & Watermark Information</strong>
+                            <p class="text-emerald-100/80">
+                                CARTO recently updated its basemaps service policy requiring an API key for tile rendering (<code class="text-amber-300 font-mono">carto.com/basemaps/apikey</code>).
+                                Enter your API key below to remove the watermark from the interactive route map on the farmer <span class="font-bold text-white">Where-to-Sell</span> simulator. If left empty, Krushi Baandhava automatically falls back to OpenStreetMap so farmers never experience watermark clutter.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Map Configuration Inputs Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        
+                        <!-- Left 7 Cols: Inputs -->
+                        <div class="lg:col-span-7 space-y-4">
+                            <!-- 1. API Key Input -->
+                            <div class="space-y-2 p-5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-xs font-bold text-white flex items-center gap-1.5">
+                                        <span>🔑 CARTO Basemaps API Key</span>
+                                        <span class="text-rose-400">*</span>
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <template x-if="apiKey && apiKey.trim().length > 0">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                <span>Key Present</span>
+                                            </span>
+                                        </template>
+                                        <template x-if="!apiKey || apiKey.trim().length === 0">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-bold">
+                                                <span>OSM Fallback Active</span>
+                                            </span>
+                                        </template>
+                                        <button type="button" @click="showKey = !showKey" class="text-[11px] text-slate-400 hover:text-white flex items-center gap-1 ml-1 cursor-pointer">
+                                            <span x-text="showKey ? '🙈 Hide' : '👁️ Show'"></span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="relative">
+                                    <input :type="showKey ? 'text' : 'password'" 
+                                           form="settings-form-{{ $groupName }}"
+                                           name="settings[map_api_key]" 
+                                           x-model="apiKey"
+                                           @input="updateTiles()"
+                                           placeholder="Paste your CARTO API Key here (e.g. carto_default_public_...)"
+                                           class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-emerald-500 pr-10">
+                                    <div class="absolute right-3 top-2.5 text-slate-500 pointer-events-none text-xs">
+                                        🔒
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                                    <span>Used in <code class="font-mono text-emerald-400">/where-to-sell</code> Leaflet route simulator</span>
+                                    <a href="https://carto.com/basemaps/apikey" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-0.5">
+                                        <span>Get CARTO key</span>
+                                        <span>↗</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- 2. Tile Provider Selector -->
+                            <div class="space-y-2 p-5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                                <label class="block text-xs font-bold text-white flex items-center gap-1.5">
+                                    <span>🗺️ Map Cartography Style (Tile Provider)</span>
+                                </label>
+                                
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                                    <!-- Option 1: CARTO Voyager -->
+                                    <label class="flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition select-none"
+                                           :class="provider === 'carto_voyager' ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-sm' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'">
+                                        <input type="radio" form="settings-form-{{ $groupName }}" name="settings[map_tile_provider]" value="carto_voyager" 
+                                               x-model="provider" @change="updateTiles()" class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                                        <div>
+                                            <div class="text-xs font-bold text-white flex items-center gap-1">
+                                                <span>CARTO Voyager</span>
+                                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-normal">Best</span>
+                                            </div>
+                                            <div class="text-[10px] text-slate-400 mt-0.5">High-contrast roads, town names, and topography (Recommended).</div>
+                                        </div>
+                                    </label>
+
+                                    <!-- Option 2: CARTO Positron -->
+                                    <label class="flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition select-none"
+                                           :class="provider === 'carto_positron' ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-sm' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'">
+                                        <input type="radio" form="settings-form-{{ $groupName }}" name="settings[map_tile_provider]" value="carto_positron" 
+                                               x-model="provider" @change="updateTiles()" class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                                        <div>
+                                            <div class="text-xs font-bold text-white">CARTO Positron</div>
+                                            <div class="text-[10px] text-slate-400 mt-0.5">Minimal light gray cartography with subtle road outlines.</div>
+                                        </div>
+                                    </label>
+
+                                    <!-- Option 3: OpenStreetMap Standard -->
+                                    <label class="flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition select-none"
+                                           :class="provider === 'osm_standard' ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-sm' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'">
+                                        <input type="radio" form="settings-form-{{ $groupName }}" name="settings[map_tile_provider]" value="osm_standard" 
+                                               x-model="provider" @change="updateTiles()" class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                                        <div>
+                                            <div class="text-xs font-bold text-white flex items-center gap-1">
+                                                <span>OpenStreetMap</span>
+                                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-normal">Free</span>
+                                            </div>
+                                            <div class="text-[10px] text-slate-400 mt-0.5">Community public tiles (100% free, no API key required).</div>
+                                        </div>
+                                    </label>
+
+                                    <!-- Option 4: Custom URL -->
+                                    <label class="flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition select-none"
+                                           :class="provider === 'custom' ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-sm' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'">
+                                        <input type="radio" form="settings-form-{{ $groupName }}" name="settings[map_tile_provider]" value="custom" 
+                                               x-model="provider" @change="updateTiles()" class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                                        <div>
+                                            <div class="text-xs font-bold text-white">Custom Server</div>
+                                            <div class="text-[10px] text-slate-400 mt-0.5">Self-hosted or custom raster tile URL endpoint.</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 3. Custom Tile URL Input (Shown when custom is selected) -->
+                            <div class="space-y-1.5 p-4 rounded-2xl bg-slate-950/80 border border-slate-800" x-show="provider === 'custom'">
+                                <label class="block text-xs font-bold text-white">
+                                    <span>🌐 Custom Tile Server URL Pattern</span>
+                                </label>
+                                <input type="text" form="settings-form-{{ $groupName }}" name="settings[map_custom_tile_url]" 
+                                       x-model="customUrl" @input="updateTiles()"
+                                       placeholder="https://{s}.tile.example.com/{z}/{x}/{y}.png"
+                                       class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                                <p class="text-[10px] text-slate-400">Must include <code class="text-amber-300">{z}</code>, <code class="text-amber-300">{x}</code>, and <code class="text-amber-300">{y}</code> variables.</p>
+                            </div>
+                        </div>
+
+                        <!-- Right 5 Cols: Live Map Preview -->
+                        <div class="lg:col-span-5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-white flex items-center gap-1.5">
+                                    <span>🛰️ Live Tile Verification Preview</span>
+                                </label>
+                                <button type="button" @click="updateTiles()" class="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer flex items-center gap-1">
+                                    <span>🔄 Refresh Preview</span>
+                                </button>
+                            </div>
+
+                            <!-- Map container -->
+                            <div class="rounded-2xl border-2 border-slate-800 overflow-hidden bg-slate-950 relative shadow-inner">
+                                <div id="adminMapPreview" style="height: 290px; width: 100%; z-index: 1;"></div>
+                                <div class="absolute bottom-2 left-2 z-10 px-2.5 py-1 rounded-lg bg-slate-950/85 backdrop-blur-md text-[10px] font-mono text-slate-300 border border-slate-800 pointer-events-none">
+                                    <span x-text="provider.toUpperCase()"></span> • Live Render
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 text-center">
+                                Verify that the "API KEY REQUIRED" watermark does not appear above when your key is entered.
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            @endif
+
             <!-- Main Group Form -->
             <form id="settings-form-{{ $groupName }}" action="{{ route('admin.settings.update') }}" method="POST" enctype="multipart/form-data" class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
                 @csrf
@@ -575,7 +875,7 @@
                 <!-- Settings Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @foreach($settings as $setting)
-                        @if(in_array($setting->key, ['hero_headline_kn', 'hero_headline_en', 'hero_subtitle_kn', 'hero_subtitle_en', 'application_name', 'application_name_kn', 'navbar_subtitle_en', 'navbar_subtitle_kn']))
+                        @if(in_array($setting->key, ['hero_headline_kn', 'hero_headline_en', 'hero_subtitle_kn', 'hero_subtitle_en', 'application_name', 'application_name_kn', 'navbar_subtitle_en', 'navbar_subtitle_kn', 'map_api_key', 'map_tile_provider', 'map_custom_tile_url']))
                             @continue
                         @endif
                         <div class="space-y-2 p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition flex flex-col justify-between"

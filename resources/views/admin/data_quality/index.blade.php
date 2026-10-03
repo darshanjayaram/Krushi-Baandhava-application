@@ -9,21 +9,21 @@
             <h1 class="text-2xl font-black text-white tracking-tight">Data Quality & Ingestion Inspector</h1>
             <p class="text-sm text-slate-400 mt-0.5">Diagnose parsing failures, unrecognized entities, and reprocess raw market price feeds</p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{{ route('admin.unresolved-mappings.index') }}" class="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-semibold rounded-xl flex items-center gap-2 transition">
+        <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+            <a href="{{ route('admin.unresolved-mappings.index') }}" class="flex-1 sm:flex-none justify-center px-4 py-2.5 sm:py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-semibold rounded-xl flex items-center gap-2 transition">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 Alias Resolvers
             </a>
-            <form action="{{ route('admin.data-quality.reprocess-all') }}" method="POST">
+            <form action="{{ route('admin.data-quality.reprocess-all') }}" method="POST" class="flex-1 sm:flex-none">
                 @csrf
                 <button type="submit" onclick="return confirm('Attempt batch reprocessing of rejected records?')"
-                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-2 transition">
+                        class="w-full justify-center px-4 py-2.5 sm:py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-2 transition cursor-pointer">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Batch Reprocess Rejected
+                    Batch Reprocess
                 </button>
             </form>
         </div>
@@ -82,6 +82,13 @@
 
     <!-- Records Table -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <!-- Mobile Table Swipe Cue -->
+        <div class="sm:hidden px-4 py-2 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-1.5 font-medium">
+                <span>👉</span> Scroll horizontally for payload & diagnostics
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">Swipe ↔</span>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
                 <thead>
@@ -204,7 +211,7 @@
          @keydown.escape.window="inspectModal = false">
         <!-- Backdrop -->
         <div x-show="inspectModal" x-transition.opacity class="fixed inset-0 bg-black/80" @click="inspectModal = false"></div>
-        <div @click.away="inspectModal = false" class="relative z-10 bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl my-8">
+        <div @click.away="inspectModal = false" class="relative z-10 bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl my-auto max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 class="text-base font-bold text-white">Raw Upstream Record Payload</h3>
                 <button @click="inspectModal = false" class="text-slate-400 hover:text-white text-lg">&times;</button>

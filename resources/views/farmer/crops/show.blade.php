@@ -60,6 +60,9 @@
     </div>
 
     <style>
+        .custom-mandi-scroll {
+            scroll-behavior: smooth;
+        }
         .custom-mandi-scroll::-webkit-scrollbar {
             width: 5px;
             height: 5px;
@@ -153,7 +156,33 @@
         <!-- Mobile: Order 2 | Desktop: Right Column Rows 1-2 (Cols 6-12)              -->
         <!-- ========================================================================= -->
         <div class="order-2 lg:order-none lg:col-span-7 lg:col-start-6 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-5 sm:p-7 border-2 border-[#D9CEB8] shadow-sm flex flex-col justify-between space-y-4 h-full"
-             x-data="{ activeSort: '{{ $defaultMarketSort ?? 'nearest_first' }}', showAllRadius: false, showAllGrades: true }">
+             x-data="{ 
+                 activeSort: '{{ $defaultMarketSort ?? 'nearest_first' }}', 
+                 showAllRadius: {{ (!empty($selectedMarket) && empty($selectedMarket->is_within_radius)) ? 'true' : 'false' }}, 
+                 showAllGrades: true,
+                 scrollToSelectedMandi() {
+                     const tryScroll = (attempts = 0) => {
+                         const container = this.$refs.mandiScrollBox;
+                         if (!container) return;
+                         const selectedPill = container.querySelector('.mandi-pill-selected');
+                         if (selectedPill) {
+                             const containerRect = container.getBoundingClientRect();
+                             const pillRect = selectedPill.getBoundingClientRect();
+                             const isAbove = pillRect.top < containerRect.top;
+                             const isBelow = pillRect.bottom > containerRect.bottom;
+                             if (isBelow) {
+                                 container.scrollBy({ top: (pillRect.bottom - containerRect.bottom) + 20, behavior: 'smooth' });
+                             } else if (isAbove) {
+                                 container.scrollBy({ top: (pillRect.top - containerRect.top) - 20, behavior: 'smooth' });
+                             }
+                         } else if (attempts < 5) {
+                             setTimeout(() => tryScroll(attempts + 1), 80);
+                         }
+                     };
+                     setTimeout(() => tryScroll(0), 120);
+                 }
+             }"
+             x-init="scrollToSelectedMandi()">
             
             <!-- 1. Current Price Section -->
             <div class="space-y-2">
@@ -162,9 +191,9 @@
                         {{ $activeLocale === 'en' ? 'CURRENT PRICE' : 'ಇಂದಿನ ದರ' }}
                     </span>
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold text-[11px] sm:text-xs shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                        <span class="w-2 h-2 rounded-full {{ ($activePriceItem?->price_date || $latestDate) ? 'bg-emerald-500 animate-pulse' : 'bg-stone-300' }} shrink-0"></span>
                         <span class="text-emerald-700 font-semibold">{{ $activeLocale === 'en' ? 'Updated:' : 'ನವೀಕರಿಸಲಾಗಿದೆ:' }}</span>
-                        <span class="font-black text-[#1C5A2C]">{{ \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M Y') }}</span>
+                        <span class="font-black text-[#1C5A2C]">{{ ($activePriceItem?->price_date || $latestDate) ? \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M Y') : '—' }}</span>
                     </span>
                 </div>
 
@@ -235,12 +264,14 @@
                         </span>
                     @endif
 
+                    @if($activePriceItem?->price_date || $latestDate)
                     <span class="text-stone-300">•</span>
                     <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-950 border border-amber-300 text-[11px] font-bold whitespace-nowrap shadow-2xs leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                         <span class="inline-flex items-center leading-none text-xs">📅</span>
                         <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'as of' : 'ದಿನಾಂಕ:' }}</span>
                         <span class="font-black text-amber-900 underline decoration-amber-400 decoration-1 leading-none">{{ \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M') }}</span>
                     </span>
+                    @endif
 
                     @if($boardMeta)
                         <span class="text-amber-900 font-bold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} text-[11px]">({{ $activeLocale === 'en' ? $boardMeta['badge_en'] : $boardMeta['badge_kn'] }})</span>
@@ -360,14 +391,14 @@
                         @if(!empty($allowUserSortToggle))
                             <div class="inline-flex items-center bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-[10px] font-bold">
                                 <button type="button" 
-                                        @click="activeSort = 'nearest_first'"
+                                        @click="activeSort = 'nearest_first'; $nextTick(() => scrollToSelectedMandi())"
                                         :class="activeSort === 'nearest_first' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-stone-500 hover:text-stone-800'"
                                         class="px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer">
                                     <span>📍</span>
                                     <span>{{ $activeLocale === 'en' ? 'Nearest' : 'ಹತ್ತಿರ' }}</span>
                                 </button>
                                 <button type="button" 
-                                        @click="activeSort = 'highest_price_first'"
+                                        @click="activeSort = 'highest_price_first'; $nextTick(() => scrollToSelectedMandi())"
                                         :class="activeSort === 'highest_price_first' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-stone-500 hover:text-stone-800'"
                                         class="px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer">
                                     <span>🔥</span>
@@ -391,7 +422,7 @@
                 @php
                     $beyondRadiusCount = 0;
                 @endphp
-                <div class="flex flex-wrap gap-2 text-xs max-h-56 overflow-y-auto pr-1 custom-mandi-scroll">
+                <div x-ref="mandiScrollBox" class="flex flex-wrap gap-2 text-xs max-h-56 overflow-y-auto pr-1 custom-mandi-scroll">
                     @foreach($availableMarkets as $am)
                         @php
                             $isMktSelected = ($selectedMarket && $selectedMarket->id === $am->id);
@@ -404,7 +435,7 @@
                         <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'market' => $am->name])) }}"
                            x-show="showAllRadius || {{ ($isWithin || $isMktSelected) ? 'true' : 'false' }}"
                            :style="activeSort === 'highest_price_first' ? 'order: {{ $am->price_rank ?? 999 }}' : 'order: {{ $am->distance_rank ?? 999 }}'"
-                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition border-2 cursor-pointer tap-feedback active:scale-95 {{ $isMktSelected ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
+                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition border-2 cursor-pointer tap-feedback active:scale-95 {{ $isMktSelected ? 'mandi-pill-selected bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm ring-2 ring-emerald-600/30' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
                             @if($isMktSelected)
                                 <span class="text-amber-300">★</span>
                             @endif
@@ -438,7 +469,7 @@
                 @if($beyondRadiusCount > 0)
                     <div class="pt-0.5">
                         <button type="button" 
-                                @click="showAllRadius = !showAllRadius" 
+                                @click="showAllRadius = !showAllRadius; $nextTick(() => scrollToSelectedMandi())" 
                                 class="text-[11px] font-bold text-[#1C5A2C] hover:underline transition inline-flex items-center gap-1 cursor-pointer">
                             <span x-text="showAllRadius ? '▲ {{ $activeLocale === 'en' ? 'Hide distant mandis beyond' : 'ದೂರದ ಮಂಡಿಗಳನ್ನು ಮರೆಮಾಡಿ' }} {{ $marketRadiusKm }} km' : '+ {{ $activeLocale === 'en' ? 'Show' : 'ತೋರಿಸಿ' }} {{ $beyondRadiusCount }} {{ $activeLocale === 'en' ? 'more mandis beyond' : 'ಹೆಚ್ಚಿನ ಮಂಡಿಗಳು' }} {{ $marketRadiusKm }} km ▾'"></span>
                         </button>
@@ -548,8 +579,18 @@
                 </a>
 
                 <!-- Where to Sell Button -->
-                <a href="{{ route('farmer.decision.where-to-sell', ['crop' => $crop->slug]) }}"
-                   class="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2.5 rounded-xl sm:rounded-2xl bg-[#1C5A2C] hover:bg-[#154622] active:scale-95 text-white font-extrabold text-xs shadow-2xs transition-all cursor-pointer">
+                @php
+                    $whereToSellParams = array_filter([
+                        'crop' => $crop->slug,
+                        'variety_id' => $activeVarietyId ?? ($activePriceItem?->variety_id ?? null),
+                        'market_id' => $selectedMarket?->id,
+                        'district_id' => $selectedMarket?->district_id ?? ($userDistrict?->id ?? null),
+                        'from_crop' => 1,
+                    ]);
+                @endphp
+                <a href="{{ route('farmer.decision.where-to-sell', $whereToSellParams) }}"
+                   class="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2.5 rounded-xl sm:rounded-2xl bg-[#1C5A2C] hover:bg-[#154622] active:scale-95 text-white font-extrabold text-xs shadow-2xs transition-all cursor-pointer"
+                   title="{{ $activeLocale === 'en' ? 'Simulate take-home profit for ' . ($crop->name) . ' across Karnataka mandis' : 'ಕರ್ನಾಟಕದ ಮಂಡಿಗಳಲ್ಲಿ ' . ($crop->name_kn ?: $crop->name) . ' ಬೆಳೆಯ ನಿವ್ವಳ ಲಾಭವನ್ನು ಲೆಕ್ಕಹಾಕಿ' }}">
                     <span class="text-xs sm:text-sm leading-none">⚖️</span>
                     <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Where to Sell?' : 'ಎಲ್ಲಿ ಮಾರಾಟ?' }}</span>
                     <span class="text-xs opacity-80">&rarr;</span>
@@ -1706,13 +1747,13 @@
             <div class="bg-gradient-to-br from-[#FAF8F5] to-white rounded-3xl p-8 text-center border-2 border-[#DDD2BE] shadow-xs space-y-2">
                 <div class="text-3xl">{{ $boardMeta ? $boardMeta['icon'] : '🌾' }}</div>
                 <div class="font-extrabold text-stone-800 text-base font-kannada">
-                    {{ $activeLocale === 'en' ? 'No mandi prices available for today' : 'ಈ ಬೆಳೆಗೆ ಇಂದಿನ ದರಗಳು ಲಭ್ಯವಿಲ್ಲ' }}
+                    {{ $activeLocale === 'en' ? 'No recent mandi prices available' : 'ಇತ್ತೀಚಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಲಭ್ಯವಿಲ್ಲ' }}
                 </div>
                 <p class="text-xs text-stone-500 font-kannada">
                     @if($boardMeta)
-                        {{ $activeLocale === 'en' ? 'Rates not yet published by official centres.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ' . $boardMeta['badge_kn'] . ' ಅಧಿಕೃತ ಕೇಂದ್ರಗಳಿಂದ ದರ ಮಾಹಿತಿ ಪ್ರಕಟವಾಗಿಲ್ಲ.' }}
+                        {{ $activeLocale === 'en' ? 'Rates not yet published by official centres within the active freshness period.' : 'ಪ್ರಸ್ತುತ ನಿಗದಿತ ಅವಧಿಯಲ್ಲಿ ' . $boardMeta['badge_kn'] . ' ಅಧಿಕೃತ ಕೇಂದ್ರಗಳಿಂದ ದರ ಮಾಹಿತಿ ಪ್ರಕಟವಾಗಿಲ್ಲ.' }}
                     @else
-                        {{ $activeLocale === 'en' ? 'No mandi market has reported prices for this date.' : 'ಪ್ರಸ್ತುತ ದಿನಾಂಕಕ್ಕೆ ಯಾವುದೇ ಮಾರುಕಟ್ಟೆಯಿಂದ ದರ ಮಾಹಿತಿ ಬಂದಿಲ್ಲ.' }}
+                        {{ $activeLocale === 'en' ? ('No Karnataka APMC auctions recorded within the last ' . ($stalenessThresholdDays ?? 14) . ' days.') : ('ಕಳೆದ ' . ($stalenessThresholdDays ?? 14) . ' ದಿನಗಳಲ್ಲಿ ಯಾವುದೇ ಕರ್ನಾಟಕ ಮಂಡಿಗಳಲ್ಲಿ ದರ ದಾಖಲಾಗಿಲ್ಲ.') }}
                     @endif
                 </p>
                 <div class="pt-2">

@@ -164,7 +164,7 @@ class KramaAndAgmarknetSeeder extends Seeder
             'MADIKERI' => ['name' => 'Madikeri Market', 'district' => 'Kodagu', 'code' => 'KA_MKT_MDK'],
             'TUMAKURU' => ['name' => 'Tumakuru APMC', 'district' => 'Tumakuru', 'code' => 'KA_APMC_TUM'],
             'TIPTUR' => ['name' => 'Tiptur APMC (Copra Market)', 'district' => 'Tumakuru', 'code' => 'KA_APMC_TIP'],
-            'ARSIKERE' => ['name' => 'Arsikere (CDB Centre)', 'district' => 'Hassan', 'code' => 'CDB_ASK'],
+            'ARSIKERE' => ['name' => 'Arsikere', 'district' => 'Hassan', 'code' => 'KA_APMC_ASK'],
             'HASSAN' => ['name' => 'Hassan APMC', 'district' => 'Hassan', 'code' => 'KA_APMC_HAS'],
             'MANGALURU' => ['name' => 'Mangaluru APMC (Baikampady)', 'district' => 'Dakshina Kannada', 'code' => 'KA_APMC_MNG'],
             'MANGALORE' => ['name' => 'Mangaluru APMC (Baikampady)', 'district' => 'Dakshina Kannada', 'code' => 'KA_APMC_MNG'],

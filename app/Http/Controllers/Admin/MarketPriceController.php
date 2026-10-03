@@ -360,8 +360,9 @@ class MarketPriceController extends Controller
         $startTime = microtime(true);
         $syncStartTimestamp = Carbon::now()->subSeconds(2);
 
-        // Configure extended execution limits for multi-year batch backfill (up to 6 years)
-        @set_time_limit(900);
+        // Configure extended execution limits for batch backfill
+        @set_time_limit(1800);
+        @ini_set('max_execution_time', '1800');
         @ini_set('memory_limit', '512M');
 
         // Maximum span guard: Allow up to 6 years (2,192 days) of multi-year auction archives
@@ -441,14 +442,17 @@ class MarketPriceController extends Controller
             $start = Carbon::parse($fromDate);
             $end = Carbon::parse($toDate);
 
-            // Compute daily statistics for each date in range
-            $dayCursor = $start->copy();
-            while ($dayCursor->lte($end)) {
-                $this->analyticsService->computeDailyStatistics($dayCursor->toDateString(), $cropId);
-                $dayCursor->addDay();
+            // Compute daily statistics only for dates that actually exist in range
+            $affectedDates = MarketPrice::whereBetween('price_date', [$fromDate, $toDate])
+                ->when($cropId, fn ($q) => $q->where('crop_id', $cropId))
+                ->selectRaw('DISTINCT price_date')
+                ->pluck('price_date');
+
+            foreach ($affectedDates as $pdate) {
+                $this->analyticsService->computeDailyStatistics(Carbon::parse($pdate)->toDateString(), $cropId);
             }
 
-            // Compute monthly statistics
+            // Compute monthly statistics for months in range
             $cursor = $start->copy()->startOfMonth();
             while ($cursor->lte($end)) {
                 $yr = (int) $cursor->year;
@@ -459,15 +463,26 @@ class MarketPriceController extends Controller
 
             $this->analyticsService->updateSeasonalIndices();
 
-            // Refresh & persist forecasts for processed crops
-            try {
-                $this->forecastingService->runAllForecasts();
-            } catch (\Throwable $e) {
-                Log::warning("Forecasting run failed: " . $e->getMessage());
+            // Only run heavy forecasting if not explicitly skipped (intermediate slices skip to stay ultra-fast)
+            if (!$request->boolean('skip_forecasts', false)) {
+                try {
+                    $this->forecastingService->runAllForecasts();
+                } catch (\Throwable $e) {
+                    Log::warning("Forecasting run failed: " . $e->getMessage());
+                }
             }
         }
 
         $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+
+        // Fetch sample of markets synced in this range
+        $syncedMarketNames = MarketPrice::whereBetween('price_date', [$fromDate, $toDate])
+            ->when($cropId, fn ($q) => $q->where('crop_id', $cropId))
+            ->join('markets', 'market_prices.market_id', '=', 'markets.id')
+            ->selectRaw('DISTINCT markets.name')
+            ->limit(6)
+            ->pluck('name')
+            ->all();
 
         // Fetch any quarantined rejected records during this range sync
         $sourceIds = $sources->pluck('id')->toArray();
@@ -505,6 +520,8 @@ class MarketPriceController extends Controller
                 ],
                 'sources' => $sourceBreakdown,
                 'rejections' => $recentRejected,
+                'synced_markets' => $syncedMarketNames,
+                'crop_name' => $targetCommodity ?? ($crops->count() === 1 ? $crops->first()->name : 'All Crops'),
                 'analytics_updated' => $updateAnalytics,
                 'message' => "Historical backfill complete ({$fromDate} to {$toDate}): {$totalInserted} new records, {$totalUpdated} updated, {$totalDuplicates} duplicates, {$totalRejected} quarantined.",
             ]);
@@ -519,12 +536,56 @@ class MarketPriceController extends Controller
     }
 
     /**
-     * Safely prune and delete historical market prices.
+     * Async preview metrics for data retention and targeted pruning.
      */
-    public function prune(Request $request): RedirectResponse
+    public function prunePreview(): JsonResponse
     {
+        $inactiveCrops = Crop::where('is_active', false)
+            ->withCount('prices')
+            ->orderBy('name')
+            ->get(['id', 'name', 'name_kn', 'icon']);
+
+        $inactiveRecordsCount = MarketPrice::whereIn('crop_id', $inactiveCrops->pluck('id'))->count();
+        $activeCropsCount = Crop::where('is_active', true)->count();
+        $activeRecordsCount = MarketPrice::whereIn('crop_id', Crop::where('is_active', true)->pluck('id'))->count();
+
+        $krama = DataSource::where('code', 'krama_karnataka')->first();
+        $kramaCropIds = $krama
+            ? \App\Models\DataSourceCropSync::where('data_source_id', $krama->id)->where('is_enabled', true)->pluck('crop_id')->all()
+            : [];
+        $nonKramaRecordsCount = MarketPrice::whereNotIn('crop_id', $kramaCropIds)->count();
+        $nonKramaCropsCount = Crop::whereNotIn('id', $kramaCropIds)->count();
+
+        return response()->json([
+            'ok' => true,
+            'inactive_crops_count' => $inactiveCrops->count(),
+            'inactive_records_count' => $inactiveRecordsCount,
+            'inactive_crops' => $inactiveCrops->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'name_kn' => $c->name_kn,
+                'photo_url' => $c->photo_url,
+                'records_count' => (int) $c->prices_count,
+            ])->values(),
+            'active_crops_count' => $activeCropsCount,
+            'active_records_count' => $activeRecordsCount,
+            'krama_configured_count' => count($kramaCropIds),
+            'non_krama_crops_count' => $nonKramaCropsCount,
+            'non_krama_records_count' => $nonKramaRecordsCount,
+            'total_records_count' => MarketPrice::count(),
+        ]);
+    }
+
+    /**
+     * Safely prune and delete historical market prices (supports async AJAX and standard POST).
+     */
+    public function prune(Request $request): JsonResponse|RedirectResponse
+    {
+        @set_time_limit(600);
+        @ini_set('max_execution_time', '600');
+
         $validated = $request->validate([
-            'strategy' => ['required', 'in:age,period'],
+            'strategy' => ['required', 'in:age,period,inactive_crops,non_krama_crops'],
             'older_than_days' => ['required_if:strategy,age', 'nullable', 'integer', 'min:30'],
             'year' => ['required_if:strategy,period', 'nullable', 'integer'],
             'month' => ['nullable', 'integer', 'between:1,12'],
@@ -537,8 +598,21 @@ class MarketPriceController extends Controller
 
         // 1. Build query for records to prune
         $pruneQuery = MarketPrice::query();
+        $inactiveCropIds = [];
+        $kramaCropIds = [];
 
-        if ($strategy === 'age') {
+        if ($strategy === 'inactive_crops') {
+            $inactiveCropIds = Crop::where('is_active', false)->pluck('id')->all();
+            $pruneQuery->whereIn('crop_id', $inactiveCropIds);
+            $scopeDescription = count($inactiveCropIds) . " inactive/disabled crops";
+        } elseif ($strategy === 'non_krama_crops') {
+            $krama = DataSource::where('code', 'krama_karnataka')->first();
+            $kramaCropIds = $krama
+                ? \App\Models\DataSourceCropSync::where('data_source_id', $krama->id)->where('is_enabled', true)->pluck('crop_id')->all()
+                : [];
+            $pruneQuery->whereNotIn('crop_id', $kramaCropIds);
+            $scopeDescription = "commodities outside KRAMA sync whitelist (" . count($kramaCropIds) . " KRAMA crops preserved)";
+        } elseif ($strategy === 'age') {
             $cutoffDate = Carbon::today()->subDays($days)->toDateString();
             $pruneQuery->where('price_date', '<', $cutoffDate);
             $scopeDescription = "older than {$days} days (before {$cutoffDate})";
@@ -555,38 +629,63 @@ class MarketPriceController extends Controller
         $totalRecords = (clone $pruneQuery)->count();
 
         if ($totalRecords === 0) {
-            return redirect()->route('admin.prices.index')
-                ->with('info', "No daily market price records found matching criteria ({$scopeDescription}). No deletion performed.");
-        }
-
-        // 2. Pre-Aggregation Safety Guard: Ensure monthly statistics are compiled before deletion
-        $affectedPeriods = (clone $pruneQuery)
-            ->selectRaw('DISTINCT YEAR(price_date) as yr, MONTH(price_date) as mo')
-            ->get();
-
-        foreach ($affectedPeriods as $period) {
-            $yr = (int) $period->yr;
-            $mo = (int) $period->mo;
-            $this->analyticsService->computeMonthlyStatistics($yr, $mo);
-        }
-        $this->analyticsService->updateSeasonalIndices();
-
-        // 3. Chunked deletion to prevent table locks in cPanel
-        $deletedCount = 0;
-        $chunkSize = 2000;
-
-        do {
-            $chunkIds = (clone $pruneQuery)->limit($chunkSize)->pluck('id');
-            if ($chunkIds->isEmpty()) {
-                break;
+            $msg = "No daily market price records found matching criteria ({$scopeDescription}). No deletion performed.";
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => $msg,
+                    'deleted_count' => 0,
+                    'total_remaining' => MarketPrice::count(),
+                ]);
             }
+            return redirect()->route('admin.prices.index')->with('info', $msg);
+        }
 
-            $deletedInChunk = DB::transaction(function () use ($chunkIds) {
-                return MarketPrice::whereIn('id', $chunkIds)->delete();
-            });
+        // 2. Pre-Aggregation Safety Guard: Compile monthly statistics for active crops prior to date-based pruning
+        if (in_array($strategy, ['age', 'period'], true)) {
+            $affectedPeriods = (clone $pruneQuery)
+                ->selectRaw('DISTINCT YEAR(price_date) as yr, MONTH(price_date) as mo')
+                ->get();
 
-            $deletedCount += $deletedInChunk;
-        } while ($deletedInChunk > 0);
+            foreach ($affectedPeriods as $period) {
+                $yr = (int) $period->yr;
+                $mo = (int) $period->mo;
+                $this->analyticsService->computeMonthlyStatistics($yr, $mo);
+            }
+            $this->analyticsService->updateSeasonalIndices();
+        }
+
+        // 3. Optimized High-Speed Chunked Deletion
+        $deletedCount = 0;
+
+        if ($strategy === 'inactive_crops') {
+            // High-speed deletion indexed on crop_id in batches of 15 crops
+            foreach (array_chunk($inactiveCropIds, 15) as $cropIdBatch) {
+                $deletedInBatch = MarketPrice::whereIn('crop_id', $cropIdBatch)->delete();
+                $deletedCount += $deletedInBatch;
+            }
+        } elseif ($strategy === 'non_krama_crops') {
+            $targetNonKramaIds = Crop::whereNotIn('id', $kramaCropIds)->pluck('id')->all();
+            foreach (array_chunk($targetNonKramaIds, 15) as $cropIdBatch) {
+                $deletedInBatch = MarketPrice::whereIn('crop_id', $cropIdBatch)->delete();
+                $deletedCount += $deletedInBatch;
+            }
+        } else {
+            // For date/period pruning, delete in 5,000-record chunks
+            $chunkSize = 5000;
+            do {
+                $chunkIds = (clone $pruneQuery)->limit($chunkSize)->pluck('id');
+                if ($chunkIds->isEmpty()) {
+                    break;
+                }
+
+                $deletedInChunk = DB::transaction(function () use ($chunkIds) {
+                    return MarketPrice::whereIn('id', $chunkIds)->delete();
+                });
+
+                $deletedCount += $deletedInChunk;
+            } while ($deletedInChunk > 0);
+        }
 
         // 4. Audit Log
         AuditLog::create([
@@ -607,7 +706,23 @@ class MarketPriceController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        return redirect()->route('admin.prices.index')
-            ->with('success', "Safely pruned {$deletedCount} daily records ({$scopeDescription}). All monthly statistics, 'Best Months to Sell', and 5-year trends were preserved.");
+        $activeRemaining = MarketPrice::whereIn('crop_id', Crop::where('is_active', true)->pluck('id'))->count();
+        $totalRemaining = MarketPrice::count();
+
+        $msg = "Safely pruned {$deletedCount} daily records ({$scopeDescription}). All monthly statistics, 'Best Months to Sell', and 5-year trends were preserved.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $msg,
+                'deleted_count' => $deletedCount,
+                'strategy' => $strategy,
+                'scope_description' => $scopeDescription,
+                'active_records_remaining' => $activeRemaining,
+                'total_remaining' => $totalRemaining,
+            ]);
+        }
+
+        return redirect()->route('admin.prices.index')->with('success', $msg);
     }
 }

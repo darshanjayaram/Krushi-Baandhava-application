@@ -678,7 +678,7 @@
              @click="showMandiDrawer = false"
              class="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"></div>
 
-        <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-2 sm:pl-10">
             <div x-show="showMandiDrawer"
                  x-transition:enter="transform transition ease-in-out duration-300"
                  x-transition:enter-start="translate-x-full"
@@ -689,7 +689,7 @@
                  class="w-screen max-w-xl bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col">
                 
                 <!-- Drawer Header -->
-                <div class="p-6 border-b border-slate-800 bg-slate-950/60 flex items-start justify-between">
+                <div class="p-4 sm:p-6 border-b border-slate-800 bg-slate-950/60 flex items-start justify-between">
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="p-1.5 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800/40">

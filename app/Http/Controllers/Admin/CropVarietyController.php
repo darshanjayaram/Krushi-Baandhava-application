@@ -32,7 +32,7 @@ class CropVarietyController extends Controller
     /**
      * Update the specified crop variety.
      */
-    public function update(CropVarietyRequest $request, CropVariety $variety): RedirectResponse
+    public function update(CropVarietyRequest $request, CropVariety $variety): \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $oldValues = $variety->toArray();
         $data = $request->validated();
@@ -45,13 +45,27 @@ class CropVarietyController extends Controller
 
         AuditLog::log('crop_variety.update', 'CropVariety', $variety->id, $oldValues, $variety->toArray());
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Variety '{$variety->name}' updated successfully.",
+                'variety' => [
+                    'id' => $variety->id,
+                    'name' => $variety->name,
+                    'name_kn' => $variety->name_kn,
+                    'slug' => $variety->slug,
+                    'is_active' => (bool) $variety->is_active,
+                ],
+            ]);
+        }
+
         return back()->with('success', "Variety '{$variety->name}' updated successfully.");
     }
 
     /**
      * Remove the specified crop variety.
      */
-    public function destroy(CropVariety $variety): RedirectResponse
+    public function destroy(\Illuminate\Http\Request $request, CropVariety $variety): \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $name = $variety->name;
         $oldValues = $variety->toArray();
@@ -60,6 +74,14 @@ class CropVarietyController extends Controller
 
         AuditLog::log('crop_variety.delete', 'CropVariety', $variety->id, $oldValues, null);
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Variety '{$name}' was removed.",
+            ]);
+        }
+
         return back()->with('success', "Variety '{$name}' was removed.");
     }
 }
+
