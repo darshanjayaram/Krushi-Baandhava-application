@@ -1,5 +1,5 @@
-// Krushi Baandhava PWA Service Worker (v5)
-const CACHE_NAME = 'krushi-baandhava-v5';
+// Krushi Baandhava PWA Service Worker (v6 - Web Push Notifications Active)
+const CACHE_NAME = 'krushi-baandhava-v6';
 const STATIC_ASSETS = [
     './offline',
     './manifest.json',
@@ -114,8 +114,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Krushi Baandhava - ಕೃಷಿ ಬಾಂಧವ';
     const options = {
         body: data.body || 'New agricultural mandi rates and forecasts are available.',
-        icon: '/icons/icon-192.svg',
-        badge: '/icons/icon-192.svg',
+        icon: data.icon || '/icons/icon-192.svg',
+        badge: data.badge || data.icon || '/icons/icon-192.svg',
         data: { url: data.url || '/' }
     };
 

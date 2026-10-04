@@ -50,11 +50,12 @@
                 </div>
 
                 <!-- How to Use Guide Pill (Top Right Corner) -->
-                <a href="{{ route('farmer.articles.index') }}"
-                   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-xs font-black border border-amber-400/40 backdrop-blur-md shadow-sm transition hover:scale-105 active:scale-95 shrink-0 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                <button type="button" id="tourStartButton"
+                   onclick="window.startKrushiTour && window.startKrushiTour()"
+                   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-xs font-black border border-amber-400/40 backdrop-blur-md shadow-sm transition hover:scale-105 active:scale-95 shrink-0 cursor-pointer {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     <span class="inline-flex items-center leading-none text-xs shrink-0">💡</span>
                     <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'How to Use? ›' : 'ಹೇಗೆ ಬಳಸುವುದು? ›' }}</span>
-                </a>
+                </button>
             </div>
 
             <div class="max-w-3xl space-y-2.5 sm:space-y-3">
@@ -131,7 +132,7 @@
                  @scroll.window="closeSearch(true)">
                 
                 <!-- Mandi Hub (Row 1 on Mobile, Left Column on Desktop) -->
-                <div class="flex items-center justify-between md:justify-start gap-2 sm:gap-3 md:shrink-0" @click="closeSearch(true)">
+                <div id="tourHeroLocationCard" class="flex items-center justify-between md:justify-start gap-2 sm:gap-3 md:shrink-0" @click="closeSearch(true)">
                     <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
                         <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center text-sm sm:text-base font-black shrink-0 border border-emerald-200">
                             📍
@@ -312,6 +313,19 @@
                                  class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent"></div>
                             
+                            @php
+                                $isLatestDate = \Carbon\Carbon::parse($mover->price_date)->isSameDay(\Carbon\Carbon::parse($latestPriceDate));
+                                $auctionDateFormatted = \Carbon\Carbon::parse($mover->price_date)->format('d M');
+                            @endphp
+                            @if(!$isLatestDate)
+                                <div class="absolute top-1.5 left-1.5 z-10">
+                                    <span class="bg-black/60 backdrop-blur-xs text-amber-200 text-[9px] font-extrabold px-2 py-0.5 rounded-full border border-amber-300/30 shadow-xs inline-flex items-center gap-1">
+                                        <span>📅</span>
+                                        <span>{{ $auctionDateFormatted }}</span>
+                                    </span>
+                                </div>
+                            @endif
+
                             <div class="absolute bottom-1.5 left-2 right-2 sm:bottom-2 sm:left-3 sm:right-3 flex items-end justify-between text-white gap-1">
                                 <span class="font-extrabold text-xs sm:text-base {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} tracking-wide drop-shadow-sm leading-tight break-words">
                                     {{ $activeLocale === 'en' ? $mover->crop->name : ($mover->crop->name_kn ?? $mover->crop->name) }}
@@ -649,9 +663,8 @@
 
     <!-- ==================== 4. ALL CROPS DIRECTORY (ALL MANDIS) ==================== -->
     <section id="allCropsSection" class="p-2 sm:p-6 bg-[#FAF8F5] rounded-2xl sm:rounded-3xl border-2 border-[#E5DECE] shadow-sm space-y-3 sm:space-y-4 w-full max-w-full min-w-0 overflow-hidden">
-        
-        <!-- Header with Dual View Toggle (Cards vs List) & Search Input -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Header with Dual View Toggle (Cards vs List) & Search Input (also onboarding tour anchor) -->
+        <div id="tourPricesSection" class="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
                 <div class="flex items-center gap-2">
                     <h2 class="text-lg sm:text-xl font-black text-[#1C5A2C] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex items-center gap-2">
@@ -772,6 +785,7 @@
                 <a href="{{ route('farmer.crop.detail', $price->crop_id) }}?market={{ urlencode($price->market->name) }}"
                    data-cat="{{ $price->crop->category->slug ?? 'other' }}" 
                    data-name="{{ strtolower($price->crop->name . ' ' . ($price->crop->name_kn ?? '') . ' ' . $price->market->name . ' ' . ($price->market->name_kn ?? '') . ' ' . ($price->market->district->name ?? '') . ' ' . ($price->market->district->name_kn ?? '') . ' ' . ($price->variety->name ?? '') . ' ' . ($price->variety->name_kn ?? '')) }}"
+                   @if($loop->first) id="tourCropCard" @endif
                    class="crop-article bg-white rounded-2xl border-2 border-[#E2DAC8] hover:border-[#1C5A2C] overflow-hidden shadow-xs hover:shadow-md flex flex-col justify-between group cursor-pointer block tap-feedback active:scale-[0.98]"
                    style="transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.2, 0, 0, 1), border-color 0.2s, box-shadow 0.2s;">
                     

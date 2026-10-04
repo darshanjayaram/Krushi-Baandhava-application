@@ -231,6 +231,7 @@ Route::prefix('admin')->group(function () {
             Route::post('/settings/clear-cache', [SystemSettingController::class, 'clearCache'])->name('admin.settings.clear-cache');
             Route::post('/settings/optimize', [SystemSettingController::class, 'optimizeApp'])->name('admin.settings.optimize');
             Route::post('/settings/update-database', [SystemSettingController::class, 'updateDatabase'])->name('admin.settings.update-database');
+            Route::get('/settings/update-database', [SystemSettingController::class, 'updateDatabase']);
             Route::post('/settings/prune-data', [SystemSettingController::class, 'pruneData'])->name('admin.settings.prune-data');
             Route::post('/settings/trigger-forecasting', [SystemSettingController::class, 'triggerForecasting'])->name('admin.settings.trigger-forecasting');
         });
@@ -262,6 +263,13 @@ Route::prefix('admin')->group(function () {
         // Admin Notes & System Guidelines
         Route::get('/notes', [\App\Http\Controllers\Admin\NoteController::class, 'index'])->name('admin.notes.index');
         Route::post('/notes', [\App\Http\Controllers\Admin\NoteController::class, 'update'])->name('admin.notes.update');
+
+        // PWA Push Notifications & Farmer Communications Hub
+        Route::get('/notifications', [\App\Http\Controllers\Admin\PwaNotificationController::class, 'index'])->name('admin.notifications.index');
+        Route::post('/notifications/broadcast', [\App\Http\Controllers\Admin\PwaNotificationController::class, 'sendBroadcast'])->name('admin.notifications.broadcast');
+        Route::post('/notifications/test', [\App\Http\Controllers\Admin\PwaNotificationController::class, 'sendTestNotification'])->name('admin.notifications.test');
+        Route::post('/notifications/settings', [\App\Http\Controllers\Admin\PwaNotificationController::class, 'updateSettings'])->name('admin.notifications.settings');
+        Route::delete('/notifications/{broadcast}', [\App\Http\Controllers\Admin\PwaNotificationController::class, 'destroy'])->name('admin.notifications.destroy');
 
         // Audit Trail Logs
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');

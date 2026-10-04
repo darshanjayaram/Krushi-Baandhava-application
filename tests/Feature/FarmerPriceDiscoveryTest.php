@@ -458,5 +458,53 @@ class FarmerPriceDiscoveryTest extends TestCase
         $this->assertEquals($dateA, \Carbon\Carbon::parse($activeItemA->price_date)->toDateString());
         $responseVarA->assertSee('49,074');
     }
+
+    /**
+     * Test market switch AJAX request synchronizes active variety and grades with is_selected flag.
+     */
+    public function test_market_switch_ajax_synchronizes_active_variety_and_grade(): void
+    {
+        $crop = Crop::where('slug', 'arecanut')->first();
+        if (!$crop) {
+            $this->markTestSkipped('Arecanut crop not found.');
+        }
+
+        $thirthahalli = Market::where('name', 'like', '%Thirthahalli%')->first();
+        $honnali = Market::where('name', 'like', '%Honnali%')->first();
+
+        if (!$thirthahalli || !$honnali) {
+            $this->markTestSkipped('Thirthahalli or Honnali market not found.');
+        }
+
+        // 1. AJAX Market Switch to Thirthahalli
+        $resThirthahalli = $this->withHeaders(['X-Market-Switch' => '1', 'Accept' => 'application/json'])
+            ->get('/crop/' . $crop->id . '?market=' . urlencode($thirthahalli->name));
+
+        $resThirthahalli->assertStatus(200);
+        $resThirthahalli->assertJsonStructure([
+            'success',
+            'market',
+            'price_item',
+            'grades',
+            'active_variety_id',
+        ]);
+
+        $thirthahalliGrades = $resThirthahalli->json('grades');
+        $this->assertNotEmpty($thirthahalliGrades);
+        $selectedInThirthahalli = collect($thirthahalliGrades)->firstWhere('is_selected', true);
+        $this->assertNotNull($selectedInThirthahalli, 'Thirthahalli should have an active grade with is_selected: true');
+        $this->assertEquals($resThirthahalli->json('active_variety_id'), $selectedInThirthahalli['variety_id']);
+
+        // 2. AJAX Market Switch to Honnali
+        $resHonnali = $this->withHeaders(['X-Market-Switch' => '1', 'Accept' => 'application/json'])
+            ->get('/crop/' . $crop->id . '?market=' . urlencode($honnali->name));
+
+        $resHonnali->assertStatus(200);
+        $honnaliGrades = $resHonnali->json('grades');
+        $this->assertNotEmpty($honnaliGrades);
+        $selectedInHonnali = collect($honnaliGrades)->firstWhere('is_selected', true);
+        $this->assertNotNull($selectedInHonnali, 'Honnali should have an active grade with is_selected: true');
+        $this->assertEquals($resHonnali->json('active_variety_id'), $selectedInHonnali['variety_id']);
+    }
 }
 

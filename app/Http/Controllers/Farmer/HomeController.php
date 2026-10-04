@@ -150,41 +150,72 @@ class HomeController extends Controller
             ->get();
 
         // 5. Top Market Highlights / Price Movers (Featured Karnataka Commodities - 4 Spotlight Cards)
-        $topMovers = MarketPrice::karnataka()
-            ->with(['crop', 'variety', 'market.district'])
-            ->where('price_date', $latestPriceDate)
-            ->whereHas('crop', fn ($c) => $c->where('is_major', true))
-            ->orderBy('modal_price', 'desc')
-            ->get()
+        // Resolves the latest verified auction for each major commodity within its freshness window (7-30 days),
+        // preventing provider sync downtimes (e.g. KRAMA outages) from collapsing spotlight cards.
+        $spotlightCrops = Crop::where('is_active', true)
+            ->where('is_major', true)
+            ->get();
+
+        $freshSpotlightPrices = collect();
+        foreach ($spotlightCrops as $sCrop) {
+            $cutoffDate = $sCrop->getFreshnessCutoffDate($latestPriceDate);
+
+            // Priority 1: Market in farmer's active district within freshness window
+            $sPrice = null;
+            if ($activeDistrict) {
+                $sPrice = MarketPrice::karnataka()
+                    ->with(['crop', 'variety', 'market.district'])
+                    ->where('crop_id', $sCrop->id)
+                    ->whereHas('market', fn ($m) => $m->where('district_id', $activeDistrict->id))
+                    ->where('price_date', '>=', $cutoffDate)
+                    ->orderBy('price_date', 'desc')
+                    ->orderBy('modal_price', 'desc')
+                    ->first();
+            }
+
+            // Priority 2: State benchmark / closest Karnataka APMC market within freshness window
+            if (!$sPrice) {
+                $sPrice = MarketPrice::karnataka()
+                    ->with(['crop', 'variety', 'market.district'])
+                    ->where('crop_id', $sCrop->id)
+                    ->where('price_date', '>=', $cutoffDate)
+                    ->orderBy('price_date', 'desc')
+                    ->orderBy('modal_price', 'desc')
+                    ->first();
+            }
+
+            if ($sPrice) {
+                $freshSpotlightPrices->push($sPrice);
+            }
+        }
+
+        // Rank by highest modal price, ensuring distinct major commodities across the 4 cards
+        $topMovers = $freshSpotlightPrices
+            ->sortByDesc('modal_price')
             ->unique('crop_id')
             ->take(4)
             ->values();
 
         // 5a. Resolve authentic day-over-day price trend (Rise / Drop / Stable) against previous trading sessions
-        $priorPrices = \Illuminate\Support\Facades\DB::select("
-            SELECT mp.crop_id, mp.market_id, mp.variety_id, mp.modal_price
-            FROM market_prices mp
-            INNER JOIN (
-                SELECT crop_id, market_id, MAX(price_date) as max_date
-                FROM market_prices
-                WHERE price_date < ?
-                GROUP BY crop_id, market_id
-            ) prev ON mp.crop_id = prev.crop_id 
-              AND mp.market_id = prev.market_id 
-              AND mp.price_date = prev.max_date
-        ", [$latestPriceDate]);
+        // Each price compares against the immediate preceding session for its own crop and market.
+        $attachDailyTrend = function ($item) {
+            $prevPrice = MarketPrice::karnataka()
+                ->where('crop_id', $item->crop_id)
+                ->where('market_id', $item->market_id)
+                ->where('price_date', '<', $item->price_date)
+                ->orderBy('price_date', 'desc')
+                ->first();
 
-        $priorMap = [];
-        $cropPriorMap = [];
-        foreach ($priorPrices as $pr) {
-            $priorMap[$pr->crop_id . '_' . $pr->market_id] = (float) $pr->modal_price;
-            if (!isset($cropPriorMap[$pr->crop_id])) {
-                $cropPriorMap[$pr->crop_id] = (float) $pr->modal_price;
+            // Fallback to any market prior price for this crop if this specific market has no prior history
+            if (!$prevPrice) {
+                $prevPrice = MarketPrice::karnataka()
+                    ->where('crop_id', $item->crop_id)
+                    ->where('price_date', '<', $item->price_date)
+                    ->orderBy('price_date', 'desc')
+                    ->first();
             }
-        }
 
-        $attachDailyTrend = function ($item) use ($priorMap, $cropPriorMap) {
-            $prevModal = $priorMap[$item->crop_id . '_' . $item->market_id] ?? ($cropPriorMap[$item->crop_id] ?? null);
+            $prevModal = $prevPrice ? (float) $prevPrice->modal_price : null;
             if ($prevModal !== null && $prevModal > 0) {
                 $item->daily_price_change = (float) ($item->modal_price - $prevModal);
                 $item->daily_change_percent = round((($item->modal_price - $prevModal) / $prevModal) * 100, 1);

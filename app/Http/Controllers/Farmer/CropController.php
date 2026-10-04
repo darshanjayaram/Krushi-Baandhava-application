@@ -678,6 +678,8 @@ class CropController extends Controller
                 ],
                 'price_item' => $priceData,
                 'grades' => $gradesList,
+                'active_variety_id' => $activeVarietyId ?? ($activePriceItem?->variety_id ?? null),
+                'active_grade' => $activePriceItem?->grade ?? null,
                 'where_to_sell_url' => $whereToSellUrl,
                 'reset_url' => $resetUrl,
                 'advisory_html' => view('farmer.crops.partials.advisory_banner', compact('forecast', 'forecastDir', 'activeLocale'))->render(),

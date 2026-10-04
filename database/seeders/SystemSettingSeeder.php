@@ -68,6 +68,18 @@ class SystemSettingSeeder extends Seeder
             ['key' => 'pwa_display_mode', 'value' => 'standalone', 'type' => 'string', 'group' => 'pwa', 'description' => 'PWA display mode (standalone, fullscreen, minimal-ui, browser).'],
             ['key' => 'pwa_banner_enabled', 'value' => 'true', 'type' => 'boolean', 'group' => 'pwa', 'description' => 'Show in-app mobile installation prompt banner to visiting farmers.'],
             ['key' => 'pwa_icon', 'value' => '/icons/icon-512.svg', 'type' => 'string', 'group' => 'pwa', 'description' => 'Application 512x512 mobile installation home icon.'],
+            // PWA Push Notifications & Schedulers
+            ['key' => 'pwa_push_enabled', 'value' => 'true', 'type' => 'boolean', 'group' => 'pwa', 'description' => 'Master switch for PWA web push notifications.'],
+            ['key' => 'vapid_public_key', 'value' => 'BHQ7JNFx2IRv46UUSOBWIpDOv4t8fYtYXBz6kofw8okad1NH18T8TSKf5DoPJrEcNqmdvDrsEG7Zzo-fgr-XfGw', 'type' => 'string', 'group' => 'pwa', 'description' => 'VAPID Application Server Public Key (P-256 base64url).'],
+            ['key' => 'vapid_private_key', 'value' => 'gdvsE-WHW7_hR0gQdRNbWbFnChNxhGgcJmZijahw3MM', 'type' => 'string', 'group' => 'pwa', 'description' => 'VAPID Application Server Private Key (secret).'],
+            ['key' => 'vapid_subject', 'value' => 'mailto:contact@krushibaandhava.in', 'type' => 'string', 'group' => 'pwa', 'description' => 'VAPID Subject mailto or URL for push services.'],
+            ['key' => 'pwa_auto_rates_enabled', 'value' => 'true', 'type' => 'boolean', 'group' => 'pwa', 'description' => 'Enable automated daily evening APMC market rates notification.'],
+            ['key' => 'pwa_auto_rates_time', 'value' => '18:30', 'type' => 'string', 'group' => 'pwa', 'description' => 'Scheduled time (IST) to broadcast daily APMC market rates summary.'],
+            ['key' => 'pwa_auto_weather_enabled', 'value' => 'true', 'type' => 'boolean', 'group' => 'pwa', 'description' => 'Enable automated morning weather advisory notification.'],
+            ['key' => 'pwa_auto_weather_time', 'value' => '07:00', 'type' => 'string', 'group' => 'pwa', 'description' => 'Scheduled time (IST) to broadcast morning weather alert.'],
+            ['key' => 'pwa_auto_forecast_enabled', 'value' => 'true', 'type' => 'boolean', 'group' => 'pwa', 'description' => 'Enable automated weekly Monday market trend outlook notification.'],
+            ['key' => 'pwa_auto_forecast_time', 'value' => '08:00', 'type' => 'string', 'group' => 'pwa', 'description' => 'Scheduled time (IST) on Monday to broadcast weekly outlook.'],
+            ['key' => 'pwa_auto_scheme_enabled', 'value' => 'true', 'type' => 'boolean', 'group' => 'pwa', 'description' => 'Automatically notify subscribers when a new government scheme is published.'],
             // Interactive Route Maps & Geolocation
             ['key' => 'map_api_key', 'value' => '', 'type' => 'string', 'group' => 'maps', 'description' => 'CARTO Basemaps API key for authenticating route and mandi map tile requests.'],
             ['key' => 'map_tile_provider', 'value' => 'carto_voyager', 'type' => 'string', 'group' => 'maps', 'description' => 'Active interactive route map tile provider (carto_voyager, carto_positron, osm_standard, custom).'],

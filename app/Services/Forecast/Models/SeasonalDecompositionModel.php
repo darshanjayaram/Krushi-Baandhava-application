@@ -90,19 +90,25 @@ class SeasonalDecompositionModel implements ForecastModelInterface
         }
 
         // Deseasonalized Annual Benchmark: D = Level / S_current
-        $deseasonalizedAnnualBase = $baseline / $currentIndex;
-        // Seasonal Target Price for future month: P_seasonal = D * S_target
-        $seasonalTargetPrice = max($currentPrice * 0.35, $deseasonalizedAnnualBase * $targetIndex);
+        // Seasonal index ratio between target month and current month
+        $seasonalRatio = ($currentIndex > 0.05) ? ($targetIndex / $currentIndex) : 1.0;
+
+        // Dampen seasonal ratio so noise or cross-variety distortion does not cause extreme swings.
+        // A realistic month-over-month agricultural seasonal shift is within ±8%.
+        $dampenedSeasonalRatio = 1.0 + (($seasonalRatio - 1.0) * 0.25);
+        $dampenedSeasonalRatio = max(0.92, min(1.08, $dampenedSeasonalRatio));
+
+        $seasonalTargetPrice = $baseline * $dampenedSeasonalRatio;
 
         // 4. Horizon-dependent blending weight (USDA ERS standard)
         // Short horizon (1-7 days) is dominated by momentum/continuity.
-        // Long horizon (15-30 days) is dominated by seasonal benchmark transition.
+        // Medium & 30-day horizons balance current price momentum with dampened seasonal drift.
         $wMomentum = match ($horizonDays) {
-            1 => 0.92,
-            7 => 0.65,
-            15 => 0.35,
-            30 => 0.15,
-            default => max(0.10, min(0.90, 1.0 - ($horizonDays / 35.0))),
+            1 => 0.95,
+            7 => 0.80,
+            15 => 0.65,
+            30 => 0.50,
+            default => max(0.40, min(0.95, 1.0 - ($horizonDays / 60.0))),
         };
 
         $expectedPrice = round(($wMomentum * $momentumPrice) + ((1.0 - $wMomentum) * $seasonalTargetPrice), 2);

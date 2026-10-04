@@ -28,6 +28,25 @@
         </div>
 
         @if(!empty($forecast['is_sufficient']) && !empty($forecast['horizons']))
+            <!-- Farmer Verdict Banner (Instant Actionable Recommendation) -->
+            @if(!empty($forecast['verdict_kn']))
+                <div class="px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#E5DECE] flex items-center justify-between gap-2.5 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-[#1C5A2C] text-xs font-black shrink-0">
+                            💡
+                        </span>
+                        <div class="text-xs sm:text-sm font-black text-[#1C5A2C] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? ($forecast['verdict_en'] ?? $forecast['verdict_kn']) : $forecast['verdict_kn'] }}
+                        </div>
+                    </div>
+                    @if(!empty($forecast['why_summary_kn']))
+                        <div class="text-[11px] text-stone-600 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? ($forecast['why_summary_en'] ?? '') : $forecast['why_summary_kn'] }}
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <!-- 4-Card Forecast Grid (2 Columns on Mobile, 4 Columns on Desktop) -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3.5">
                 @foreach($forecast['horizons'] as $idx => $h)

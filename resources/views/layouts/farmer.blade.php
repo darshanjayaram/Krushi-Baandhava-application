@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="bg-[#F5EFE6] antialiased notranslate" translate="no">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="bg-[#F5EFE6] antialiased notranslate" style="background-color: #F5EFE6;" translate="no">
 <head>
     <meta charset="utf-8">
     <meta name="google" content="notranslate">
@@ -270,16 +270,20 @@
             height: 3px;
             background: linear-gradient(90deg, #1C5A2C 0%, #2D8A46 65%, #F0C24A 100%);
             box-shadow: 0 0 10px rgba(28, 90, 44, 0.7);
-            z-index: 99999;
-            pointer-events: none;
             opacity: 0;
             transition: width 0.35s cubic-bezier(0.1, 0.8, 0.2, 1), opacity 0.2s ease;
         }
+
+        /* ==================== 5. NATIVE CROSS-DOCUMENT VIEW TRANSITIONS (ZERO BLANK FLASH) ==================== */
+        @view-transition {
+            navigation: auto;
+        }
     </style>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @livewireStyles
-<body x-data="{ isMobileMenuOpen: false }" @keydown.escape.window="isMobileMenuOpen = false" class="flex flex-col min-h-screen antialiased pt-16 sm:pt-18 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-6 bg-[#F5EFE6] notranslate">
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
+    </head>
+    <body x-data="{ isMobileMenuOpen: false }" @keydown.escape.window="isMobileMenuOpen = false" class="flex flex-col min-h-screen antialiased pt-16 sm:pt-18 pb-0 md:pb-6 bg-[#F5EFE6] notranslate" style="background-color: #F5EFE6;">
 
     <!-- Top Navigation Progress Indicator (Silky Smooth Instant Page Feedback) -->
     <div id="globalPageProgressBar" aria-hidden="true"></div>
@@ -460,6 +464,7 @@
                     @if($showLocationPill)
                     <!-- Location Pill - Desktop Only (Hidden on Mobile & Tablet to prevent header crowding) -->
                     <button type="button" 
+                            id="tourHeaderLocationPill"
                             x-data
                             @click="$dispatch('open-location-modal')" 
                             class="header-location-pill hidden lg:flex items-center gap-1.5 bg-[#FAF8F5] border border-[#DDD2BE] rounded-full px-3 py-1.5 text-xs font-bold text-stone-800 transition hover:bg-stone-100 active:scale-95 cursor-pointer shadow-2xs shrink-0"
@@ -482,7 +487,7 @@
 
                     @if($showLanguageToggle)
                     <!-- Interactive Kannada / English Toggle -->
-                    <div class="flex items-center bg-white rounded-xl p-1 text-xs font-bold border border-stone-200/90 shadow-2xs shrink-0">
+                    <div id="tourLangToggle" class="flex items-center bg-white rounded-xl p-1 text-xs font-bold border border-stone-200/90 shadow-2xs shrink-0">
                         <a href="{{ route('locale.switch', 'en') }}" 
                             class="px-2 py-1 rounded-lg transition {{ $activeLocale === 'en' ? 'bg-[#1C5A2C] text-white shadow-xs font-black' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-100' }}"
                             title="Switch to English">
@@ -565,26 +570,47 @@
                    class="group relative flex flex-col items-center justify-center py-1 rounded-xl transition-all duration-200 active:scale-90 {{ $isTabActive ? 'text-[#1C5A2C] bg-emerald-50/90 font-black' : 'text-stone-500 hover:text-stone-800 font-semibold' }}">
                     <div class="relative">
                         @if($tabIcon === 'home')
-                            <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="{{ $isTabActive ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="{{ $isTabActive ? '1.5' : '2' }}">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                            </svg>
+                            @if($isTabActive)
+                                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z" />
+                                    <path d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z" />
+                                </svg>
+                            @else
+                                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                                </svg>
+                            @endif
                         @elseif($tabIcon === 'rates')
                             <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="{{ $isTabActive ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="{{ $isTabActive ? '1.5' : '2' }}">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                             </svg>
                         @elseif($tabIcon === 'schemes')
-                            <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="{{ $isTabActive ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="{{ $isTabActive ? '1.5' : '2' }}">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.5m-15 10.5V10.5M3 21h18M12 6.75h.008v.008H12V6.75z" />
-                            </svg>
+                            @if($isTabActive)
+                                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" />
+                                    <path fill-rule="evenodd" d="M20.25 10.332v9.918H21a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1 0-1.5h.75v-9.918a.75.75 0 0 1 .634-.74A49.109 49.109 0 0 1 12 9c2.59 0 5.134.202 7.616.592a.75.75 0 0 1 .634.74Zm-7.5 2.418a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Zm3-.75a.75.75 0 0 1 .75.75v6.75a.75.75 0 0 1-1.5 0v-6.75a.75.75 0 0 1 .75-.75ZM9 12.75a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Z" clip-rule="evenodd" />
+                                    <path d="M12 7.875a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" />
+                                </svg>
+                            @else
+                                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.5m-15 10.5V10.5M3 21h18M12 6.75h.008v.008H12V6.75z" />
+                                </svg>
+                            @endif
                         @elseif($tabIcon === 'weather')
                             <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="{{ $isTabActive ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="{{ $isTabActive ? '1.5' : '2' }}">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
                             </svg>
                         @elseif($tabIcon === 'videos')
-                            <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="{{ $isTabActive ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="{{ $isTabActive ? '1.5' : '2' }}">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
-                            </svg>
+                            @if($isTabActive)
+                                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm14.024-.983a1.125 1.125 0 0 1 0 1.966l-5.603 3.113A1.125 1.125 0 0 1 9 15.113V8.887c0-.857.921-1.4 1.671-.983l5.603 3.113Z" clip-rule="evenodd" />
+                                </svg>
+                            @else
+                                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
+                                </svg>
+                            @endif
                         @elseif($tabIcon === 'news')
                             <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="{{ $isTabActive ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="{{ $isTabActive ? '1.5' : '2' }}">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
@@ -1166,6 +1192,19 @@
             }
         })();
     </script>
+    {{-- Onboarding "How to Use" Tour --}}
+    <x-onboarding-tour />
+
+    {{-- Progressive Web App Push Notifications --}}
+    <script>
+        window.KRUSHI_PWA_CONFIG = {
+            vapidKeyUrl: "{{ route('api.v1.pwa.vapid-key') }}",
+            subscribeUrl: "{{ route('api.v1.pwa.subscribe') }}",
+            unsubscribeUrl: "{{ route('api.v1.pwa.unsubscribe') }}"
+        };
+    </script>
+    <script src="{{ asset('js/pwa-push.js') }}?v={{ file_exists(public_path('js/pwa-push.js')) ? filemtime(public_path('js/pwa-push.js')) : '2' }}" defer></script>
+
     @livewireScripts
 </body>
 </html>

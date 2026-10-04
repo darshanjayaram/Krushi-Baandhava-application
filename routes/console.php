@@ -148,3 +148,29 @@ Schedule::command('data:audit-integrity --days=3 --fix')
     ->withoutOverlapping(30)
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/audit_integrity.log'));
+
+/*
+|--------------------------------------------------------------------------
+| Automated PWA Push Notifications to Farmers
+|--------------------------------------------------------------------------
+*/
+$pwaRatesTime = \App\Models\SystemSetting::get('pwa_auto_rates_time', '18:30');
+if (!empty($pwaRatesTime)) {
+    Schedule::command('pwa:send-daily-rates')
+        ->dailyAt($pwaRatesTime)
+        ->when(fn () => (bool) \App\Models\SystemSetting::get('pwa_auto_rates_enabled', true) && (bool) \App\Models\SystemSetting::get('pwa_push_enabled', true))
+        ->withoutOverlapping(30)
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/pwa_rates.log'));
+}
+
+$pwaWeatherTime = \App\Models\SystemSetting::get('pwa_auto_weather_time', '07:00');
+if (!empty($pwaWeatherTime)) {
+    Schedule::command('pwa:send-weather-alert')
+        ->dailyAt($pwaWeatherTime)
+        ->when(fn () => (bool) \App\Models\SystemSetting::get('pwa_auto_weather_enabled', true) && (bool) \App\Models\SystemSetting::get('pwa_push_enabled', true))
+        ->withoutOverlapping(30)
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/pwa_weather.log'));
+}
+

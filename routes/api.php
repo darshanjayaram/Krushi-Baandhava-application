@@ -57,4 +57,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         return response()->json(['success' => true, 'status' => 'success', 'locale' => $locale])
             ->withCookie(cookie()->forever('locale', $locale));
     })->name('api.v1.set-locale');
+
+    // Progressive Web App (PWA) Push Notification Subscriptions
+    Route::get('/pwa/vapid-key', [\App\Http\Controllers\Api\PwaPushSubscriptionController::class, 'vapidKey'])->name('api.v1.pwa.vapid-key');
+    Route::post('/pwa/subscribe', [\App\Http\Controllers\Api\PwaPushSubscriptionController::class, 'subscribe'])->name('api.v1.pwa.subscribe');
+    Route::post('/pwa/unsubscribe', [\App\Http\Controllers\Api\PwaPushSubscriptionController::class, 'unsubscribe'])->name('api.v1.pwa.unsubscribe');
 });
+

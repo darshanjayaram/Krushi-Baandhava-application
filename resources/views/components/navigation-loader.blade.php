@@ -1,5 +1,23 @@
+@php
+    $activeLocale = app()->getLocale();
+    $isEn = ($activeLocale === 'en');
+    $appLogo = \App\Models\SystemSetting::get('app_logo', '/uploads/branding/app_logo_1790493250.png');
+    $logoVersion = file_exists(public_path(ltrim($appLogo, '/'))) ? filemtime(public_path(ltrim($appLogo, '/'))) : '1';
+    $appLogoUrl = asset($appLogo) . '?v=' . $logoVersion;
+    $appName = \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava');
+    $defaultTitle = $isEn ? 'Loading Page...' : 'ಪುಟ ಲೋಡ್ ಆಗುತ್ತಿದೆ...';
+    $defaultSubtitle = $isEn ? 'Loading latest market data...' : 'ಮಾರುಕಟ್ಟೆಯ ಇತ್ತೀಚಿನ ಮಾಹಿತಿ ಪಡೆಯಲಾಗುತ್ತಿದೆ...';
+@endphp
+
 <style>
-    /* Global Navigation Transition Loader Styles */
+    /* ==========================================================================
+       ORIGINAL KRUSHI BAANDHAVA LOADING WINDOW UI
+       With Negilu-inspired smooth navigation lifecycle behavior:
+       - Starts visible on target page until DOM + Alpine + assets fully settle
+       - Slowly fades out smoothly over 0.4s once window.load completes
+       - Appears instantly upon internal link navigation
+       - Built-in 7s CSS + JS safety watchdogs and bfcache protection
+       ========================================================================== */
     #globalNavigationLoader {
         position: fixed;
         inset: 0;
@@ -7,33 +25,31 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        /* Smooth, elegant translucent frosted veil instead of opaque white */
         background: rgba(15, 28, 20, 0.42);
         backdrop-filter: blur(12px) saturate(160%);
         -webkit-backdrop-filter: blur(12px) saturate(160%);
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1), 
-                    visibility 220ms cubic-bezier(0.16, 1, 0.3, 1);
+        transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+                    visibility 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        animation: kbLoaderSafety 0s linear 7s forwards;
+        will-change: opacity, visibility;
     }
 
-    #globalNavigationLoader.is-visible {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
+    #globalNavigationLoader.hide {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
 
     .kb-loader-card {
         background-color: #FAF8F5;
         border: 2px solid #D9CEB8;
         box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.35), 0 12px 24px -6px rgba(28, 90, 44, 0.2);
-        transform: scale(0.95);
-        transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+        transform: scale(1);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    #globalNavigationLoader.is-visible .kb-loader-card {
-        transform: scale(1);
+    #globalNavigationLoader.hide .kb-loader-card {
+        transform: scale(0.95);
     }
 
     /* Enforce strict font-family rules inside global navigation loader */
@@ -99,21 +115,20 @@
         animation-delay: 0.95s;
         border-radius: 9999px;
     }
+
+    @keyframes kbLoaderSafety {
+        to { opacity: 0; visibility: hidden; pointer-events: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .kb-loader-card {
+            transition: none !important;
+        }
+    }
 </style>
 
-@php
-    $activeLocale = app()->getLocale();
-    $isEn = ($activeLocale === 'en');
-    $appLogo = \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg');
-    $logoVersion = file_exists(public_path(ltrim($appLogo, '/'))) ? filemtime(public_path(ltrim($appLogo, '/'))) : '1';
-    $appLogoUrl = asset($appLogo) . '?v=' . $logoVersion;
-    $appName = \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava');
-    $defaultTitle = $isEn ? 'Loading Page...' : 'ಪುಟ ಲೋಡ್ ಆಗುತ್ತಿದೆ...';
-    $defaultSubtitle = $isEn ? 'Loading latest market data...' : 'ಮಾರುಕಟ್ಟೆಯ ಇತ್ತೀಚಿನ ಮಾಹಿತಿ ಪಡೆಯಲಾಗುತ್ತಿದೆ...';
-@endphp
-
-<!-- Full-Screen Glassmorphic Navigation Loading Window -->
-<div id="globalNavigationLoader" aria-hidden="true" role="status">
+<!-- Full-Screen Glassmorphic Navigation Loading Window (Original UI preserved) -->
+<div id="globalNavigationLoader" aria-hidden="false" role="status">
     <div class="kb-loader-card w-[260px] sm:w-[280px] rounded-3xl p-5 flex flex-col items-center text-center select-none">
         
         <!-- Application Logo Badge with Pulse and Micro-Spinner -->
@@ -153,28 +168,27 @@
 </div>
 
 <script>
+/* Page loader control:
+   Preserves original Krushi Baandhava modal card UI, while adopting Negilu's smooth
+   lifecycle behavior:
+   1. Stays visible until the destination page, DOM, Alpine.js, and assets fully settle.
+   2. Slowly fades out smoothly over 0.4s (via CSS transition).
+   3. Instantly displays upon internal navigation clicks.
+   4. Dual safety nets (CSS 7s animation + JS 7s watchdog) and bfcache protection. */
 (function() {
-    let loaderEl = null;
-    let delayTimer = null;
-    let safetyWatchdog = null;
-    const ANTI_FLICKER_DELAY = 160; // ms threshold so instant/cached navigations don't flicker
+    var L = document.getElementById('globalNavigationLoader');
+    if (!L) return;
 
-    const DEFAULT_TITLE = @js($defaultTitle);
-    const DEFAULT_SUBTITLE = @js($defaultSubtitle);
-    const IS_DEFAULT_KN = @js(!$isEn);
+    var defaultTitle = @js($defaultTitle);
+    var defaultSubtitle = @js($defaultSubtitle);
+    var isDefaultKn = @js(!$isEn);
 
-    function getLoader() {
-        if (!loaderEl) loaderEl = document.getElementById('globalNavigationLoader');
-        return loaderEl;
-    }
-
-    function setLoaderContent(title, subtitle, isKn = null) {
-        const titleEl = document.getElementById('globalLoaderTitle');
-        const subEl = document.getElementById('globalLoaderSubtitle');
-        
-        const finalTitle = title || DEFAULT_TITLE;
-        const finalSub = subtitle || DEFAULT_SUBTITLE;
-        const kn = (isKn !== null) ? isKn : IS_DEFAULT_KN;
+    function setLoaderContent(title, subtitle, isKn) {
+        var titleEl = document.getElementById('globalLoaderTitle');
+        var subEl = document.getElementById('globalLoaderSubtitle');
+        var finalTitle = title || defaultTitle;
+        var finalSub = subtitle || defaultSubtitle;
+        var kn = (isKn !== undefined && isKn !== null) ? isKn : isDefaultKn;
 
         if (titleEl) {
             titleEl.textContent = finalTitle;
@@ -199,106 +213,93 @@
         }
     }
 
-    function showLoader(customTitle = null, customSubtitle = null, isKn = null) {
-        const el = getLoader();
-        if (!el) return;
-
-        // Apply text content (localized or custom)
-        setLoaderContent(customTitle, customSubtitle, isKn);
-
-        // Cancel any pending timer
-        clearTimeout(delayTimer);
-        clearTimeout(safetyWatchdog);
-
-        // Anti-flicker delay: only reveal if navigation takes > 160ms
-        delayTimer = setTimeout(function() {
-            el.classList.add('is-visible');
-            el.setAttribute('aria-hidden', 'false');
-
-            // Safety Watchdog: automatically dismiss after 7 seconds if navigation is aborted or cancelled
-            safetyWatchdog = setTimeout(hideLoader, 7000);
-        }, ANTI_FLICKER_DELAY);
+    function hide() {
+        L.style.animation = 'none';
+        L.classList.add('hide');
+        L.setAttribute('aria-hidden', 'true');
     }
 
-    function hideLoader() {
-        clearTimeout(delayTimer);
-        clearTimeout(safetyWatchdog);
-        const el = getLoader();
-        if (el) {
-            el.classList.remove('is-visible');
-            el.setAttribute('aria-hidden', 'true');
-        }
+    function show(title, subtitle, isKn) {
+        setLoaderContent(title, subtitle, isKn);
+        L.style.animation = 'none';
+        L.classList.remove('hide');
+        L.setAttribute('aria-hidden', 'false');
     }
 
-    // Expose global methods for custom AJAX or modal actions
-    window.showPageLoader = showLoader;
-    window.hidePageLoader = hideLoader;
+    // Expose helpers globally
+    window.showPageLoader = show;
+    window.hidePageLoader = hide;
     window.setPageLoaderContent = setLoaderContent;
 
-    // 1. Intercept internal link taps
-    document.addEventListener('click', function(e) {
-        const link = e.target.closest('a');
-        if (!link) return;
-        const href = link.getAttribute('href');
-        if (!href) return;
-
-        // Ignore anchors, JS links, protocols, new tabs, downloads, or modifier keys
-        if (e.defaultPrevented ||
-            link.hasAttribute('data-no-loader') ||
-            link.closest('[data-no-loader]') ||
-            href.startsWith('#') ||
-            href.startsWith('javascript:') ||
-            href.startsWith('tel:') ||
-            href.startsWith('mailto:') ||
-            href.startsWith('whatsapp:') ||
-            link.getAttribute('target') === '_blank' ||
-            link.hasAttribute('download') ||
-            e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
-            return;
-        }
-
-        try {
-            const targetUrl = new URL(link.href, window.location.origin);
-            if (targetUrl.origin === window.location.origin) {
-                // Ignore if link points to current exact page and query
-                if (targetUrl.pathname === window.location.pathname && targetUrl.search === window.location.search) {
-                    return;
-                }
-
-                // If user is clicking to switch to English
-                if (targetUrl.pathname.includes('/locale/en') || targetUrl.searchParams.get('lang') === 'en') {
-                    showLoader('Switching to English...', 'Loading application in English...', false);
-                    return;
-                }
-                // If user is clicking to switch to Kannada
-                if (targetUrl.pathname.includes('/locale/kn') || targetUrl.searchParams.get('lang') === 'kn') {
-                    showLoader('ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗುತ್ತಿದೆ...', 'ಕನ್ನಡದಲ್ಲಿ ಮಾಹಿತಿ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...', true);
-                    return;
-                }
-
-                showLoader();
-            }
-        } catch(err) {}
-    }, { passive: true });
-
-    // 2. Intercept standard form submissions (e.g. search, filters)
-    document.addEventListener('submit', function(e) {
-        const form = e.target;
-        if (!form) return;
-        // Ignore if form is marked no-loader or targets a new tab
-        if (form.hasAttribute('data-no-loader') || form.getAttribute('target') === '_blank') {
-            return;
-        }
-        showLoader();
-    }, { passive: true });
-
-    // 3. Dismiss on back/forward cache restore, DOM complete, or popstate
-    window.addEventListener('pageshow', hideLoader);
-    window.addEventListener('popstate', hideLoader);
+    // Slowly fade out once destination page DOM, Alpine, and primary assets are completely ready
     if (document.readyState === 'complete') {
-        hideLoader();
+        setTimeout(hide, 140);
     } else {
-        window.addEventListener('load', hideLoader);
+        window.addEventListener('load', function() {
+            setTimeout(hide, 140);
+        });
     }
+
+    // Safety watchdog: auto-hide after 7 seconds if anything stalls
+    setTimeout(hide, 7000);
+
+    // Back/Forward cache (bfcache): dismiss immediately on restore
+    window.addEventListener('pageshow', function(e) {
+        if (e.persisted) hide();
+    });
+
+    // Bubble phase click listener on internal links
+    document.addEventListener('click', function(e) {
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+        // Skip buttons/links that do in-place actions or downloads
+        if (a.target === '_blank' || 
+            a.hasAttribute('download') || 
+            a.hasAttribute('data-no-loader') || 
+            a.closest('[data-no-loader]') || 
+            a.hasAttribute('data-video-id') || 
+            a.classList.contains('wa') || 
+            a.classList.contains('tour-btn') || 
+            a.hasAttribute('data-tour')) {
+            return;
+        }
+
+        var href = a.getAttribute('href') || '';
+        if (!href || href[0] === '#' || /^(mailto:|tel:|javascript:|whatsapp:)/i.test(href)) return;
+
+        var u;
+        try {
+            u = new URL(a.href, location.href);
+        } catch (_) {
+            return;
+        }
+
+        // Only same-origin navigations
+        if (u.origin !== location.origin) return;
+
+        // In-page hash anchors on the exact same page
+        if (u.pathname === location.pathname && (u.hash || u.search === location.search)) return;
+
+        // Custom friendly status message for language switching
+        if (u.pathname.includes('/locale/en') || u.searchParams.get('lang') === 'en') {
+            show('Switching to English...', 'Loading application in English...', false);
+            return;
+        }
+        if (u.pathname.includes('/locale/kn') || u.searchParams.get('lang') === 'kn') {
+            show('ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗುತ್ತಿದೆ...', 'ಕನ್ನಡದಲ್ಲಿ ಮಾಹಿತಿ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...', true);
+            return;
+        }
+
+        // Show immediately with standard loading card text
+        show();
+    }, false);
+
+    // Form submission support (e.g. search / filters without AJAX)
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (!form || e.defaultPrevented || form.hasAttribute('data-no-loader') || form.getAttribute('target') === '_blank') return;
+        show();
+    }, false);
 })();
 </script>

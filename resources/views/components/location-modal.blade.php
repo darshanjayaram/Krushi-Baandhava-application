@@ -213,6 +213,7 @@
 <!-- Unified Outer Backdrop & Positioning Container -->
 <div x-data="locationModalHandler()"
      x-show="isOpen"
+     :data-kb-modal-open="isOpen ? 'true' : 'false'"
      x-cloak
      @open-location-modal.window="openModal()"
      @keydown.escape.window="closeModal()"

@@ -58,7 +58,7 @@ class ForecastingEngineService
                 ->map(fn ($p) => (float) $p)
                 ->toArray();
 
-            if (count($vmRecords) >= 15) {
+            if (count($vmRecords) >= self::MIN_OBSERVATIONS) {
                 $sourcePrices = $vmRecords;
                 $observationsCount = count($vmRecords);
                 $scope = 'variety_market';
@@ -79,7 +79,7 @@ class ForecastingEngineService
                 ->values()
                 ->toArray();
 
-            if (count($svRecords) >= 15) {
+            if (count($svRecords) >= self::MIN_OBSERVATIONS) {
                 $sourcePrices = $svRecords;
                 $observationsCount = count($svRecords);
                 $scope = 'variety_state';
@@ -100,7 +100,7 @@ class ForecastingEngineService
                 ->values()
                 ->toArray();
 
-            if (count($mRecords) >= 15) {
+            if (count($mRecords) >= self::MIN_OBSERVATIONS) {
                 $sourcePrices = $mRecords;
                 $observationsCount = count($mRecords);
                 $scope = 'market_aggregate';
@@ -161,9 +161,9 @@ class ForecastingEngineService
             $pctChange = $currentPrice > 0 ? round((($expected - $currentPrice) / $currentPrice) * 100, 1) : 0.0;
 
             $direction = 'neutral';
-            if ($pctChange > 0.5) {
+            if ($pctChange > 2.5) {
                 $direction = 'up';
-            } elseif ($pctChange < -0.5) {
+            } elseif ($pctChange < -2.5) {
                 $direction = 'down';
             }
 
@@ -230,14 +230,29 @@ class ForecastingEngineService
         $isPerishable = in_array(strtolower($crop?->slug ?? ''), ['tomato', 'onion', 'green-chilli', 'ginger']);
         $isHighVolatility = $isPerishable || (count($sourcePrices) > 5 && (($horizonsOutput[0]['rmse'] ?? 0) / max(1, $currentPrice)) > 0.18);
 
+        // Clear, top-level Farmer Verdict (similar to Negilu's bottom-line recommendation)
+        $verdictKn = match ($weekDirection) {
+            'up' => 'ಬೆಲೆ ಏರಿಕೆಯ ನಿರೀಕ್ಷೆ — ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ಕಾಲ',
+            'down' => 'ಬೆಲೆ ಇಳಿಕೆಯ ಸಾಧ್ಯತೆ — ತ್ವರಿತ ಮಾರಾಟ ಪರಿಶೀಲಿಸಿ',
+            default => 'ಬೆಲೆ ಸ್ಥಿರ — ಮಾರಾಟಕ್ಕೆ ತಕ್ಷಣದ ಅವಸರವಿಲ್ಲ',
+        };
+        $verdictEn = match ($weekDirection) {
+            'up' => 'Price Rise Expected — Favorable Selling Window',
+            'down' => 'Price Softening Expected — Consider Selling Promptly',
+            default => 'Price Stable — No Immediate Rush to Sell',
+        };
+
         $directionWordEn = match ($weekDirection) {
             'up' => "rise about {$weekChange}%",
             'down' => "soften by " . abs($weekChange) . "%",
             default => "remain steady",
         };
-        $gapTextEn = $gapPercent < 0
-            ? "Today's price is " . abs($gapPercent) . "% below the multi-year seasonal benchmark — room for seasonal recovery if arrivals moderate."
-            : "Today's price is {$gapPercent}% above benchmark, supported by steady regional demand.";
+
+        $gapTextEn = match (true) {
+            abs($gapPercent) <= 5.0 => "Current prices are tracking closely in line with historical seasonal averages.",
+            $gapPercent < 0 => "Today's price is " . abs($gapPercent) . "% below the multi-year seasonal benchmark — room for seasonal recovery if arrivals moderate.",
+            default => "Today's price is {$gapPercent}% above benchmark, supported by steady regional demand.",
+        };
         $whySummaryEn = "Prices look set to {$directionWordEn} over the coming week. {$gapTextEn}";
 
         $directionWordKn = match ($weekDirection) {
@@ -245,9 +260,12 @@ class ForecastingEngineService
             'down' => "ಸುಮಾರು " . abs($weekChange) . "% ಇಳಿಕೆಯಾಗುವ",
             default => "ಸ್ಥಿರವಾಗಿ ಮುಂದುವರಿಯುವ",
         };
-        $gapTextKn = $gapPercent < 0
-            ? "ಇಂದಿನ ಧಾರಣೆ ವಾರ್ಷಿಕ ಸರಾಸರಿಗಿಂತ " . abs($gapPercent) . "% ಕಡಿಮೆಯಿದ್ದು, ಮಂಡಿ ಆವಕ ನಿಯಂತ್ರಣಕ್ಕೆ ಬಂದರೆ ಚೇತರಿಕೆಯ ಸಾಧ್ಯತೆಯಿದೆ."
-            : "ಇಂದಿನ ಧಾರಣೆ ವಾರ್ಷಿಕ ಸರಾಸರಿಗಿಂತ {$gapPercent}% ಹೆಚ್ಚಾಗಿದ್ದು, ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಉತ್ತಮ ಬೇಡಿಕೆಯಿದೆ.";
+
+        $gapTextKn = match (true) {
+            abs($gapPercent) <= 5.0 => "ಇಂದಿನ ಧಾರಣೆ ಸಾಮಾನ್ಯ ವಾರ್ಷಿಕ ಸರಾಸರಿಯ ಮಟ್ಟದಲ್ಲೇ ಮುಂದುವರಿದಿದೆ.",
+            $gapPercent < 0 => "ಇಂದಿನ ಧಾರಣೆ ವಾರ್ಷಿಕ ಸರಾಸರಿಗಿಂತ " . abs($gapPercent) . "% ಕಡಿಮೆಯಿದ್ದು, ಮಂಡಿ ಆವಕ ನಿಯಂತ್ರಣಕ್ಕೆ ಬಂದರೆ ಚೇತರಿಕೆಯ ಸಾಧ್ಯತೆಯಿದೆ.",
+            default => "ಇಂದಿನ ಧಾರಣೆ ವಾರ್ಷಿಕ ಸರಾಸರಿಗಿಂತ {$gapPercent}% ಹೆಚ್ಚಾಗಿದ್ದು, ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಉತ್ತಮ ಬೇಡಿಕೆಯಿದೆ.",
+        };
         $whySummaryKn = "ಮುಂದಿನ ವಾರದಲ್ಲಿ ಬೆಲೆ {$directionWordKn} ಸಾಧ್ಯತೆಯಿದೆ. {$gapTextKn}";
 
         return [
@@ -260,6 +278,8 @@ class ForecastingEngineService
             'scope' => $scope,
             'horizons' => $horizonsOutput,
             'is_high_volatility' => $isHighVolatility,
+            'verdict_kn' => $verdictKn,
+            'verdict_en' => $verdictEn,
             'why_summary_en' => $whySummaryEn,
             'why_summary_kn' => $whySummaryKn,
             'caveat_en' => 'The model is subject to market arrival volatility for this crop — treat these projections as an informative indicator, not an absolute guarantee.',

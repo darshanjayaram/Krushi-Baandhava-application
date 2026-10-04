@@ -99,9 +99,12 @@
             isGradeSelected(g) {
                 if (!g) return false;
                 if (this.selectedGradeVarietyId !== null && this.selectedGradeVarietyId !== undefined) {
-                    const sameVar = Number(this.selectedGradeVarietyId) === Number(g.variety_id);
-                    const sameGrade = (this.selectedGradeName || '') === (g.grade || '');
-                    return sameVar && sameGrade;
+                    const existsInCurrentMarket = Array.isArray(this.gradesList) && this.gradesList.some(item => Number(item.variety_id) === Number(this.selectedGradeVarietyId));
+                    if (existsInCurrentMarket) {
+                        const sameVar = Number(this.selectedGradeVarietyId) === Number(g.variety_id);
+                        const sameGrade = (this.selectedGradeName || '') === (g.grade || '');
+                        return sameVar && sameGrade;
+                    }
                 }
                 return !!g.is_selected;
             },
@@ -240,7 +243,17 @@ scrollToSelectedMandi() {
 
                     if (data && data.success) {
                         if (data.price_item) this.priceData = data.price_item;
-                        if (data.grades) this.gradesList = data.grades;
+                        if (data.grades && Array.isArray(data.grades)) {
+                            this.gradesList = data.grades;
+                            const activeGrade = data.grades.find(item => item.is_selected) || data.grades[0];
+                            if (activeGrade) {
+                                this.selectedGradeVarietyId = Number(activeGrade.variety_id);
+                                this.selectedGradeName = activeGrade.grade || null;
+                            } else {
+                                this.selectedGradeVarietyId = null;
+                                this.selectedGradeName = null;
+                            }
+                        }
                         if (data.where_to_sell_url) this.whereToSellUrl = data.where_to_sell_url;
                         if (data.reset_url) this.resetUrl = data.reset_url;
 
@@ -307,7 +320,17 @@ scrollToSelectedMandi() {
 
                     if (data && data.success) {
                         if (data.price_item) this.priceData = data.price_item;
-                        if (data.grades) this.gradesList = data.grades;
+                        if (data.grades && Array.isArray(data.grades)) {
+                            this.gradesList = data.grades;
+                            const activeGrade = data.grades.find(item => item.is_selected) || data.grades[0];
+                            if (activeGrade) {
+                                this.selectedGradeVarietyId = Number(activeGrade.variety_id);
+                                this.selectedGradeName = activeGrade.grade || null;
+                            } else {
+                                this.selectedGradeVarietyId = null;
+                                this.selectedGradeName = null;
+                            }
+                        }
                         if (data.where_to_sell_url) this.whereToSellUrl = data.where_to_sell_url;
                         if (data.market) {
                             this.selectedMarketId = data.market.id;
@@ -370,6 +393,10 @@ scrollToSelectedMandi() {
             init() {
                 this.scrollToSelectedMandi();
                 window.addEventListener('popstate', (e) => {
+                    if (e.state && e.state.varietyId) {
+                        this.selectedGradeVarietyId = Number(e.state.varietyId);
+                        this.selectedGradeName = e.state.grade || null;
+                    }
                     if (e.state && e.state.market) {
                         this.switchMarketAsync(e.state.market, e.state.marketId, window.location.href, false);
                     } else {
@@ -397,9 +424,6 @@ scrollToSelectedMandi() {
            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#E8DFC8] text-stone-700 hover:text-stone-950 font-bold text-xs shadow-2xs hover:bg-stone-50 transition active:scale-95">
             <span class="text-sm leading-none">&lsaquo;</span>
             <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Back' : 'ಹಿಂದಕ್ಕೆ' }}</span>
-            @if($activeLocale === 'kn')
-                <span class="text-[11px] font-sans text-stone-400 font-normal">Back</span>
-            @endif
         </a>
 
         <div class="flex items-center gap-2 text-xs font-semibold text-stone-500">

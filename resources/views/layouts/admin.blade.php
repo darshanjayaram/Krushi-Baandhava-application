@@ -289,6 +289,27 @@
                             </span>
                         @endif
                     </a>
+                    <a href="{{ route('admin.notifications.index') }}" class="flex items-center justify-between px-3 py-2 rounded-lg font-medium {{ request()->routeIs('admin.notifications.*') ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base leading-none">📲</span>
+                            <span>PWA Push Alerts</span>
+                        </div>
+                        @php
+                            $pwaSubCount = 0;
+                            try {
+                                if (\Illuminate\Support\Facades\Schema::hasTable('push_subscriptions')) {
+                                    $pwaSubCount = \App\Models\PushSubscription::where('is_active', true)->count();
+                                }
+                            } catch (\Throwable $e) {
+                                $pwaSubCount = 0;
+                            }
+                        @endphp
+                        @if($pwaSubCount > 0)
+                            <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-600 text-white shadow-sm">
+                                {{ $pwaSubCount }}
+                            </span>
+                        @endif
+                    </a>
                 </div>
             </div>
             @endif

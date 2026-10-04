@@ -60,7 +60,7 @@
         }">
     
     <!-- Main Content Container: Perfectly matches Homepage max-w-7xl width and gutters -->
-    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:py-9">
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:py-9">
 
         <!-- 3-Column Responsive Flex Layout: Consistent compact gap on mobile, spacious on desktop -->
         <div class="flex flex-col md:flex-row gap-3.5 md:gap-8 lg:gap-12 justify-between items-start">
