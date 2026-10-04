@@ -123,7 +123,7 @@ class AdminCmsTest extends TestCase
         // 1. Index
         $response = $this->actingAs($this->admin)->get('/admin/videos');
         $response->assertStatus(200);
-        $response->assertSee('Curated Educational Video Hub');
+        $response->assertSee('Educational Video Hub');
 
         // 2. Create with full YouTube link
         $response = $this->actingAs($this->admin)->post('/admin/videos', [

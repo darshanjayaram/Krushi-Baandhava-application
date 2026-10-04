@@ -45,8 +45,8 @@ class AdminDataSourceTest extends TestCase
         $response = $this->actingAs($this->admin)->get('/admin/datasources');
 
         $response->assertStatus(200);
-        $response->assertSee('Provider Adapters');
-        $response->assertSee('data_gov_mandi');
+        $response->assertSee('Configured Providers');
+        $response->assertSee('krama_karnataka');
     }
 
     public function test_admin_can_create_datasource_with_encrypted_credentials(): void
@@ -140,7 +140,7 @@ class AdminDataSourceTest extends TestCase
 
     public function test_admin_can_toggle_datasource_status(): void
     {
-        $ds = DataSource::where('code', 'data_gov_mandi')->first();
+        $ds = DataSource::where('code', 'krama_karnataka')->first();
         $this->assertNotNull($ds);
 
         $initialStatus = $ds->is_active;
@@ -157,7 +157,7 @@ class AdminDataSourceTest extends TestCase
 
     public function test_test_connection_endpoint_returns_diagnostics(): void
     {
-        $ds = DataSource::where('code', 'data_gov_mandi')->first();
+        $ds = DataSource::where('code', 'krama_karnataka')->first();
         $this->assertNotNull($ds);
 
         $response = $this->actingAs($this->admin)->postJson("/admin/datasources/{$ds->id}/test-connection");
@@ -189,7 +189,7 @@ class AdminDataSourceTest extends TestCase
 
     public function test_test_connection_endpoint_supports_get_request(): void
     {
-        $ds = DataSource::where('code', 'data_gov_mandi')->first();
+        $ds = DataSource::where('code', 'krama_karnataka')->first();
         $this->assertNotNull($ds);
 
         $response = $this->actingAs($this->admin)->getJson("/admin/datasources/{$ds->id}/test-connection");
@@ -205,7 +205,7 @@ class AdminDataSourceTest extends TestCase
 
     public function test_trigger_sync_creates_sync_log(): void
     {
-        $ds = DataSource::where('code', 'data_gov_mandi')->first();
+        $ds = DataSource::where('code', 'krama_karnataka')->first();
         $this->assertNotNull($ds);
 
         $response = $this->actingAs($this->admin)->post("/admin/datasources/{$ds->id}/trigger-sync");
@@ -223,7 +223,7 @@ class AdminDataSourceTest extends TestCase
 
     public function test_admin_can_manage_field_mappings(): void
     {
-        $ds = DataSource::where('code', 'data_gov_mandi')->first();
+        $ds = DataSource::where('code', 'krama_karnataka')->first();
 
         // 1. View mappings
         $viewRes = $this->actingAs($this->admin)->get("/admin/datasources/{$ds->id}/mappings");
@@ -267,10 +267,8 @@ class AdminDataSourceTest extends TestCase
         // The genuine data sources must be present
         $this->assertContains('krama_karnataka', $allSources);
         $this->assertContains('agmarknet_official', $allSources);
-        $this->assertContains('data_gov_mandi', $allSources);
         $this->assertContains('coffee_board', $allSources);
         $this->assertContains('coconut_board', $allSources);
-        $this->assertContains('tss_sirsi', $allSources);
 
         // Dummy/unused sources must NOT be in the database
         $this->assertNotContains('krama', $allSources);
@@ -280,10 +278,8 @@ class AdminDataSourceTest extends TestCase
         $providers = \App\Services\DataSources\DataSourceRegistry::getAvailableProviders();
         $this->assertArrayHasKey(\App\Services\DataSources\Krama\KramaMarketDataProvider::class, $providers);
         $this->assertArrayHasKey(\App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider::class, $providers);
-        $this->assertArrayHasKey(\App\Services\DataSources\DataGov\DataGovMarketDataProvider::class, $providers);
         $this->assertArrayHasKey(\App\Services\DataSources\CoffeeBoard\CoffeeBoardDataProvider::class, $providers);
         $this->assertArrayHasKey(\App\Services\DataSources\CoconutBoard\CoconutBoardDataProvider::class, $providers);
-        $this->assertArrayHasKey(\App\Services\DataSources\TssSirsi\TssSirsiDataProvider::class, $providers);
     }
 
     public function test_admin_can_delete_datasource(): void

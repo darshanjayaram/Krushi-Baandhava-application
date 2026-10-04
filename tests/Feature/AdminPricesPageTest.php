@@ -37,7 +37,7 @@ class AdminPricesPageTest extends TestCase
         $response->assertSee('Total Canonical Records', false);
         $response->assertSee('Latest Date Records', false);
         $response->assertSee('Canonical Prices', false);
-        $response->assertSee('Run Ingestion Sync', false);
+        $response->assertSee('Run Sync', false);
     }
 
     /**

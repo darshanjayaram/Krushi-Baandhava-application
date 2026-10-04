@@ -31,7 +31,7 @@ class AdminCropVarietyMappingTest extends TestCase
         $this->jyothi = $this->paddy->varieties()->where('name', 'like', '%Jyothi%')->first()
             ?? $this->paddy->varieties()->first();
 
-        $this->dataSource = DataSource::where('code', 'data_gov_mandi')->firstOrFail();
+        $this->dataSource = DataSource::where('code', 'agmarknet_official')->first() ?? DataSource::firstOrFail();
     }
 
     /**
@@ -58,7 +58,7 @@ class AdminCropVarietyMappingTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Commercial Varieties of Paddy', false);
         $response->assertSee('Map Raw API Variety / Grade Strings', false);
-        $response->assertSee('Target Canonical Grade', false);
+        $response->assertSee('Target Canonical Variety', false);
     }
 
     /**

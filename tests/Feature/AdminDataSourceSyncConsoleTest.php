@@ -37,7 +37,7 @@ class AdminDataSourceSyncConsoleTest extends TestCase
             ['code' => 'test_sync_console_source'],
             [
                 'name' => 'Test Console Mandi Feed',
-                'provider_class' => \App\Services\DataSources\DataGov\DataGovMarketDataProvider::class,
+                'provider_class' => \App\Services\DataSources\Krama\KramaMarketDataProvider::class,
                 'type' => 'market_prices',
                 'base_url' => 'https://api.example.com/v1',
                 'endpoint' => 'rates',

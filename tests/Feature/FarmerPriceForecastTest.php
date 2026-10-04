@@ -29,13 +29,13 @@ class FarmerPriceForecastTest extends TestCase
         // Default / Kannada mode
         $knResponse = $this->get(route('farmer.crops.show', ['slug' => $this->crop->slug, 'lang' => 'kn']));
         $knResponse->assertStatus(200);
-        $knResponse->assertSee('ದರ ಮುನ್ಸೂಚನೆ & ನಿರೀಕ್ಷಿತ ಶ್ರೇಣಿ', false);
-        $knResponse->assertSee('ಗಮನಿಸಿ:');
+        $knResponse->assertSee('ಬೆಲೆ ಮುನ್ಸೂಚನೆ', false);
+        $knResponse->assertSee('ಹಕ್ಕುತ್ಯಾಗ:');
 
         // English mode
         $enResponse = $this->get(route('farmer.crops.show', ['slug' => $this->crop->slug, 'lang' => 'en']));
         $enResponse->assertStatus(200);
-        $enResponse->assertSee('Price Forecast & Projections', false);
+        $enResponse->assertSee('Price Forecast', false);
         $enResponse->assertSee('Disclaimer:');
     }
 
@@ -107,6 +107,40 @@ class FarmerPriceForecastTest extends TestCase
 
         if (!$sarakuVariety || !$sippegotuVariety) {
             $this->markTestSkipped('Saraku or Sippegotu variety not found.');
+        }
+
+        for ($i = 34; $i >= 0; $i--) {
+            MarketPrice::updateOrCreate(
+                [
+                    'crop_id' => $this->crop->id,
+                    'market_id' => $thirthahalli->id,
+                    'variety_id' => $sarakuVariety->id,
+                    'price_date' => Carbon::today()->subDays($i)->toDateString(),
+                ],
+                [
+                    'min_price' => 68000,
+                    'max_price' => 74000,
+                    'modal_price' => 71000,
+                    'arrival_quantity' => 40,
+                    'unit' => 'Quintal',
+                ]
+            );
+
+            MarketPrice::updateOrCreate(
+                [
+                    'crop_id' => $this->crop->id,
+                    'market_id' => $thirthahalli->id,
+                    'variety_id' => $sippegotuVariety->id,
+                    'price_date' => Carbon::today()->subDays($i)->toDateString(),
+                ],
+                [
+                    'min_price' => 12000,
+                    'max_price' => 16000,
+                    'modal_price' => 14000,
+                    'arrival_quantity' => 20,
+                    'unit' => 'Quintal',
+                ]
+            );
         }
 
         // 1. Visit with Saraku variety

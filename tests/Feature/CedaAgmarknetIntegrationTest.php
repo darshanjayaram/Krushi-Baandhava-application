@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Crop;
 use App\Models\DataSource;
-use App\Services\DataSources\Ceda\CedaAgmarknetDataProvider;
+use App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider;
 use App\Services\DataSources\DataSourceRegistry;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
@@ -13,32 +13,31 @@ class CedaAgmarknetIntegrationTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_ceda_provider_is_registered_in_registry(): void
+    public function test_agmarknet_historical_provider_is_registered_in_registry(): void
     {
         $providers = DataSourceRegistry::getAvailableProviders();
-        $this->assertArrayHasKey(CedaAgmarknetDataProvider::class, $providers);
-        $this->assertStringContainsString('CEDA Agmarknet Provider', $providers[CedaAgmarknetDataProvider::class]);
+        $this->assertArrayHasKey(AgmarknetHistoricalDataProvider::class, $providers);
+        $this->assertStringContainsString('Official AGMARKNET Provider', $providers[AgmarknetHistoricalDataProvider::class]);
     }
 
-    public function test_ceda_provider_normalizes_records_correctly(): void
+    public function test_agmarknet_historical_provider_normalizes_records_correctly(): void
     {
-        $dataSource = new DataSource([
-            'code' => 'ceda_agmarknet',
-            'name' => 'CEDA Agmarknet',
-            'provider_class' => CedaAgmarknetDataProvider::class,
+        $dataSource = DataSource::where('code', 'agmarknet_official')->first() ?? new DataSource([
+            'code' => 'agmarknet_official',
+            'name' => 'Agmarknet Official',
+            'provider_class' => AgmarknetHistoricalDataProvider::class,
         ]);
-        $provider = new CedaAgmarknetDataProvider($dataSource);
+        $provider = new AgmarknetHistoricalDataProvider($dataSource);
 
         $sampleRecord = [
-            'date' => '2024-11-26T00:00:00.000Z',
-            'commodity_id' => 2,
-            'census_state_id' => 29,
-            'census_district_id' => 571,
-            'market_id' => 784,
-            'min_price' => 2300,
-            'max_price' => 2850,
-            'modal_price' => 2500,
-            'quantity' => 120.5,
+            'Commodity' => 'Paddy',
+            'District' => 'Tumkur',
+            'Market' => 'Tumkur',
+            'Arrival_Date' => '26/11/2024',
+            'Min_Price' => 2300,
+            'Max_Price' => 2850,
+            'Modal_Price' => 2500,
+            'Arrival_Quantity' => 120.5,
         ];
 
         $normalized = $provider->normalize($sampleRecord);

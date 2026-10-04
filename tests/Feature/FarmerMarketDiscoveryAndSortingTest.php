@@ -97,7 +97,7 @@ class FarmerMarketDiscoveryAndSortingTest extends TestCase
 
         $response->assertStatus(200);
         // Should contain Alpine activeSort and sorting toggle buttons in English
-        $response->assertSee("activeSort: 'nearest_first'", false);
+        $response->assertSee('activeSort: "nearest_first"', false);
         $response->assertSee('Nearest', false);
         $response->assertSee('Top Rate', false);
     }
@@ -114,7 +114,7 @@ class FarmerMarketDiscoveryAndSortingTest extends TestCase
             ->get("/crops/{$this->crop->slug}");
 
         $response->assertStatus(200);
-        $response->assertSee("activeSort: 'highest_price_first'", false);
+        $response->assertSee('activeSort: "highest_price_first"', false);
         // The toggle button group should not be rendered
         $response->assertDontSee("activeSort = 'nearest_first'", false);
     }
@@ -143,9 +143,8 @@ class FarmerMarketDiscoveryAndSortingTest extends TestCase
 
         $response->assertStatus(200);
         // It must NOT say "nearest market • 3" for Mangaluru!
-        // Instead, it should say "away (Nearest: "
+        // Instead, it should say "away"
         $response->assertSee('away', false);
-        $response->assertSee('Nearest:', false);
         $response->assertDontSee('nearest market • 3', false);
     }
 

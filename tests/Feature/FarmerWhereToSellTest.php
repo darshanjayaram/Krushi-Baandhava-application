@@ -78,6 +78,6 @@ class FarmerWhereToSellTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Where to Sell', false);
-        $response->assertSee('ನಿವ್ವಳ ಲಾಭ ಹೋಲಿಕೆ');
+        $response->assertSee('ನಿವ್ವಳ ಲಾಭ');
     }
 }

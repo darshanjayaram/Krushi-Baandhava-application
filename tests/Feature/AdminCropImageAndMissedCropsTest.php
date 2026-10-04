@@ -75,9 +75,9 @@ class AdminCropImageAndMissedCropsTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('admin.crops.edit', $crop));
 
         $response->assertStatus(200);
-        $response->assertSee('Crop Image & Thumbnail', false);
-        $response->assertSee('Upload New Photo', false);
-        $response->assertSee('Pick From Bundled Presets', false);
+        $response->assertSee('Crop Photo & Visual Asset', false);
+        $response->assertSee('Choose from Photo Gallery', false);
+        $response->assertSee('Upload to Gallery', false);
         $response->assertSee('enctype="multipart/form-data"', false);
     }
 

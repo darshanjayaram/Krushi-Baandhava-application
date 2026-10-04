@@ -125,8 +125,8 @@ class ForecastingEngineService
             $scope = 'state_benchmark';
         }
 
-        // Check Hard Minimum Observations (need at least 5 data points to form any trend)
-        if ($observationsCount < 5) {
+        // Check Hard Minimum Observations (need at least 30 observations for statistically reliable forecasting)
+        if ($observationsCount < self::MIN_OBSERVATIONS) {
             return [
                 'is_sufficient' => false,
                 'observations_count' => $observationsCount,

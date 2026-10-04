@@ -306,36 +306,126 @@
             </button>
 
             <!-- GPS Error Banner if any -->
-            <div x-show="gpsError && !isPermissionDenied" x-cloak style="display: none;" class="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center gap-2">
-                <span class="text-sm">⚠️</span>
-                <span x-text="gpsError"></span>
+            <div x-show="gpsError && !isPermissionDenied" x-cloak style="display: none;" class="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm">⚠️</span>
+                    <span x-text="gpsError"></span>
+                </div>
+                <button type="button" @click.stop="fallbackToIP()" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-900 text-[11px] font-bold shrink-0 cursor-pointer">
+                    {{ $isEn ? 'Use Network IP' : 'ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ' }}
+                </button>
             </div>
 
-            <!-- Location Permission Guide (When Denied/Blocked in Chrome) -->
-            <div x-show="isPermissionDenied" x-cloak style="display: none;" class="p-3.5 rounded-2xl bg-amber-50/95 border border-amber-300 text-stone-800 text-xs shadow-xs">
-                <div class="flex items-center gap-2 font-black text-amber-900 mb-1.5 text-xs sm:text-[13px]">
-                    <span class="text-base">📍</span>
-                    <span>{{ $isEn ? 'How to enable Location access in Chrome:' : 'ಸ್ಥಳ (Location) ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
+            <!-- Insecure Context Notice (Mobile HTTP - Crucial for iOS) -->
+            <div x-show="insecureContextNotice || isHttp" x-cloak style="display: none;" class="p-3.5 rounded-2xl bg-amber-50/95 border border-amber-300 text-stone-800 text-xs shadow-xs space-y-2">
+                <div class="flex items-center gap-2 font-black text-amber-950 text-xs sm:text-[13px]">
+                    <span class="text-base">🔒</span>
+                    <span>{{ $isEn ? 'HTTPS Connection Required for Mobile / iPhone GPS:' : 'iPhone ಮತ್ತು ಮೊಬೈಲ್‌ನಲ್ಲಿ GPS ಗಾಗಿ HTTPS ಅಗತ್ಯವಿದೆ:' }}</span>
                 </div>
-                <div class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
+                <div class="leading-relaxed text-stone-700 font-medium space-y-1">
+                    <p>
+                        {{ $isEn 
+                            ? 'Apple iOS and modern mobile browsers strictly block GPS on plain HTTP. Your current connection is not using secure HTTPS.'
+                            : 'Apple iOS ಮತ್ತು ಆಧುನಿಕ ಮೊಬೈಲ್ ಬ್ರೌಸರ್‌ಗಳು HTTP ನಲ್ಲಿ GPS ಅನ್ನು ಕಡ್ಡಾಯವಾಗಿ ನಿರ್ಬಂಧಿಸುತ್ತವೆ. ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಸಂಪರ್ಕವು HTTPS ಅಲ್ಲ.' }}
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                    <button type="button" 
+                            @click="switchToHttps()" 
+                            class="px-3.5 py-1.5 rounded-xl bg-[#1C5A2C] text-white font-bold text-xs hover:bg-emerald-800 transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                        <span>🔒</span>
+                        <span>{{ $isEn ? 'Switch to HTTPS (Fixes GPS)' : 'HTTPS ಗೆ ಬದಲಾಯಿಸಿ (GPS ಸರಿಹೊಂದಿಸಲು)' }}</span>
+                    </button>
+                    <button type="button" 
+                            @click="fallbackToIP()" 
+                            class="px-3 py-1.5 rounded-xl bg-white text-stone-800 border border-stone-300 font-bold text-xs hover:bg-stone-50 transition flex items-center gap-1.5 cursor-pointer">
+                        <span>🌐</span>
+                        <span>{{ $isEn ? 'Use Network Location' : 'ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಬಳಸಿ' }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Location Permission Guide (Platform-Adaptive: iOS Safari, iOS Chrome, Android, Desktop) -->
+            <div x-show="isPermissionDenied && !insecureContextNotice && !isHttp" x-cloak style="display: none;" class="p-3.5 rounded-2xl bg-amber-50/95 border border-amber-300 text-stone-800 text-xs shadow-xs space-y-2.5">
+                <div class="flex items-center justify-between pb-1.5 border-b border-amber-200/80">
+                    <div class="flex items-center gap-2 font-black text-amber-950 text-xs sm:text-[13px]">
+                        <span class="text-base">📍</span>
+                        <span x-show="deviceType === 'ios-safari'">{{ $isEn ? 'How to enable Location on iPhone (Safari):' : 'iPhone Safari ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
+                        <span x-show="deviceType === 'ios-chrome'">{{ $isEn ? 'How to enable Location in Chrome on iPhone:' : 'iPhone Chrome ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
+                        <span x-show="deviceType === 'android-chrome'">{{ $isEn ? 'How to enable Location in Chrome (Android):' : 'Android Chrome ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
+                        <span x-show="deviceType !== 'ios-safari' && deviceType !== 'ios-chrome' && deviceType !== 'android-chrome'">{{ $isEn ? 'How to enable Location in Browser:' : 'ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-900 font-mono text-[10px] font-bold" x-text="currentHost"></span>
+                </div>
+
+                <!-- 1. iPhone Safari Guide -->
+                <div x-show="deviceType === 'ios-safari'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
                     <p>{{ $isEn 
-                        ? 'Location permission is currently blocked in your browser for localhost.' 
-                        : 'ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ localhost ಗೆ ಸ್ಥಳ (Location) ಅನುಮತಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Blocked).' }}</p>
-                    <ol class="list-decimal pl-4 space-y-1 font-semibold text-stone-800">
-                        <li>{{ $isEn ? 'Click the Tune / Lock (🔒) icon on the left of localhost in the address bar.' : 'Chrome URL ಬಾರ್‌ನಲ್ಲಿ localhost ಪಕ್ಕದಲ್ಲಿರುವ Tune / Lock (🔒) ಐಕಾನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.' }}</li>
-                        <li>{{ $isEn ? 'Change Location to "Ask (default)" or "Allow".' : 'Location ಅನ್ನು "Allow" ಅಥವಾ "Ask" ಗೆ ಬದಲಾಯಿಸಿ.' }}</li>
-                        <li>{{ $isEn ? 'Tap "Use Current Location (GPS)" again.' : 'ನಂತರ ಮತ್ತೆ "ಪ್ರಸ್ತುತ ಸ್ಥಳ ಬಳಸಿ (GPS)" ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.' }}</li>
+                        ? 'Location permission is currently blocked in Safari for ' 
+                        : 'Safari ಬ್ರೌಸರ್‌ನಲ್ಲಿ ' }}<strong class="font-mono text-stone-900" x-text="currentHost"></strong>{{ $isEn ? '.' : ' ಗೆ ಸ್ಥಳ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ.' }}</p>
+                    <ol class="list-decimal pl-4 space-y-1 font-semibold text-stone-800 text-[11.5px] sm:text-xs">
+                        <li>{{ $isEn ? 'In the Safari URL bar, tap the' : 'Safari URL ಬಾರ್‌ನಲ್ಲಿ ಎಡಭಾಗದಲ್ಲಿರುವ' }} <strong class="bg-amber-100 px-1 py-0.5 rounded border border-amber-200">aA</strong> {{ $isEn ? 'icon on the left.' : 'ಐಕಾನ್ ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Tap "Website Settings" (⚙️).' : '"Website Settings" (ವೆಬ್‌ಸೈಟ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು) ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Change Location from "Deny" to "Allow" (or "Ask").' : 'Location ಅನ್ನು "Allow" ಅಥವಾ "Ask" ಗೆ ಬದಲಾಯಿಸಿ.' }}</li>
+                        <li>{{ $isEn ? 'Return here and tap "Try GPS Again" below.' : 'ನಂತರ ಕೆಳಗಿನ "ಮತ್ತೆ ಜಿಪಿಎಸ್ ಪ್ರಯತ್ನಿಸಿ" ಬಟನ್ ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                    </ol>
+                    <p class="text-[10.5px] text-amber-900/80 pt-0.5">
+                        💡 {{ $isEn ? 'Tip: If still blocked, check iPhone Settings → Privacy & Security → Location Services → Safari Websites.' : 'ಗಮನಿಸಿ: ಸಮಸ್ಯೆ ಮುಂದುವರಿದರೆ iPhone Settings → Privacy & Security → Location Services → Safari Websites ಪರಿಶೀಲಿಸಿ.' }}
+                    </p>
+                </div>
+
+                <!-- 2. iPhone Chrome Guide -->
+                <div x-show="deviceType === 'ios-chrome'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
+                    <p>{{ $isEn 
+                        ? 'Location permission is currently blocked in Chrome for ' 
+                        : 'Chrome ನಲ್ಲಿ ' }}<strong class="font-mono text-stone-900" x-text="currentHost"></strong>{{ $isEn ? '.' : ' ಗೆ ಸ್ಥಳ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ.' }}</p>
+                    <ol class="list-decimal pl-4 space-y-1 font-semibold text-stone-800 text-[11.5px] sm:text-xs">
+                        <li>{{ $isEn ? 'Open iPhone Settings app.' : 'iPhone Settings ಆ್ಯಪ್ ತೆರೆಯಿರಿ.' }}</li>
+                        <li>{{ $isEn ? 'Scroll down and tap "Chrome".' : 'ಕೆಳಗೆ ಸ್ಕ್ರಾಲ್ ಮಾಡಿ "Chrome" ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Tap "Location" and select "While Using the App".' : '"Location" ಆಯ್ಕೆಮಾಡಿ "While Using the App" ಗೆ ಬದಲಾಯಿಸಿ.' }}</li>
+                        <li>{{ $isEn ? 'Return to Chrome and tap "Try GPS Again".' : 'ನಂತರ ಇಲ್ಲಿಗೆ ಬಂದು "ಮತ್ತೆ ಜಿಪಿಎಸ್ ಪ್ರಯತ್ನಿಸಿ" ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
                     </ol>
                 </div>
-            </div>
 
-            <!-- Insecure Context Notice (Mobile HTTP) -->
-            <div x-show="insecureContextNotice" x-cloak style="display: none;" class="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-950 text-xs">
-                <p class="font-medium">
-                    {{ $isEn 
-                        ? 'Direct GPS access requires HTTPS or localhost. If testing via mobile network IP, network location is used or select your district below.' 
-                        : 'ನೇರ ಜಿಪಿಎಸ್‌ಗೆ HTTPS ಅಗತ್ಯವಿದೆ. ಮೊಬೈಲ್ ಐಪಿ ಮೂಲಕ ಪರೀಕ್ಷಿಸುತ್ತಿದ್ದರೆ ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಬಳಸಲಾಗುತ್ತದೆ ಅಥವಾ ಕೆಳಗಿನ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.' }}
-                </p>
+                <!-- 3. Android Chrome Guide -->
+                <div x-show="deviceType === 'android-chrome'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
+                    <p>{{ $isEn 
+                        ? 'Location permission is blocked in Chrome for ' 
+                        : 'Chrome ನಲ್ಲಿ ' }}<strong class="font-mono text-stone-900" x-text="currentHost"></strong>{{ $isEn ? '.' : ' ಗೆ ಸ್ಥಳ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ.' }}</p>
+                    <ol class="list-decimal pl-4 space-y-1 font-semibold text-stone-800 text-[11.5px] sm:text-xs">
+                        <li>{{ $isEn ? 'Tap the Tune / Lock (🔒) icon on the left of address bar.' : 'Chrome URL ಬಾರ್‌ನಲ್ಲಿ Tune / Lock (🔒) ಐಕಾನ್ ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Tap "Permissions" → "Location" and select "Allow".' : '"Permissions" → "Location" ಆಯ್ಕೆಮಾಡಿ "Allow" ಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Tap "Try GPS Again" below.' : 'ಕೆಳಗಿನ "ಮತ್ತೆ ಜಿಪಿಎಸ್ ಪ್ರಯತ್ನಿಸಿ" ಬಟನ್ ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                    </ol>
+                </div>
+
+                <!-- 4. Desktop / Generic Guide -->
+                <div x-show="deviceType !== 'ios-safari' && deviceType !== 'ios-chrome' && deviceType !== 'android-chrome'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
+                    <p>{{ $isEn 
+                        ? 'Location permission is currently blocked in your browser for ' 
+                        : 'ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ' }}<strong class="font-mono text-stone-900" x-text="currentHost"></strong>{{ $isEn ? '.' : ' ಗೆ ಸ್ಥಳ ಅನುಮತಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ.' }}</p>
+                    <ol class="list-decimal pl-4 space-y-1 font-semibold text-stone-800 text-[11.5px] sm:text-xs">
+                        <li>{{ $isEn ? 'Click the Tune / Lock (🔒) icon on the left of the address bar.' : 'URL ಬಾರ್‌ನಲ್ಲಿ Tune / Lock (🔒) ಐಕಾನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Change Location to "Allow" or "Ask (default)".' : 'Location ಅನ್ನು "Allow" ಅಥವಾ "Ask" ಗೆ ಬದಲಾಯಿಸಿ.' }}</li>
+                        <li>{{ $isEn ? 'Tap "Try GPS Again" below.' : 'ನಂತರ "ಮತ್ತೆ ಜಿಪಿಎಸ್ ಪ್ರಯತ್ನಿಸಿ" ಕ್ಲಿಕ್ ಮಾಡಿ.' }}</li>
+                    </ol>
+                </div>
+
+                <!-- Action Buttons: 1-Tap IP Fallback (Zero Hassle) or Retry GPS -->
+                <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-amber-200/80">
+                    <button type="button" 
+                            @click="fallbackToIP()" 
+                            class="px-3.5 py-1.5 rounded-xl bg-[#1C5A2C] text-white font-bold text-xs hover:bg-emerald-800 transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                        <span>🌐</span>
+                        <span>{{ $isEn ? 'Use Network / IP Location Instead' : 'ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಬಳಸಿ (ತಕ್ಷಣ)' }}</span>
+                    </button>
+                    <button type="button" 
+                            @click="detectGPSLocation()" 
+                            class="px-3 py-1.5 rounded-xl bg-white text-stone-800 border border-stone-300 font-bold text-xs hover:bg-stone-50 transition flex items-center gap-1.5 cursor-pointer">
+                        <span>🔄</span>
+                        <span>{{ $isEn ? 'Try GPS Again' : 'ಮತ್ತೆ ಜಿಪಿಎಸ್ ಪ್ರಯತ್ನಿಸಿ' }}</span>
+                    </button>
+                </div>
             </div>
 
             <!-- 2. Modern Dropdown Component (Contained Inline Expansion, Symmetrical p-3.5 sm:p-4) -->
@@ -562,6 +652,26 @@ function locationModalHandler() {
         activeDistrictName: '{{ $currentActiveName }}',
         activeDistrictNameKn: '{{ $currentActiveNameKn }}',
         districts: {!! json_encode($districtsPayload) !!},
+        currentHost: window.location.hostname || '{{ request()->getHost() }}',
+        deviceType: 'other',
+        isHttp: false,
+
+        detectDevice() {
+            const ua = navigator.userAgent || '';
+            const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isIOS) {
+                if (/CriOS/i.test(ua)) return 'ios-chrome';
+                return 'ios-safari';
+            }
+            if (/Android/i.test(ua)) return 'android-chrome';
+            return 'desktop';
+        },
+
+        switchToHttps() {
+            if (window.location.protocol === 'http:') {
+                window.location.href = window.location.href.replace('http:', 'https:');
+            }
+        },
 
         get filteredDistricts() {
             if (!this.searchFilter.trim()) {
@@ -583,6 +693,9 @@ function locationModalHandler() {
             this.gpsError = null;
             this.isPermissionDenied = false;
             this.insecureContextNotice = false;
+            this.currentHost = window.location.hostname || '{{ request()->getHost() }}';
+            this.deviceType = this.detectDevice();
+            this.isHttp = window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
             // Preserves website scrollbar - no overflow-hidden on body
         },
 
@@ -632,16 +745,19 @@ function locationModalHandler() {
             this.gpsError = null;
             this.isPermissionDenied = false;
             this.insecureContextNotice = false;
+            this.currentHost = window.location.hostname || '{{ request()->getHost() }}';
+            this.deviceType = this.detectDevice();
+            this.isHttp = window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
 
             if (!navigator.geolocation) {
                 this.gpsError = this.locale === 'en'
-                    ? 'Your browser does not support GPS. Please select your district from the list below.'
-                    : 'ನಿಮ್ಮ ಬ್ರೌಸರ್ ಜಿಪಿಎಸ್ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ದಯವಿಟ್ಟು ಜಿಲ್ಲಾ ಪಟ್ಟಿಯಿಂದ ಆಯ್ಕೆಮಾಡಿ.';
+                    ? 'Your browser does not support GPS. Tap Use Network Location or select your district below.'
+                    : 'ನಿಮ್ಮ ಬ್ರೌಸರ್ ಜಿಪಿಎಸ್ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಬಳಸಿ ಅಥವಾ ಕೆಳಗಿನ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.';
                 return;
             }
 
-            // Direct check for insecure HTTP context on mobile/LAN
-            if (window.isSecureContext === false && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            // Direct check for insecure HTTP context on mobile/deployed sites (iOS strictly requires HTTPS)
+            if (this.isHttp || (window.isSecureContext === false && !['localhost', '127.0.0.1'].includes(window.location.hostname))) {
                 this.insecureContextNotice = true;
                 this.isDetecting = true;
                 this.fallbackToIP();
@@ -665,8 +781,8 @@ function locationModalHandler() {
                         self.isDetecting = false;
                         self.isPermissionDenied = true;
                         self.gpsError = self.locale === 'en'
-                            ? 'Location permission denied by browser. Please follow instructions below or select a district.'
-                            : 'ಸ್ಥಳ ಪ್ರವೇಶ ನಿರಾಕರಿಸಲಾಗಿದೆ. ದಯವಿಟ್ಟು ಕೆಳಗಿನ ಸೂಚನೆ ಪಾಲಿಸಿ ಅಥವಾ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.';
+                            ? 'Location access was not granted by browser. Follow instructions below or tap Use Network Location.'
+                            : 'ಸ್ಥಳ ಪ್ರವೇಶ ನಿರಾಕರಿಸಲಾಗಿದೆ. ಕೆಳಗಿನ ಸೂಚನೆ ಪಾಲಿಸಿ ಅಥವಾ ನೆಟ್‌ವರ್ಕ್ ಸ್ಥಳ ಬಳಸಿ.';
                         return;
                     }
 
@@ -775,11 +891,12 @@ function locationModalHandler() {
             }
 
             if (nearest) {
+                const safeAreaKn = (localAreaKn && !/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/i.test(localAreaKn.trim())) ? localAreaKn : (localArea || null);
                 this.isUpdating = true;
                 this.updatingDistrictId = nearest.id;
                 this.updatingDistrictName = localArea ? `${localArea} (${nearest.name})` : nearest.name;
-                this.updatingDistrictNameKn = localAreaKn ? `${localAreaKn} (${nearest.name_kn || nearest.name})` : (nearest.name_kn || nearest.name);
-                this.saveAndRedirect(nearest.id, nearest.name, userLat, userLon, localArea, localAreaKn);
+                this.updatingDistrictNameKn = localArea ? `${safeAreaKn} (${nearest.name_kn || nearest.name})` : (nearest.name_kn || nearest.name);
+                this.saveAndRedirect(nearest.id, nearest.name, userLat, userLon, localArea, safeAreaKn);
             } else {
                 const fallback = this.districts[0] || { id: 1, name: 'Shivamogga' };
                 this.isUpdating = true;
@@ -813,13 +930,14 @@ function locationModalHandler() {
 
             // Persist or clear hyper-local place
             if (localArea) {
+                const safeKn = (localAreaKn && !/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/i.test(localAreaKn.trim())) ? localAreaKn : localArea;
                 const encArea = encodeURIComponent(localArea);
-                const encAreaKn = encodeURIComponent(localAreaKn || localArea);
+                const encAreaKn = encodeURIComponent(safeKn);
                 document.cookie = "selected_local_area=" + encArea + "; path=/; max-age=31536000; SameSite=Lax";
                 document.cookie = "selected_local_area_kn=" + encAreaKn + "; path=/; max-age=31536000; SameSite=Lax";
                 if (window.localStorage) {
                     localStorage.setItem('krushi_local_area', localArea);
-                    localStorage.setItem('krushi_local_area_kn', localAreaKn || localArea);
+                    localStorage.setItem('krushi_local_area_kn', safeKn);
                 }
             } else {
                 document.cookie = "selected_local_area=; path=/; max-age=0; SameSite=Lax";
@@ -836,8 +954,9 @@ function locationModalHandler() {
                 payload.longitude = lon;
             }
             if (localArea) {
+                const safeKn = (localAreaKn && !/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/i.test(localAreaKn.trim())) ? localAreaKn : localArea;
                 payload.local_area = localArea;
-                payload.local_area_kn = localAreaKn || localArea;
+                payload.local_area_kn = safeKn;
             }
 
             // Post to backend to persist in session

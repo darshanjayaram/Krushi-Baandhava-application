@@ -158,6 +158,11 @@
                 <span class="px-2.5 py-0.5 rounded-lg {{ $cronInfo['enable_hourly'] ? 'bg-slate-800 text-slate-300' : 'bg-slate-900 text-slate-500' }}" title="Trading hours hourly refreshes">
                     {{ $cronInfo['enable_hourly'] ? '⚡ Trading Hours Hourly Sync (Active)' : 'Hourly Sync Disabled' }}
                 </span>
+                <span class="px-2.5 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800/80 font-bold flex items-center gap-1.5 shadow-xs" title="Number of active feeds enrolled in automated background cron">
+                    <span>⚡</span>
+                    <span>Cron Scope:</span>
+                    <span class="font-mono text-indigo-200" id="cron-scope-pill-count">{{ $cronInfo['cron_enabled_count'] }} of {{ $stats['active'] }} Active Feeds</span>
+                </span>
             </div>
 
             <button type="button" 
@@ -171,13 +176,15 @@
         <div x-show="showScheduleEditor" x-cloak x-transition class="bg-slate-950 border border-amber-600/70 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
             <form action="{{ route('admin.datasources.update-schedule-timings') }}" method="POST">
                 @csrf
+                <input type="hidden" name="enrolled_sources_submitted" value="1">
+                <input type="hidden" name="scheduled_tasks_submitted" value="1">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                     <div>
                         <h3 class="text-sm font-black text-white flex items-center gap-2">
-                            <span>⚙️</span> Edit Automated Background Sync Schedule
+                            <span>⚙️</span> Edit Automated Background Sync Schedule & Cron Feeds
                         </h3>
                         <p class="text-xs text-slate-400 mt-0.5">
-                            Update morning/evening sync times. Laravel's scheduler will trigger external feeds automatically according to these hours.
+                            Update morning/evening sync times and toggle which data sources and background jobs participate in the cPanel cron job.
                         </p>
                     </div>
                     <button type="button" @click="showScheduleEditor = false" class="text-slate-400 hover:text-white text-base font-bold cursor-pointer">✕</button>
@@ -224,6 +231,99 @@
                     </div>
                 </div>
 
+                <!-- Enrolled Ingestion Feeds in Cron Checklist -->
+                <div class="pt-4 border-t border-slate-800">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+                        <div>
+                            <label class="block text-xs font-bold text-white flex items-center gap-1.5">
+                                <span>⚡</span> Services Enrolled in Automated cPanel Cron
+                            </label>
+                            <p class="text-[11px] text-slate-400 mt-0.5">
+                                Check the upstream feeds that should execute automatically on this cron schedule. Unchecked feeds are excluded from background cron (you can still run them manually on-demand).
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" @click="$el.closest('form').querySelectorAll('.cron-source-cb').forEach(cb => cb.checked = true)" class="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer">Select All</button>
+                            <span class="text-slate-600">|</span>
+                            <button type="button" @click="$el.closest('form').querySelectorAll('.cron-source-cb').forEach(cb => cb.checked = false)" class="text-[11px] font-bold text-rose-400 hover:text-rose-300 underline cursor-pointer">Deselect All</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+                        @foreach($cronInfo['all_sources'] as $src)
+                            <label class="flex items-start gap-2.5 p-2.5 rounded-xl border transition cursor-pointer select-none {{ $src->is_cron_enabled ? 'bg-slate-900/90 border-slate-700 hover:border-emerald-500/70' : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 opacity-80' }}">
+                                <input type="checkbox" 
+                                       name="enrolled_sources[]" 
+                                       value="{{ $src->id }}" 
+                                       {{ $src->is_cron_enabled ? 'checked' : '' }} 
+                                       class="cron-source-cb mt-0.5 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 bg-slate-950">
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                                        <span>{{ $src->name }}</span>
+                                    </div>
+                                    <div class="text-[10px] font-mono text-slate-400 truncate mt-0.5">{{ $src->code }}</div>
+                                    <div class="mt-1 flex items-center gap-1 flex-wrap">
+                                        @if($src->is_active)
+                                             <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">Active</span>
+                                        @else
+                                            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-800 text-slate-400">Paused</span>
+                                        @endif
+                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/50 truncate max-w-[120px]">
+                                            {{ class_basename($src->provider_class) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Scheduled Background Tasks Master Switches -->
+                <div class="pt-4 border-t border-slate-800">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+                        <div>
+                            <label class="block text-xs font-bold text-white flex items-center gap-1.5">
+                                <span>🤖</span> Scheduled Background Tasks Master Switches
+                            </label>
+                            <p class="text-[11px] text-slate-400 mt-0.5">
+                                Enable or pause individual scheduled background jobs executed by Laravel's cron worker. Unchecked tasks will be skipped during automated cron runs.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" @click="$el.closest('form').querySelectorAll('.cron-task-cb').forEach(cb => cb.checked = true)" class="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer">Select All</button>
+                            <span class="text-slate-600">|</span>
+                            <button type="button" @click="$el.closest('form').querySelectorAll('.cron-task-cb').forEach(cb => cb.checked = false)" class="text-[11px] font-bold text-rose-400 hover:text-rose-300 underline cursor-pointer">Deselect All</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                        @foreach($cronInfo['scheduled_tasks'] ?? [] as $tKey => $task)
+                            @php
+                                $taskEnabled = (bool) ($task['enabled'] ?? $task['is_active'] ?? true);
+                                $taskKey = $task['key'] ?? $tKey;
+                                $taskName = $task['name'] ?? $task['title'] ?? $taskKey;
+                                $taskDesc = $task['desc'] ?? $task['purpose'] ?? '';
+                            @endphp
+                            <label class="flex items-start gap-2.5 p-2.5 rounded-xl border transition cursor-pointer select-none {{ $taskEnabled ? 'bg-slate-900/90 border-slate-700 hover:border-emerald-500/70' : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 opacity-70' }}">
+                                <input type="checkbox" 
+                                       name="scheduled_tasks[]" 
+                                       value="{{ $taskKey }}" 
+                                       {{ $taskEnabled ? 'checked' : '' }} 
+                                       class="cron-task-cb mt-0.5 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 bg-slate-950">
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-xs font-bold text-white flex items-center justify-between gap-1">
+                                        <span class="truncate">{{ $taskName }}</span>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded shrink-0 {{ $taskEnabled ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60' : 'bg-slate-800 text-slate-400' }}">
+                                            {{ $taskEnabled ? 'Active' : 'Paused' }}
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 mt-1 leading-relaxed">{{ $taskDesc }}</div>
+                                </div>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
                 <!-- Checkboxes and Save Button -->
                 <div class="pt-3 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="space-y-1.5">
@@ -243,7 +343,7 @@
                         </button>
                         <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition shadow-sm cursor-pointer flex items-center gap-1.5">
                             <span>💾</span>
-                            <span>Save Cron Timings</span>
+                            <span>Save Cron Timings & Feeds</span>
                         </button>
                     </div>
                 </div>
@@ -328,6 +428,7 @@
                         <th class="py-3.5 px-4">Configured Crops</th>
                         <th class="py-3.5 px-4">Sync Frequency</th>
                         <th class="py-3.5 px-4">Last Sync</th>
+                        <th class="py-3.5 px-4 text-center">Cron Schedule</th>
                         <th class="py-3.5 px-4 text-center">Status</th>
                         <th class="py-3.5 px-5 text-right">Actions</th>
                     </tr>
@@ -412,6 +513,17 @@
                                 @else
                                     <span class="text-xs text-slate-500 italic">Never synced</span>
                                 @endif
+                            </td>
+                            <td class="py-3.5 px-4 text-center" id="cron-status-col-{{ $source->id }}">
+                                <form action="{{ route('admin.datasources.toggle-cron', $source) }}" method="POST" class="inline" onsubmit="event.preventDefault(); window.toggleCronAjax({{ $source->id }}, this);">
+                                    @csrf
+                                    <button type="submit" 
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer {{ $source->is_cron_enabled ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/80 hover:bg-emerald-900 shadow-xs' : 'bg-amber-950/70 text-amber-300 border border-amber-800/70 hover:bg-amber-900 shadow-xs' }}"
+                                            title="{{ $source->is_cron_enabled ? 'Auto-runs on cron schedule. Click to exclude.' : 'Excluded from cron schedule. Click to enroll.' }}">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ $source->is_cron_enabled ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400' }}"></span>
+                                        <span>{{ $source->is_cron_enabled ? '⚡ Auto Cron' : '⏸️ Excluded' }}</span>
+                                    </button>
+                                </form>
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 <form action="{{ route('admin.datasources.toggle-status', $source) }}" method="POST">
@@ -2085,5 +2197,57 @@ function dataSourceManager() {
         }
     };
 }
+
+window.toggleCronAjax = async function(sourceId, formElement) {
+    const btn = formElement.querySelector('button');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.classList.add('opacity-50');
+
+    try {
+        const token = formElement.querySelector('input[name="_token"]')?.value;
+        const res = await fetch(formElement.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        const data = await res.json();
+        if (data.ok) {
+            const isCron = data.is_cron_enabled;
+            if (isCron) {
+                btn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer bg-emerald-950 text-emerald-300 border border-emerald-800/80 hover:bg-emerald-900 shadow-xs';
+                btn.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span>⚡ Auto Cron</span>';
+                btn.title = 'Auto-runs on cron schedule. Click to exclude.';
+            } else {
+                btn.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer bg-amber-950/70 text-amber-300 border border-amber-800/70 hover:bg-amber-900 shadow-xs';
+                btn.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span>⏸️ Excluded</span>';
+                btn.title = 'Excluded from cron schedule. Click to enroll.';
+            }
+
+            // Update scope pill count if present on page
+            const pillCount = document.getElementById('cron-scope-pill-count');
+            if (pillCount && data.cron_enabled_count !== undefined) {
+                pillCount.innerText = `${data.cron_enabled_count} of {{ $stats['active'] }} Active Feeds`;
+            }
+
+            // Sync checkbox in drawer if present
+            const drawerCb = document.querySelector(`.cron-source-cb[value="${sourceId}"]`);
+            if (drawerCb) {
+                drawerCb.checked = isCron;
+            }
+        } else {
+            alert('Could not update cron enrollment: ' + (data.message || 'Server error'));
+        }
+    } catch (err) {
+        alert('Network error while toggling cron: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+    }
+};
 </script>
 @endsection

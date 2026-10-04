@@ -658,7 +658,36 @@ class MarketPriceIngestionService
 
         $normalizedSearch = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $cleanMarket)));
 
-        // 1. Primacy: Direct Canonical Karnataka APMC Market Match
+        // 1. Direct DataSource mapping with District match (Prioritizes explicit source-specific mappings)
+        if ($cleanDistrict) {
+            $exactWithDistrict = MarketSourceMapping::where('data_source_id', $dataSourceId)
+                ->where('source_market_name', $cleanMarket)
+                ->where('source_district_name', $cleanDistrict)
+                ->with(['market.district.state'])
+                ->first();
+
+            if ($exactWithDistrict && $exactWithDistrict->market) {
+                $m = $exactWithDistrict->market;
+                if (($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') && ($exactWithDistrict->is_verified || $this->isPlausibleMarketMatch($cleanMarket, $m))) {
+                    return $this->resolvedMarketsCache[$cacheKey] = $m;
+                }
+            }
+        }
+
+        // 2. Direct DataSource mapping without District match (matches explicit source-specific alias)
+        $aliasMapping = MarketSourceMapping::where('data_source_id', $dataSourceId)
+            ->where('source_market_name', $cleanMarket)
+            ->with(['market.district.state'])
+            ->first();
+
+        if ($aliasMapping && $aliasMapping->market) {
+            $m = $aliasMapping->market;
+            if (($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') && ($aliasMapping->is_verified || $this->isPlausibleMarketMatch($cleanMarket, $m))) {
+                return $this->resolvedMarketsCache[$cacheKey] = $m;
+            }
+        }
+
+        // 3. Direct Canonical Karnataka APMC Market Match
         // If the source market name directly matches a canonical APMC market, prioritize it!
         foreach ($this->karnatakaMarketsCache as $mandi) {
             $mName = strtolower(trim(preg_replace('/\b(apmc|mandi|market)\b/i', '', $mandi->name)));
@@ -672,35 +701,6 @@ class MarketPriceIngestionService
                 } else {
                     return $this->resolvedMarketsCache[$cacheKey] = $mandi;
                 }
-            }
-        }
-
-        // 2. Direct DataSource mapping with District match
-        if ($cleanDistrict) {
-            $exactWithDistrict = MarketSourceMapping::where('data_source_id', $dataSourceId)
-                ->where('source_market_name', $cleanMarket)
-                ->where('source_district_name', $cleanDistrict)
-                ->with(['market.district.state'])
-                ->first();
-
-            if ($exactWithDistrict && $exactWithDistrict->market) {
-                $m = $exactWithDistrict->market;
-                if (($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') && $this->isPlausibleMarketMatch($cleanMarket, $m)) {
-                    return $this->resolvedMarketsCache[$cacheKey] = $m;
-                }
-            }
-        }
-
-        // 3. Direct DataSource mapping (matches aliases without requiring district match)
-        $aliasMapping = MarketSourceMapping::where('data_source_id', $dataSourceId)
-            ->where('source_market_name', $cleanMarket)
-            ->with(['market.district.state'])
-            ->first();
-
-        if ($aliasMapping && $aliasMapping->market) {
-            $m = $aliasMapping->market;
-            if (($m->district?->state?->code === 'KA' || $m->district?->state?->name === 'Karnataka') && $this->isPlausibleMarketMatch($cleanMarket, $m)) {
-                return $this->resolvedMarketsCache[$cacheKey] = $m;
             }
         }
 

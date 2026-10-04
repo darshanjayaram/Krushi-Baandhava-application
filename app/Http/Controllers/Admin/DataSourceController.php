@@ -20,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -40,6 +41,7 @@ class DataSourceController extends Controller
         $stats = [
             'total' => DataSource::count(),
             'active' => DataSource::where('is_active', true)->count(),
+            'cron_enabled' => DataSource::where('is_active', true)->where('is_cron_enabled', true)->count(),
             'synced_today' => SyncLog::whereDate('started_at', Carbon::today())->where('status', 'success')->count(),
             'failed_recent' => SyncLog::where('status', 'failed')->where('started_at', '>=', now()->subDays(7))->count(),
         ];
@@ -62,6 +64,82 @@ class DataSourceController extends Controller
             'afternoon_time' => SystemSetting::get('cron_market_afternoon_time', '12:30'),
             'enable_hourly' => (bool) SystemSetting::get('cron_market_enable_hourly', true),
             'operating_days' => SystemSetting::get('cron_market_operating_days', 'mon_sat'),
+            'cron_enabled_count' => DataSource::where('is_active', true)->where('is_cron_enabled', true)->count(),
+            'all_sources' => DataSource::orderBy('id', 'asc')->get(),
+            'scheduled_tasks' => [
+                'mandi_prices' => [
+                    'key' => 'mandi_prices',
+                    'name' => '🌾 Mandi Market Prices Ingestion',
+                    'title' => 'Mandi Market Prices Ingestion',
+                    'icon' => '🌾',
+                    'setting_key' => 'cron_task_mandi_prices',
+                    'frequency' => (SystemSetting::get('cron_market_morning_time', '06:00') ?: '06:00') . (!empty(SystemSetting::get('cron_market_afternoon_time', '12:30')) ? ', ' . SystemSetting::get('cron_market_afternoon_time', '12:30') : '') . ' & ' . (SystemSetting::get('cron_market_evening_time', '19:30') ?: '19:30') . ' IST',
+                    'purpose' => 'Syncs active Mandi feeds (KRAMA, Agmarknet, Coffee Board & Coconut Board)',
+                    'desc' => 'Syncs active Mandi feeds (KRAMA, Agmarknet, Coffee Board & Coconut Board)',
+                    'is_active' => (bool) SystemSetting::get('cron_task_mandi_prices', true),
+                    'enabled' => (bool) SystemSetting::get('cron_task_mandi_prices', true),
+                ],
+                'weather_sync' => [
+                    'key' => 'weather_sync',
+                    'name' => '🌦️ Hyperlocal Weather Advisories & Cache Pruning',
+                    'title' => 'Hyperlocal Weather Advisories & Cache Pruning',
+                    'icon' => '🌦️',
+                    'setting_key' => 'cron_task_weather_sync',
+                    'frequency' => '05:30 & 14:30 IST Daily',
+                    'purpose' => 'Updates 7-day agricultural forecasts via Open-Meteo & prunes cache',
+                    'desc' => 'Updates 7-day agricultural forecasts via Open-Meteo & prunes cache',
+                    'is_active' => (bool) SystemSetting::get('cron_task_weather_sync', true),
+                    'enabled' => (bool) SystemSetting::get('cron_task_weather_sync', true),
+                ],
+                'analytics_stats' => [
+                    'key' => 'analytics_stats',
+                    'name' => '📊 Historical Analytics & Seasonality',
+                    'title' => 'Historical Analytics & Seasonality',
+                    'icon' => '📊',
+                    'setting_key' => 'cron_task_analytics_stats',
+                    'frequency' => '01:00 IST Nightly',
+                    'purpose' => 'Computes 12-month seasonal indices & modal averages',
+                    'desc' => 'Computes 12-month seasonal indices & modal averages',
+                    'is_active' => (bool) SystemSetting::get('cron_task_analytics_stats', true),
+                    'enabled' => (bool) SystemSetting::get('cron_task_analytics_stats', true),
+                ],
+                'forecasting' => [
+                    'key' => 'forecasting',
+                    'name' => '🔮 Price Forecasting Engine',
+                    'title' => 'Price Forecasting Engine',
+                    'icon' => '🔮',
+                    'setting_key' => 'cron_task_forecasting',
+                    'frequency' => '02:00 IST Nightly',
+                    'purpose' => 'Generates 1D, 7D, 15D, 30D Holt\'s Linear projections',
+                    'desc' => 'Generates 1D, 7D, 15D, 30D Holt\'s Linear projections',
+                    'is_active' => (bool) SystemSetting::get('cron_task_forecasting', true),
+                    'enabled' => (bool) SystemSetting::get('cron_task_forecasting', true),
+                ],
+                'retention_pruning' => [
+                    'key' => 'retention_pruning',
+                    'name' => '🧹 1-Year Rolling Retention Pruner',
+                    'title' => '1-Year Rolling Retention Pruner',
+                    'icon' => '🧹',
+                    'setting_key' => 'cron_task_retention_pruning',
+                    'frequency' => '23:00 IST Nightly',
+                    'purpose' => 'Prunes records >365 days; keeps database fast (~35MB)',
+                    'desc' => 'Prunes records >365 days; keeps database fast (~35MB)',
+                    'is_active' => (bool) SystemSetting::get('cron_task_retention_pruning', true),
+                    'enabled' => (bool) SystemSetting::get('cron_task_retention_pruning', true),
+                ],
+                'data_integrity' => [
+                    'key' => 'data_integrity',
+                    'name' => '🛡️ Data Integrity Auditor',
+                    'title' => 'Data Integrity Auditor',
+                    'icon' => '🛡️',
+                    'setting_key' => 'cron_task_data_integrity',
+                    'frequency' => '03:00 IST Nightly',
+                    'purpose' => 'Flags anomalously stale or isolated price points',
+                    'desc' => 'Flags anomalously stale or isolated price points',
+                    'is_active' => (bool) SystemSetting::get('cron_task_data_integrity', true),
+                    'enabled' => (bool) SystemSetting::get('cron_task_data_integrity', true),
+                ],
+            ],
         ];
 
         $canonicalCrops = Crop::where('is_active', true)
@@ -81,6 +159,7 @@ class DataSourceController extends Controller
     {
         $validated = $request->validated();
         $validated['is_active'] = $request->boolean('is_active', true);
+        $validated['is_cron_enabled'] = $request->boolean('is_cron_enabled', true);
 
         $dataSource = DataSource::create($validated);
 
@@ -117,6 +196,9 @@ class DataSourceController extends Controller
     {
         $validated = $request->validated();
         $validated['is_active'] = $request->boolean('is_active', true);
+        if ($request->has('is_cron_enabled')) {
+            $validated['is_cron_enabled'] = $request->boolean('is_cron_enabled');
+        }
         $oldValues = $datasource->toArray();
 
         $datasource->update($validated);
@@ -156,7 +238,7 @@ class DataSourceController extends Controller
             ->with('success', "Data source '{$datasource->name}' updated successfully.");
     }
 
-    public function toggleStatus(DataSource $datasource): RedirectResponse
+    public function toggleStatus(Request $request, DataSource $datasource): JsonResponse|RedirectResponse
     {
         $oldStatus = $datasource->is_active;
         $datasource->update(['is_active' => !$oldStatus]);
@@ -172,6 +254,44 @@ class DataSourceController extends Controller
         $msg = $datasource->is_active
             ? "Data source '{$datasource->name}' resumed."
             : "Data source '{$datasource->name}' paused.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'is_active' => (bool) $datasource->is_active,
+                'message' => $msg,
+            ]);
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    public function toggleCron(Request $request, DataSource $datasource): JsonResponse|RedirectResponse
+    {
+        $oldCron = (bool) $datasource->is_cron_enabled;
+        $newCron = !$oldCron;
+        $datasource->update(['is_cron_enabled' => $newCron]);
+
+        AuditLog::log(
+            'toggle_cron',
+            'DataSource',
+            $datasource->id,
+            ['is_cron_enabled' => $oldCron],
+            ['is_cron_enabled' => $newCron]
+        );
+
+        $msg = $newCron
+            ? "Data source '{$datasource->name}' enrolled in automated cron schedule."
+            : "Data source '{$datasource->name}' excluded from automated cron schedule.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'is_cron_enabled' => $newCron,
+                'message' => $msg,
+                'cron_enabled_count' => DataSource::where('is_active', true)->where('is_cron_enabled', true)->count(),
+            ]);
+        }
 
         return back()->with('success', $msg);
     }
@@ -486,6 +606,10 @@ class DataSourceController extends Controller
             'enable_hourly' => ['nullable', 'boolean'],
             'operating_days' => ['required', 'in:mon_sat,all'],
             'apply_to_sources' => ['nullable', 'boolean'],
+            'enrolled_sources' => ['nullable', 'array'],
+            'enrolled_sources.*' => ['integer', 'exists:data_sources,id'],
+            'scheduled_tasks' => ['nullable', 'array'],
+            'scheduled_tasks.*' => ['string', 'in:mandi_prices,weather_sync,analytics_stats,forecasting,retention_pruning,data_integrity'],
         ]);
 
         $morning = trim($validated['morning_time'] ?? '');
@@ -514,6 +638,33 @@ class DataSourceController extends Controller
             ]);
         }
 
+        // Synchronize enrolled cron sources whitelist if submitted
+        if ($request->has('enrolled_sources_submitted')) {
+            $enrolledIds = array_map('intval', (array) $request->input('enrolled_sources', []));
+            DataSource::whereIn('id', $enrolledIds)->update(['is_cron_enabled' => true]);
+            DataSource::whereNotIn('id', $enrolledIds)->update(['is_cron_enabled' => false]);
+        }
+
+        // Synchronize scheduled background tasks master switches if submitted
+        $knownTasks = ['mandi_prices', 'weather_sync', 'analytics_stats', 'forecasting', 'retention_pruning', 'data_integrity'];
+        $updatedTasks = [];
+        if ($request->has('scheduled_tasks_submitted')) {
+            $selectedTasks = (array) $request->input('scheduled_tasks', []);
+            foreach ($knownTasks as $taskKey) {
+                $isEnabled = in_array($taskKey, $selectedTasks, true);
+                SystemSetting::set('cron_task_' . $taskKey, $isEnabled ? 'true' : 'false', 'boolean', 'cron', "Automated background cron task master switch: {$taskKey}");
+                $updatedTasks[$taskKey] = $isEnabled;
+            }
+            Cache::forget('cron_task_statuses');
+        } else {
+            foreach ($knownTasks as $taskKey) {
+                $updatedTasks[$taskKey] = (bool) SystemSetting::get('cron_task_' . $taskKey, true);
+            }
+        }
+
+        $enrolledCount = DataSource::where('is_active', true)->where('is_cron_enabled', true)->count();
+        $totalActive = DataSource::where('is_active', true)->count();
+
         AuditLog::log(
             'update_cron_schedule',
             'SystemSetting',
@@ -526,15 +677,20 @@ class DataSourceController extends Controller
                 'enable_hourly' => $enableHourly,
                 'operating_days' => $operatingDays,
                 'applied_to_sources' => $applyToSources,
+                'enrolled_sources' => $request->input('enrolled_sources', []),
+                'enrolled_count' => $enrolledCount,
+                'scheduled_tasks' => $updatedTasks,
             ]
         );
 
-        $msg = "Automated background cron timings updated successfully: Morning (" . ($morning ?: 'Off') . "), Evening (" . ($evening ?: 'Off') . "), Operating Days: " . ($operatingDays === 'mon_sat' ? 'Mon-Sat' : 'All 7 Days') . ".";
+        $msg = "Automated background cron timings updated successfully: Morning (" . ($morning ?: 'Off') . "), Evening (" . ($evening ?: 'Off') . "), Operating Days: " . ($operatingDays === 'mon_sat' ? 'Mon-Sat' : 'All 7 Days') . ", Cron Scope: {$enrolledCount} of {$totalActive} active feeds enrolled.";
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'ok' => true,
                 'message' => $msg,
+                'cron_enabled_count' => $enrolledCount,
+                'total_active' => $totalActive,
                 'timings' => [
                     'morning_time' => $morning,
                     'evening_time' => $evening,
@@ -543,6 +699,7 @@ class DataSourceController extends Controller
                     'operating_days' => $operatingDays,
                     'sync_time_string' => $syncTimeString,
                 ],
+                'scheduled_tasks' => $updatedTasks,
             ]);
         }
 

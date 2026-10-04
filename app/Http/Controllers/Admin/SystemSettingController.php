@@ -203,7 +203,7 @@ class SystemSettingController extends Controller
 
         AuditLog::log('system.clear_cache', 'System', null, [], ['status' => 'cleared']);
 
-        $tab = $request->input('tab', 'general');
+        $tab = $request->input('tab', 'maintenance');
 
         return redirect()->route('admin.settings.index', ['tab' => $tab])
             ->with('success', 'All application caches (config, routes, views, memory cache) cleared successfully.');
@@ -218,7 +218,7 @@ class SystemSettingController extends Controller
 
         AuditLog::log('system.optimize_app', 'System', null, [], ['status' => 'optimized']);
 
-        $tab = $request->input('tab', 'general');
+        $tab = $request->input('tab', 'maintenance');
 
         return redirect()->route('admin.settings.index', ['tab' => $tab])
             ->with('success', 'Application optimized for production! Config, routes, and views have been pre-compiled for maximum performance.');
@@ -234,7 +234,7 @@ class SystemSettingController extends Controller
 
         AuditLog::log('system.update_database', 'System', null, [], ['status' => 'migrated']);
 
-        $tab = $request->input('tab', 'general');
+        $tab = $request->input('tab', 'maintenance');
 
         return redirect()->route('admin.settings.index', ['tab' => $tab])
             ->with('success', 'Database schema migrated and master seeds updated successfully.');

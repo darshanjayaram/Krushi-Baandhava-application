@@ -310,6 +310,10 @@ class SetupController extends Controller
      */
     protected function isLocked(): bool
     {
+        if (config('app.force_wizard_unlocked')) {
+            return false;
+        }
+
         $lockFile = storage_path('installed');
         if (File::exists($lockFile)) {
             return true;

@@ -57,7 +57,7 @@ class DeploymentHubController extends Controller
     {
         try {
             $beforeCount = Market::count();
-            $result = $ingestionService->ingest('data_gov_mandi', ['force' => true]);
+            $result = $ingestionService->ingest('agmarknet_official', ['force' => true]);
             $afterCount = Market::count();
             $discovered = max(0, $afterCount - $beforeCount);
 
@@ -78,7 +78,7 @@ class DeploymentHubController extends Controller
     {
         try {
             $beforeCount = Crop::count();
-            $result = $ingestionService->ingest('data_gov_mandi', ['force' => true]);
+            $result = $ingestionService->ingest('agmarknet_official', ['force' => true]);
             $afterCount = Crop::count();
             $discovered = max(0, $afterCount - $beforeCount);
 
@@ -120,7 +120,7 @@ class DeploymentHubController extends Controller
      */
     public function syncLivePrices(MarketPriceIngestionService $ingestionService, Request $request)
     {
-        $source = $request->input('source', 'data_gov_mandi');
+        $source = $request->input('source', 'agmarknet_official');
         try {
             $result = $ingestionService->ingest($source, ['force' => true]);
             $msg = "Live Sync completed for [{$source}]: {$result['received']} records received, {$result['inserted']} new rates inserted, {$result['updated']} rates updated ({$result['duration_ms']}ms).";

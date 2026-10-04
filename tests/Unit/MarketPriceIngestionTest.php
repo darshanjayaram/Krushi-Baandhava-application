@@ -26,7 +26,9 @@ class MarketPriceIngestionTest extends TestCase
         parent::setUp();
 
         $this->service = app(MarketPriceIngestionService::class);
-        $this->dataSource = DataSource::where('code', 'data_gov_mandi')->firstOrFail();
+        $this->dataSource = DataSource::where('code', 'agmarknet_official')->first()
+            ?? DataSource::where('code', 'krama_karnataka')->first()
+            ?? DataSource::firstOrFail();
     }
 
     public function test_market_price_model_price_spread_accessor(): void

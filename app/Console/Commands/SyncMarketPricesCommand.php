@@ -18,7 +18,8 @@ class SyncMarketPricesCommand extends Command
                             {source? : Code of the specific data source (e.g. data_gov_mandi, agmarknet)}
                             {--date= : Specific target date to sync (YYYY-MM-DD), defaults to today}
                             {--force : Force sync even if raw payload checksum already exists}
-                            {--dry-run : Ingest and validate raw payloads without upserting to canonical prices}';
+                            {--dry-run : Ingest and validate raw payloads without upserting to canonical prices}
+                            {--cron-only : Only process sources enrolled in automated cron schedule}';
 
     /**
      * The console command description.
@@ -42,6 +43,7 @@ class SyncMarketPricesCommand extends Command
         $dateParam = $this->option('date');
         $isForced = (bool) $this->option('force');
         $isDryRun = (bool) $this->option('dry-run');
+        $isCronOnly = (bool) $this->option('cron-only');
 
         // Determine target date(s): In morning cron (<11:00 AM), reconcile previous trading day + today
         $targetDates = [];
@@ -68,17 +70,30 @@ class SyncMarketPricesCommand extends Command
         $query = DataSource::query();
 
         if ($sourceCode) {
+            // Explicitly requested specific source runs regardless of cron status
             $query->where('code', $sourceCode);
         } else {
             $query->where('is_active', true);
+
+            // In automated cron runs or regular schedule checks, filter by is_cron_enabled
+            if ($isCronOnly || !$isForced) {
+                $query->where('is_cron_enabled', true);
+            }
         }
 
         \Illuminate\Support\Facades\Cache::forever('scheduler_last_heartbeat', now());
 
         $sources = $query->get();
 
+        if (!$sourceCode && ($isCronOnly || !$isForced)) {
+            $excludedCount = DataSource::where('is_active', true)->where('is_cron_enabled', false)->count();
+            if ($excludedCount > 0) {
+                $this->line("Cron Scope:     <fg=yellow>{$excludedCount}</> active source(s) excluded from automated cron schedule by admin.");
+            }
+        }
+
         if ($sources->isEmpty()) {
-            $this->warn("No data sources found" . ($sourceCode ? " matching code '{$sourceCode}'." : "."));
+            $this->warn("No data sources found" . ($sourceCode ? " matching code '{$sourceCode}'." : " matching schedule criteria."));
             return self::SUCCESS;
         }
 

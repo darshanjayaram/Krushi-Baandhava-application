@@ -30,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (app()->environment('production') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
@@ -64,6 +68,11 @@ class AppServiceProvider extends ServiceProvider
 
             $activeLocalArea = $request->cookie('selected_local_area') ?? session('selected_local_area');
             $activeLocalAreaKn = $request->cookie('selected_local_area_kn') ?? session('selected_local_area_kn');
+
+            // If activeLocalAreaKn is broad city while activeLocalArea is a specific locality, fallback to activeLocalArea
+            if ($activeLocalArea && $activeLocalAreaKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $activeLocalAreaKn) && !preg_match('/bengaluru|bangalore/i', $activeLocalArea)) {
+                $activeLocalAreaKn = $activeLocalArea;
+            }
 
             $view->with('allDistricts', $allDistricts)
                  ->with('activeDistrict', $activeDistrict)

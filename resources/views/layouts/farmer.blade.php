@@ -467,7 +467,12 @@
                         <span class="text-rose-500 text-xs">📍</span>
                         <span class="max-w-[130px] truncate {{ $activeLocale === 'kn' ? 'font-kannada pt-0.5 leading-normal' : '' }}">
                             @if(!empty($activeLocalArea))
-                                {{ $activeLocale === 'kn' ? ($activeLocalAreaKn ?: $activeLocalArea) : $activeLocalArea }}
+                                @php
+                                    $displayAreaPill = ($activeLocale === 'kn')
+                                        ? ((!empty($activeLocalAreaKn) && !preg_match('/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/iu', trim($activeLocalAreaKn))) ? $activeLocalAreaKn : $activeLocalArea)
+                                        : $activeLocalArea;
+                                @endphp
+                                {{ $displayAreaPill }}
                             @else
                                 {{ $activeLocale === 'en' ? ($activeDistrict->name ?? $activeDistrict->name_kn ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
                             @endif
@@ -666,7 +671,12 @@
                                 <span class="text-[10px] text-stone-400 font-bold uppercase tracking-wider block">{{ $activeLocale === 'en' ? 'Active District' : 'ಆಯ್ಕೆಯಾದ ಜಿಲ್ಲೆ' }}</span>
                                 <span class="text-xs font-black text-stone-800 {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
                                     @if(!empty($activeLocalArea))
-                                        {{ $activeLocale === 'kn' ? ($activeLocalAreaKn ?: $activeLocalArea) : $activeLocalArea }}
+                                        @php
+                                            $displayAreaDrawer = ($activeLocale === 'kn')
+                                                ? ((!empty($activeLocalAreaKn) && !preg_match('/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/iu', trim($activeLocalAreaKn))) ? $activeLocalAreaKn : $activeLocalArea)
+                                                : $activeLocalArea;
+                                        @endphp
+                                        {{ $displayAreaDrawer }}
                                         <span class="text-stone-500 font-medium text-[11px]">({{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }})</span>
                                     @else
                                         {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}

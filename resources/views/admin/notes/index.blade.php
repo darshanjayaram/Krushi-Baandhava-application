@@ -45,7 +45,16 @@
             <span>🔄</span> Ingestion & Mapping Rules
         </a>
         <a href="#apmc-standards" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition flex items-center gap-2">
-            <span>🏛️</span> APMC & Market Standards
+            <span>🏛️</span> Mandi Naming & Single-Town Consolidation
+        </a>
+        <a href="#freshness-window" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition flex items-center gap-2">
+            <span>⏱️</span> 4-Day Freshness Window & Staleness
+        </a>
+        <a href="#cron-scheduling" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition flex items-center gap-2">
+            <span>⚙️</span> Cron Controls & Ingestion Feeds
+        </a>
+        <a href="#bilingual-fallback" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition flex items-center gap-2">
+            <span>🌐</span> Bilingual Locality & Fallback
         </a>
         <a href="#custom-notes" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60 hover:bg-emerald-900 transition flex items-center gap-2">
             <span>✍️</span> Operational Scratchpad
@@ -211,7 +220,7 @@
             <span class="text-xl">🔄</span>
             <div>
                 <h2 class="text-base font-black text-white">Crop Ingestion & Variety Mapping Rules</h2>
-                <p class="text-xs text-slate-400">Rules governing daily price syncs, KRAMA, and Agmarknet feeds.</p>
+                <p class="text-xs text-slate-400">Rules governing daily price syncs, multi-source ingestion, and automated grade resolution.</p>
             </div>
         </div>
 
@@ -221,16 +230,16 @@
                     <span>1.</span> Configured Sync Crops
                 </div>
                 <p class="text-slate-300 leading-relaxed">
-                    In <strong>Run Ingestion Sync</strong>, the Target Crop dropdown only displays crops configured in the source settings. If a crop is missing from manual sync, enable it in <em>Data Sources & APIs → Configure Sync Crops</em>.
+                    In <strong>Run Ingestion Sync</strong>, the Target Crop dropdown only displays crops configured in active source settings. If a crop is missing from manual sync, enable it in <em>Data Sources & APIs → Configure Sync Crops</em>.
                 </p>
             </div>
 
             <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
                 <div class="font-bold text-cyan-400 flex items-center gap-1.5">
-                    <span>2.</span> Variety & Grade Inspection
+                    <span>2.</span> Live API Inspector & Raw Strings
                 </div>
                 <p class="text-slate-300 leading-relaxed">
-                    Always use the <strong>Live API Inspector</strong> in the crop form to see exact variety strings returned by KRAMA / Agmarknet before creating alias mappings.
+                    Always use the <strong>Live API Inspector</strong> in the crop form to see exact variety/grade strings returned by KRAMA, Coffee Board, or CDB before creating alias mappings in the crop catalog.
                 </p>
             </div>
 
@@ -239,43 +248,214 @@
                     <span>3.</span> Zero Data Waste Recycling
                 </div>
                 <p class="text-slate-300 leading-relaxed">
-                    When custom uploaded images are replaced or batch-deleted, unreferenced files on disk are automatically unlinked and sanitized to prevent broken images.
+                    When custom uploaded images are replaced or batch-deleted, unreferenced files on disk are automatically unlinked and sanitized to prevent orphaned storage bloat or broken image links.
                 </p>
             </div>
         </div>
     </div>
 
     <!-- ============================================================== -->
-    <!-- SECTION 3: APMC & GEOLOCATION STANDARDS                         -->
+    <!-- SECTION 3: MANDI CATALOG & SINGLE-TOWN CONSOLIDATION POLICY     -->
     <!-- ============================================================== -->
-    <div id="apmc-standards" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+    <div id="apmc-standards" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
         <div class="flex items-center gap-2.5 pb-3 border-b border-slate-800">
             <span class="text-xl">🏛️</span>
             <div>
-                <h2 class="text-base font-black text-white">APMC Mandi & Proximity Standards</h2>
-                <p class="text-xs text-slate-400">Rules for geographic radius and market price discovery.</p>
+                <h2 class="text-base font-black text-white">Mandi Naming & Single Canonical Town Consolidation</h2>
+                <p class="text-xs text-slate-400">Official architectural standards for deduplicated market catalog entries across Karnataka.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <!-- Policy 1: Clean Town Names -->
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span>🏷️</span> Clean Town Names (No Suffixes)
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    Market names must be stored as plain, canonical town names (e.g. <strong class="text-white">Madikeri</strong>, <strong class="text-white">Sakleshpur</strong>, <strong class="text-white">Tumakuru</strong>, <strong class="text-white">Shivamogga</strong>, <strong class="text-white">Arsikere</strong>).
+                </p>
+                <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                    <div><span class="text-rose-400 font-bold">❌ Do Not:</span> Store <em>"Sakleshpur APMC"</em> or <em>"ಹಾಸನ ಎಪಿಎಂಸಿ"</em></div>
+                    <div><span class="text-emerald-400 font-bold">✅ Standard:</span> Store <em>"Sakleshpur"</em> / <em>"ಹಾಸನ"</em></div>
+                </div>
+            </div>
+
+            <!-- Policy 2: Commodity Board Consolidation -->
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-cyan-400 flex items-center gap-1.5">
+                    <span>🤝</span> Single Canonical Town Mandi
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    Never create duplicate market records for Commodity Boards (e.g., Coffee Board or Coconut Development Board). Map all board feeds directly to the existing canonical town mandi.
+                </p>
+                <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                    <div><span class="text-rose-400 font-bold">❌ Do Not:</span> Create <em>"Madikeri (Coffee Board Centre)"</em> alongside <em>"Madikeri"</em></div>
+                    <div><span class="text-emerald-400 font-bold">✅ Standard:</span> Feed both coffee prices and APMC prices into canonical <em>"Madikeri"</em></div>
+                </div>
+            </div>
+
+            <!-- Policy 3: Proximity Radius & Geolocation -->
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>📍</span> Proximity & GPS Discovery
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    Standard search radius is <strong class="text-white">300 km</strong> using Haversine GPS calculations. By maintaining single canonical mandis per town, distance calculations and "Nearest Mandi First" sorting remain accurate.
+                </p>
+                <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400">
+                    <span class="text-slate-300 font-semibold">Benefit:</span> Farmers see a clean, single dropdown entry without confusing duplicates or fragmented history.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 4: 4-DAY FRESHNESS WINDOW & STALENESS ARCHITECTURE       -->
+    <!-- ============================================================== -->
+    <div id="freshness-window" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center gap-2.5 pb-3 border-b border-slate-800">
+            <span class="text-xl">⏱️</span>
+            <div>
+                <h2 class="text-base font-black text-white">Dynamic 4-Day Freshness Window & Staleness Architecture</h2>
+                <p class="text-xs text-slate-400">How the platform prevents empty markets during weekends, holidays, and trading lulls.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span>📅</span> Weekend & Holiday Anchor Window
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    Mandis halt auctions on Sundays, government holidays, and local festivals. If queries checked only <code class="text-emerald-300 font-mono">date = today</code>, crops like Black Pepper, Coffee, or Arecanut would display empty screens on Sunday and Monday mornings.
+                </p>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                    The engine anchors to the latest verified session within a rolling <strong class="text-white">4-day window</strong> (<code class="text-emerald-300 font-mono">today</code>, <code class="text-emerald-300 font-mono">yesterday</code>, <code class="text-emerald-300 font-mono">-2d</code>, <code class="text-emerald-300 font-mono">-3d</code>).
+                </p>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-cyan-400 flex items-center gap-1.5">
+                    <span>🏷️</span> Transparent Date Badge Display
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    Every price card and modal renders the exact date of the recorded trade (e.g. <em>"Today"</em>, <em>"Yesterday"</em>, or <em>"02 Oct 2026"</em>). Farmers always know exactly how recent the modal price quote is.
+                </p>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                    This completely prevents misleading outdated quotes while eliminating frustrating blank pages.
+                </p>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>⚠️</span> Staleness Indicators (> 4 Days)
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    If an APMC mandi has not reported trades for more than 4 consecutive calendar days, the system marks the price session as <strong>Awaiting Fresh Market Feed</strong> with an amber indicator rather than guessing rates.
+                </p>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                    Admins can view dormant mandis in the Price Ingestion Logs and trigger targeted on-demand syncs if needed.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 5: CRON SCHEDULING & DATA SOURCE AUTOMATION CONTROLS    -->
+    <!-- ============================================================== -->
+    <div id="cron-scheduling" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center gap-2.5 pb-3 border-b border-slate-800">
+            <span class="text-xl">⚙️</span>
+            <div>
+                <h2 class="text-base font-black text-white">Cron Scheduling & Independent Source Controls</h2>
+                <p class="text-xs text-slate-400">Automated task scheduler configuration and provider-level toggles.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span>🎛️</span> Independent <code class="text-emerald-300 font-mono">is_cron_enabled</code> Toggle
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    Each external data provider (KRAMA, Agmarknet, Coffee Board, CDB, Negilu) features an independent <strong class="text-white">is_cron_enabled</strong> flag in <em>Admin → Data Sources</em>.
+                </p>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                    If an upstream API is under maintenance or rate-limiting requests, admins can disable its automated cron without impacting other working sources or manual sync.
+                </p>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-cyan-400 flex items-center gap-1.5">
+                    <span>⏰</span> Staggered Execution Schedule
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    Scheduled sync jobs are staggered to avoid outbound bandwidth spikes and CPU throttling:
+                </p>
+                <ul class="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
+                    <li><strong>KRAMA Mandis:</strong> 06:00, 12:00, 18:00 IST</li>
+                    <li><strong>Coffee Board Daily:</strong> 07:00 IST</li>
+                    <li><strong>CDB Coconut Center:</strong> 08:00 IST</li>
+                    <li><strong>Weather & Alerts:</strong> Hourly background sync</li>
+                </ul>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>⚡</span> Sub-100ms Perceived Latency
+                </div>
+                <p class="text-slate-300 leading-relaxed">
+                    When farmers switch mandis on the crop view, the UI uses lightweight async API endpoints paired with shimmer/skeleton placeholders.
+                </p>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                    This architecture prevents full page reloads and maintains instant responsiveness even on slow rural 3G mobile connections.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 6: BILINGUAL LOCALITY RESOLUTION & FALLBACK POLICY      -->
+    <!-- ============================================================== -->
+    <div id="bilingual-fallback" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center gap-2.5 pb-3 border-b border-slate-800">
+            <span class="text-xl">🌐</span>
+            <div>
+                <h2 class="text-base font-black text-white">Bilingual Locality Resolution & Fallback Policy</h2>
+                <p class="text-xs text-slate-400">Rules for Kannada and English district/taluk translations and graceful degradation.</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-                <div class="font-bold text-white">Standard Market Discovery Radius</div>
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-white flex items-center gap-1.5">
+                    <span>📖</span> Centralized Directory Mapping
+                </div>
                 <p class="text-slate-300 leading-relaxed">
-                    Default proximity radius is set to <strong>300 km</strong>. High-value plantation crops (Arecanut, Coffee, Black Pepper) can search statewide hubs across Malnad and Coastal Karnataka.
+                    Mandi and locality mappings reside in <code class="text-emerald-300 font-mono">KarnatakaMandiDirectory.php</code> with dual keys (<code class="text-slate-300 font-mono">name</code> in English and <code class="text-slate-300 font-mono">name_kn</code> in Kannada).
+                </p>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                    All 31 districts, major taluks, and regulated mandis have curated native Kannada spellings to ensure cultural familiarity for Kannada-first farmers.
                 </p>
             </div>
 
-            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-                <div class="font-bold text-white">Default Sorting</div>
+            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="font-bold text-white flex items-center gap-1.5">
+                    <span>🛡️</span> Zero Blank Fallback Guarantee
+                </div>
                 <p class="text-slate-300 leading-relaxed">
-                    Set to <strong>Nearest Mandi First</strong> using Haversine GPS calculations. High Price First can be selected for regional comparisons.
+                    If a GPS reverse-geocoded locality or new sub-mandi does not yet have a Kannada translation entry, the localization helper automatically falls back to the canonical English name.
+                </p>
+                <p class="text-slate-400 text-[11px] leading-relaxed">
+                    The interface never displays raw system keys, <code class="text-rose-400 font-mono">NULL</code>, or empty spaces in headers or badges. Admins can update missing translations anytime in the directory.
                 </p>
             </div>
         </div>
     </div>
 
     <!-- ============================================================== -->
-    <!-- SECTION 4: ADMIN OPERATIONAL SCRATCHPAD & CUSTOM MEMOS          -->
+    <!-- SECTION 7: ADMIN OPERATIONAL SCRATCHPAD & CUSTOM MEMOS          -->
     <!-- ============================================================== -->
     <div id="custom-notes" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">

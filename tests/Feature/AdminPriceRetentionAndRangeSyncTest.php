@@ -96,8 +96,8 @@ class AdminPriceRetentionAndRangeSyncTest extends TestCase
         $filterResponse->assertStatus(200);
         $filterResponse->assertSee('10 May 2025');
 
-        // Filter by Month 8 (August) for this test crop and market
-        $monthResponse = $this->actingAs($this->admin)->get(route('admin.prices.index', ['month' => 8, 'crop_id' => $this->crop->id, 'market_id' => $this->market->id]));
+        // Filter by Year 2026 & Month 8 (August) for this test crop and market
+        $monthResponse = $this->actingAs($this->admin)->get(route('admin.prices.index', ['year' => 2026, 'month' => 8, 'crop_id' => $this->crop->id, 'market_id' => $this->market->id, 'date' => '2026-08-15']));
         $monthResponse->assertStatus(200);
         $monthResponse->assertSee('15 Aug 2026');
     }

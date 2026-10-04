@@ -144,7 +144,12 @@
                             </span>
                             <span class="font-black text-xs sm:text-sm text-white block truncate {{ $activeLocale === 'kn' ? 'font-kannada leading-normal pt-1 pb-0.5' : 'font-sans leading-tight mt-0.5' }}">
                                 @if(!empty($activeLocalArea))
-                                    {{ $activeLocale === 'kn' ? ($activeLocalAreaKn ?: $activeLocalArea) : $activeLocalArea }}
+                                    @php
+                                        $displayArea = ($activeLocale === 'kn')
+                                            ? ((!empty($activeLocalAreaKn) && !preg_match('/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/iu', trim($activeLocalAreaKn))) ? $activeLocalAreaKn : $activeLocalArea)
+                                            : $activeLocalArea;
+                                    @endphp
+                                    {{ $displayArea }}
                                     <span class="text-amber-200/90 font-medium text-[11px] sm:text-xs">({{ $activeLocale === 'kn' ? ($activeDistrict->name_kn ?? $activeDistrict->name ?? '') : ($activeDistrict->name ?? '') }})</span>
                                 @else
                                     {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
@@ -499,7 +504,12 @@
                         <div>
                             <h3 class="font-extrabold text-sm sm:text-base text-white tracking-wide {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                                 @if(!empty($activeLocalArea))
-                                    {{ $activeLocale === 'kn' ? ($activeLocalAreaKn ?: $activeLocalArea) : $activeLocalArea }}
+                                    @php
+                                        $displayAreaWeather = ($activeLocale === 'kn')
+                                            ? ((!empty($activeLocalAreaKn) && !preg_match('/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/iu', trim($activeLocalAreaKn))) ? $activeLocalAreaKn : $activeLocalArea)
+                                            : $activeLocalArea;
+                                    @endphp
+                                    {{ $displayAreaWeather }}
                                     <span class="text-xs text-emerald-200/90 font-medium">({{ $activeLocale === 'kn' ? ($activeDistrict->name_kn ?? $activeDistrict->name ?? '') : ($activeDistrict->name ?? '') }})</span>
                                 @else
                                     {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
@@ -867,7 +877,7 @@
                      class="crop-list-item bg-white rounded-2xl border-2 border-[#E2DAC8] hover:border-[#1C5A2C] p-3 sm:p-4 flex items-center justify-between gap-3 cursor-pointer shadow-sm hover:bg-emerald-50/30 tap-feedback active:scale-[0.985]"
                      style="transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.2, 0, 0, 1), border-color 0.2s, background-color 0.2s;">
                     
-                    <a href="{{ route('farmer.crop.detail', $price->crop_id) }}?market={{ urlencode($mover->market->name ?? $price->market->name) }}" 
+                    <a href="{{ route('farmer.crop.detail', $price->crop_id) }}?market={{ urlencode($price->market->name) }}" 
                        class="flex items-center gap-3 min-w-0 flex-1">
                         <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-[#D9CEB8]">
                             <img src="{{ $price->crop->photo_url }}" 

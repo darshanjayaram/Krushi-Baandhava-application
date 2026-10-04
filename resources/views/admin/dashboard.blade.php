@@ -216,13 +216,19 @@
 
             <!-- Scheduled Background Tasks Breakdown Table -->
             <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 sm:p-4">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <span>🤖</span> Tasks Handled Automatically by this Cron:
-                    </h3>
-                    <a href="{{ route('admin.datasources.index') }}" class="text-xs font-bold text-emerald-400 hover:underline">
-                        Change Ingestion Schedule &rarr;
-                    </a>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <div>
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <span>🤖</span> Tasks Handled Automatically by this Cron:
+                        </h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Control individual background jobs without modifying your cPanel cron configuration.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="cron-task-feedback" class="text-[11px] text-emerald-400 font-medium transition-opacity opacity-0">Saved</span>
+                        <a href="{{ route('admin.datasources.index') }}" class="text-xs font-bold text-emerald-400 hover:underline">
+                            Change Ingestion Schedule &rarr;
+                        </a>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
@@ -231,52 +237,31 @@
                                 <th class="py-1.5 px-2">Scheduled Task</th>
                                 <th class="py-1.5 px-2">Frequency / Timing</th>
                                 <th class="py-1.5 px-2">Purpose</th>
-                                <th class="py-1.5 px-2">Status</th>
+                                <th class="py-1.5 px-2 text-right sm:text-left">Master Switch</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-800/60 text-slate-300">
-                            <tr>
-                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
-                                    <span>🌾</span> <span>Mandi Market Prices Ingestion</span>
-                                </td>
-                                <td class="py-2 px-2 font-mono text-amber-300">
-                                    {{ $cronStatus['morning_time'] ?: '06:00' }}@if(!empty($cronStatus['afternoon_time'])), {{ $cronStatus['afternoon_time'] }}@endif & {{ $cronStatus['evening_time'] ?: '19:30' }} IST
-                                </td>
-                                <td class="py-2 px-2 text-slate-400">Syncs KRAMA Karnataka Mandis, Official Agmarknet, Coffee Board & Coconut Board</td>
-                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
-                                    <span>🌦️</span> <span>Hyperlocal Weather Advisories</span>
-                                </td>
-                                <td class="py-2 px-2 font-mono text-cyan-300">05:30 & 14:30 IST Daily</td>
-                                <td class="py-2 px-2 text-slate-400">Updates 7-day agricultural forecasts via Open-Meteo</td>
-                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
-                                    <span>📊</span> <span>Historical Analytics & Seasonality</span>
-                                </td>
-                                <td class="py-2 px-2 font-mono text-purple-300">01:00 IST Nightly</td>
-                                <td class="py-2 px-2 text-slate-400">Computes 12-month seasonal indices & modal averages</td>
-                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
-                                    <span>🔮</span> <span>Price Forecasting Engine</span>
-                                </td>
-                                <td class="py-2 px-2 font-mono text-indigo-300">02:00 IST Nightly</td>
-                                <td class="py-2 px-2 text-slate-400">Generates 1D, 7D, 15D, 30D Holt's Linear projections</td>
-                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 px-2 font-medium text-white flex items-center gap-1.5">
-                                    <span>🧹</span> <span>1-Year Rolling Retention Pruner</span>
-                                </td>
-                                <td class="py-2 px-2 font-mono text-slate-400">23:00 IST Nightly</td>
-                                <td class="py-2 px-2 text-slate-400">Prunes records >365 days; keeps database fast (~35MB)</td>
-                                <td class="py-2 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Auto</span></td>
-                            </tr>
+                            @foreach($cronStatus['tasks'] ?? [] as $taskKey => $task)
+                                <tr class="hover:bg-slate-900/40 transition" id="cron-task-row-{{ $taskKey }}">
+                                    <td class="py-2.5 px-2 font-medium text-white flex items-center gap-1.5">
+                                        <span class="text-sm">{{ $task['icon'] }}</span> <span>{{ $task['title'] }}</span>
+                                    </td>
+                                    <td class="py-2.5 px-2 font-mono text-amber-300 text-[11px]">
+                                        {{ $task['timing'] }}
+                                    </td>
+                                    <td class="py-2.5 px-2 text-slate-400 text-[11px]">{{ $task['purpose'] }}</td>
+                                    <td class="py-2.5 px-2 text-right sm:text-left">
+                                        <button type="button"
+                                                onclick="toggleCronTask('{{ $taskKey }}', this)"
+                                                data-enabled="{{ $task['enabled'] ? '1' : '0' }}"
+                                                title="{{ $task['enabled'] ? 'Click to Pause this scheduled cron task' : 'Click to Resume this scheduled cron task' }}"
+                                                class="cron-task-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer shadow-sm {{ $task['enabled'] ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/70 hover:bg-emerald-900' : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800' }}">
+                                            <span class="cron-status-dot w-2 h-2 rounded-full {{ $task['enabled'] ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500' }}"></span>
+                                            <span class="cron-status-text">{{ $task['enabled'] ? '⚡ Active' : '⏸️ Paused' }}</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
@@ -477,6 +462,7 @@
                         <th class="py-3 px-3">Feed Type</th>
                         <th class="py-3 px-3">Last Sync Time</th>
                         <th class="py-3 px-3">Sync Status</th>
+                        <th class="py-3 px-3 text-center">Cron Automation</th>
                         <th class="py-3 px-3 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -520,6 +506,19 @@
                                 @else
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400">
                                         Idle
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                @if($ds->is_cron_enabled)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60" title="Enrolled in automated background cron">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                        <span>⚡ Auto Cron</span>
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/70 text-amber-300 border border-amber-800/60" title="Excluded from background cron (Runs on-demand / manually)">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                        <span>⏸️ Manual Only</span>
                                     </span>
                                 @endif
                             </td>
@@ -838,5 +837,65 @@
         </div>
     </div>
 
+    <script>
+    function toggleCronTask(taskKey, btn) {
+        const isCurrentlyEnabled = btn.getAttribute('data-enabled') === '1';
+        const nextState = !isCurrentlyEnabled;
+        const originalContent = btn.innerHTML;
+        const feedbackEl = document.getElementById('cron-task-feedback');
+        
+        btn.disabled = true;
+        btn.classList.add('opacity-70', 'cursor-not-allowed');
+        btn.innerHTML = `<svg class="animate-spin -ml-0.5 mr-1 h-3 w-3 text-cyan-400 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Updating...</span>`;
+
+        fetch("{{ route('admin.scheduler.toggle-task') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({
+                task: taskKey,
+                enabled: nextState
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-70', 'cursor-not-allowed');
+
+            if (data.ok) {
+                const enabled = data.enabled;
+                btn.setAttribute('data-enabled', enabled ? '1' : '0');
+                btn.setAttribute('title', enabled ? 'Click to Pause this scheduled cron task' : 'Click to Resume this scheduled cron task');
+
+                if (enabled) {
+                    btn.className = "cron-task-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer shadow-sm bg-emerald-950/80 text-emerald-300 border-emerald-700/70 hover:bg-emerald-900";
+                    btn.innerHTML = `<span class="cron-status-dot w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span class="cron-status-text">⚡ Active</span>`;
+                } else {
+                    btn.className = "cron-task-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer shadow-sm bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800";
+                    btn.innerHTML = `<span class="cron-status-dot w-2 h-2 rounded-full bg-slate-500"></span><span class="cron-status-text">⏸️ Paused</span>`;
+                }
+
+                if (feedbackEl) {
+                    feedbackEl.textContent = `✓ ${data.task} ${enabled ? 'Resumed' : 'Paused'}`;
+                    feedbackEl.classList.remove('opacity-0');
+                    setTimeout(() => feedbackEl.classList.add('opacity-0'), 3000);
+                }
+            } else {
+                btn.innerHTML = originalContent;
+                alert(data.message || 'Failed to update task status.');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            btn.innerHTML = originalContent;
+            console.error(err);
+            alert('Network error while toggling task status.');
+        });
+    }
+    </script>
 </div>
 @endsection

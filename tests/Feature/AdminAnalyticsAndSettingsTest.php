@@ -37,17 +37,17 @@ class AdminAnalyticsAndSettingsTest extends TestCase
             ]
         );
 
-        $this->dataSource = DataSource::firstOrCreate(
-            ['code' => 'data_gov_mandi'],
-            [
-                'name' => 'data.gov.in Mandi Prices',
-                'provider_class' => \App\Services\DataSources\DataGov\DataGovMarketDataProvider::class,
-                'type' => 'market_prices',
-                'base_url' => 'https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070',
-                'sync_interval_minutes' => 720,
-                'is_active' => true,
-            ]
-        );
+        $this->dataSource = DataSource::where('code', 'agmarknet_official')->first()
+            ?? DataSource::firstOrCreate(
+                ['code' => 'agmarknet_official'],
+                [
+                    'name' => 'Official AGMARKNET Provider',
+                    'provider_class' => \App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider::class,
+                    'type' => 'market_prices',
+                    'sync_interval_minutes' => 720,
+                    'is_active' => true,
+                ]
+            );
     }
 
     public function test_guests_cannot_access_phase12_admin_screens(): void

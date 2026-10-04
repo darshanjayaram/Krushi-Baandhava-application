@@ -29,7 +29,7 @@ class AutoProvisioningMasterDataTest extends TestCase
             ['code' => 'test_data_gov'],
             [
                 'name' => 'Test Ingestion Provider',
-                'provider_class' => \App\Services\DataSources\DataGov\DataGovMarketDataProvider::class,
+                'provider_class' => \App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider::class,
                 'type' => 'market_prices',
                 'base_url' => 'https://api.data.gov.in/resource',
                 'is_active' => true,
@@ -60,7 +60,7 @@ class AutoProvisioningMasterDataTest extends TestCase
         ];
 
         // Create an anonymous mock provider returning our single raw record
-        $mockProvider = new class($this->dataSource, $rawRecord) extends \App\Services\DataSources\DataGov\DataGovMarketDataProvider {
+        $mockProvider = new class($this->dataSource, $rawRecord) extends \App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider {
             protected array $testRecord;
 
             public function __construct(DataSource $ds, array $record)
@@ -96,9 +96,9 @@ class AutoProvisioningMasterDataTest extends TestCase
         $this->assertNotNull($variety, "Auto-provisioned variety '{$rawVariety}' should exist.");
 
         // 4. Verify Market and District were automatically provisioned
-        $market = Market::where('name', "{$rawMarket} APMC")->first();
-        $this->assertNotNull($market, "Auto-provisioned market '{$rawMarket} APMC' should exist.");
-        $this->assertEquals('APMC Mandi', $market->market_type);
+        $market = Market::where('name', $rawMarket)->first();
+        $this->assertNotNull($market, "Auto-provisioned market '{$rawMarket}' should exist.");
+        $this->assertEquals('APMC', $market->market_type);
 
         $district = District::where('name', $rawDistrict)->first();
         $this->assertNotNull($district, "Auto-provisioned district '{$rawDistrict}' should exist.");
@@ -152,7 +152,7 @@ class AutoProvisioningMasterDataTest extends TestCase
             'arrival_quantity' => '100',
         ];
 
-        $mockProvider = new class($this->dataSource, $record1) extends \App\Services\DataSources\DataGov\DataGovMarketDataProvider {
+        $mockProvider = new class($this->dataSource, $record1) extends \App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider {
             public array $currentRecord;
 
             public function __construct(DataSource $ds, array $record)
@@ -178,10 +178,10 @@ class AutoProvisioningMasterDataTest extends TestCase
         $this->assertEquals(0, $res1['updated']);
 
         $crop = Crop::where('name', $cleanExpectedCrop)->firstOrFail();
-        $market = Market::where('name', "{$rawMarket} APMC")->firstOrFail();
+        $market = Market::where('name', $rawMarket)->firstOrFail();
 
         $cropsCount = Crop::where('name', $cleanExpectedCrop)->count();
-        $marketsCount = Market::where('name', "{$rawMarket} APMC")->count();
+        $marketsCount = Market::where('name', $rawMarket)->count();
         $pricesCount = MarketPrice::where('crop_id', $crop->id)->where('market_id', $market->id)->count();
 
         $this->assertEquals(1, $cropsCount, "There should be exactly 1 crop record.");
@@ -199,7 +199,7 @@ class AutoProvisioningMasterDataTest extends TestCase
 
         // Verify still strictly 1 crop, 1 market, and 1 price in the database
         $this->assertEquals(1, Crop::where('name', $cleanExpectedCrop)->count());
-        $this->assertEquals(1, Market::where('name', "{$rawMarket} APMC")->count());
+        $this->assertEquals(1, Market::where('name', $rawMarket)->count());
         $this->assertEquals(1, MarketPrice::where('crop_id', $crop->id)->where('market_id', $market->id)->count());
 
         $updatedPrice = MarketPrice::where('crop_id', $crop->id)->where('market_id', $market->id)->firstOrFail();

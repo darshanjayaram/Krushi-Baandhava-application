@@ -25,6 +25,7 @@ class DataSource extends Model
         'sync_days',
         'cron_expression',
         'is_active',
+        'is_cron_enabled',
         'timeout_seconds',
         'rate_limit_per_minute',
         'last_sync_at',
@@ -36,6 +37,7 @@ class DataSource extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_cron_enabled' => 'boolean',
             'timeout_seconds' => 'integer',
             'rate_limit_per_minute' => 'integer',
             'last_sync_at' => 'datetime',
@@ -46,6 +48,16 @@ class DataSource extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeCronEnabled(Builder $query): Builder
+    {
+        return $query->where('is_active', true)->where('is_cron_enabled', true);
+    }
+
+    public function scopeCronExcluded(Builder $query): Builder
+    {
+        return $query->where('is_cron_enabled', false);
     }
 
     public function credential(): HasOne

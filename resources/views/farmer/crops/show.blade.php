@@ -33,9 +33,363 @@
     // Determine Market Advisory Sentiment from forecast
     $firstHorizon = !empty($forecast['horizons']) ? ($forecast['horizons'][1] ?? $forecast['horizons'][0]) : null;
     $forecastDir = $firstHorizon['direction'] ?? 'neutral';
+
+    $priceDateRaw = $activePriceItem?->price_date ?? $latestDate;
+    $priceCarbon = $priceDateRaw ? \Carbon\Carbon::parse($priceDateRaw) : null;
+    $isPriceToday = $priceCarbon ? $priceCarbon->isToday() : false;
+    $asOfText = $priceCarbon 
+        ? ($isPriceToday 
+            ? ($activeLocale === 'en' ? 'as of now' : 'ಇಂದಿನವರೆಗೆ') 
+            : ($activeLocale === 'en' ? 'as of ' . $priceCarbon->format('d M') : 'ದಿನಾಂಕ: ' . $priceCarbon->format('d M')))
+        : ($activeLocale === 'en' ? 'as of now' : 'ಇಂದಿನವರೆಗೆ');
 @endphp
 
-<div class="space-y-6">
+<script>
+    window.cropMarketBoxConfig = {
+        activeSort: @json($defaultMarketSort ?? 'nearest_first'),
+        showAllRadius: {{ (!empty($selectedMarket) && empty($selectedMarket->is_within_radius)) ? 'true' : 'false' }},
+        showAllGrades: true,
+        isMarketLoading: false,
+        selectedMarketId: @json($selectedMarket?->id ?? null),
+        selectedMarketName: @json($displayMarketName),
+        selectedGradeVarietyId: @json($activeVarietyId ?? ($activePriceItem?->variety_id ?? null)),
+        selectedGradeName: @json($activePriceItem?->grade ?? null),
+        isMarketExplicitlySelected: {{ (!empty($marketParam) && !empty($isMarketParamMatched)) ? 'true' : 'false' }},
+        priceData: @json($priceData),
+        gradesList: @json($gradesList),
+        whereToSellUrl: @json($whereToSellUrl),
+        resetUrl: @json($resetUrl),
+        cropName: @json($activeLocale === 'en' ? $crop->name : ($crop->name_kn ?: $crop->name)),
+        brandName: @json($activeLocale === 'en' ? 'Krushi Baandhava — ' : 'ಕೃಷಿ ಬಾಂಧವ — '),
+        mktPrefix: @json($boardMeta ? ($activeLocale === 'en' ? 'Centre: ' : 'ಕೇಂದ್ರ: ') : ($activeLocale === 'en' ? 'Market: ' : 'ಮಾರುಕಟ್ಟೆ: ')),
+        ratePrefix: @json($activeLocale === 'en' ? "Today's Modal Rate: " : 'ಇಂದಿನ ಮಾದರಿ ದರ: '),
+        kgPrefix: @json($activeLocale === 'en' ? '⚖️ Approx per kg: ' : '⚖️ ಪ್ರತಿ ಕೆ.ಜಿ ಗೆ: '),
+        dtPrefix: @json($activeLocale === 'en' ? '📅 Date: ' : '📅 ದಿನಾಂಕ: '),
+        linkPrefix: @json($activeLocale === 'en' ? '👉 View Full Rate & Forecast: ' : '👉 ಸಂಪೂರ್ಣ ದರ & ಮುನ್ಸೂಚನೆ ವೀಕ್ಷಿಸಿ: '),
+        stateAverageText: @json($activeLocale === 'en' ? 'State Average (Karnataka)' : 'ಕರ್ನಾಟಕ ಸರಾಸರಿ')
+    };
+
+    function cropMarketBox(config) {
+        return {
+            activeSort: config.activeSort || 'nearest_first',
+            showAllRadius: config.showAllRadius || false,
+            showAllGrades: config.showAllGrades !== undefined ? config.showAllGrades : true,
+            isMarketLoading: false,
+            selectedMarketId: config.selectedMarketId,
+            selectedMarketName: config.selectedMarketName,
+            isMarketExplicitlySelected: config.isMarketExplicitlySelected,
+            priceData: config.priceData || {},
+            gradesList: config.gradesList || [],
+            whereToSellUrl: config.whereToSellUrl || '#',
+            resetUrl: config.resetUrl || '#',
+            cropName: config.cropName || '',
+            brandName: config.brandName || '',
+            mktPrefix: config.mktPrefix || '',
+            ratePrefix: config.ratePrefix || '',
+            kgPrefix: config.kgPrefix || '',
+            dtPrefix: config.dtPrefix || '',
+            linkPrefix: config.linkPrefix || '',
+            stateAverageText: config.stateAverageText || '',
+
+                        isMandiSelected(id) {
+                if (this.selectedMarketId === null || this.selectedMarketId === undefined) return false;
+                return Number(this.selectedMarketId) === Number(id);
+            },
+
+            isGradeSelected(g) {
+                if (!g) return false;
+                if (this.selectedGradeVarietyId !== null && this.selectedGradeVarietyId !== undefined) {
+                    const sameVar = Number(this.selectedGradeVarietyId) === Number(g.variety_id);
+                    const sameGrade = (this.selectedGradeName || '') === (g.grade || '');
+                    return sameVar && sameGrade;
+                }
+                return !!g.is_selected;
+            },
+
+            async switchGradeAsync(gradeObj, targetUrl, pushHistory = true) {
+                if (this.isGradeSelected(gradeObj) && !this.isMarketLoading) return;
+
+                this.selectedGradeVarietyId = Number(gradeObj.variety_id);
+                this.selectedGradeName = gradeObj.grade || null;
+
+                if (this.gradesList && Array.isArray(this.gradesList)) {
+                    this.gradesList.forEach(item => {
+                        item.is_selected = (Number(item.variety_id) === Number(gradeObj.variety_id) && (item.grade || '') === (gradeObj.grade || ''));
+                    });
+                }
+
+                this.isMarketLoading = true;
+                const startTime = Date.now();
+
+                if (pushHistory && window.history && window.history.pushState) {
+                    window.history.pushState({ 
+                        varietyId: gradeObj.variety_id, 
+                        grade: gradeObj.grade, 
+                        market: this.selectedMarketName, 
+                        marketId: this.selectedMarketId 
+                    }, '', targetUrl);
+                }
+
+                try {
+                    const res = await fetch(targetUrl, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-Market-Switch': '1',
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const data = await res.json();
+
+                    if (data && data.success) {
+                        if (data.price_item) this.priceData = data.price_item;
+                        if (data.grades) this.gradesList = data.grades;
+                        if (data.where_to_sell_url) this.whereToSellUrl = data.where_to_sell_url;
+                        if (data.reset_url) this.resetUrl = data.reset_url;
+
+                        const advisoryContent = document.getElementById('crop-advisory-content');
+                        if (advisoryContent && data.advisory_html) {
+                            advisoryContent.innerHTML = data.advisory_html;
+                        }
+
+                        const forecastContent = document.getElementById('crop-forecast-content');
+                        if (forecastContent && data.forecast_html) {
+                            forecastContent.innerHTML = data.forecast_html;
+                        }
+
+                        const seasonalContent = document.getElementById('crop-seasonal-content');
+                        if (seasonalContent && data.seasonal_html) {
+                            seasonalContent.innerHTML = data.seasonal_html;
+                            if (typeof window.animateSeasonalBars === 'function') {
+                                window.animateSeasonalBars();
+                            }
+                        }
+
+                        window.dispatchEvent(new CustomEvent('market-changed', {
+                            detail: {
+                                marketId: this.selectedMarketId,
+                                marketName: this.selectedMarketName,
+                                varietyId: gradeObj.variety_id
+                            }
+                        }));
+                    }
+                } catch (err) {
+                    console.error('[GradeSwitch] Async fetch failed, falling back:', err);
+                    window.location.href = targetUrl;
+                    return;
+                } finally {
+                    const elapsed = Date.now() - startTime;
+                    const waitTime = Math.max(0, 480 - elapsed);
+                    setTimeout(() => {
+                        this.isMarketLoading = false;
+                    }, waitTime);
+                }
+            },
+scrollToSelectedMandi() {
+                const tryScroll = (attempts = 0) => {
+                    const container = this.$refs.mandiScrollBox;
+                    if (!container) return;
+                    const selectedPill = container.querySelector('.mandi-pill-active') || container.querySelector('.mandi-pill-selected');
+                    if (selectedPill) {
+                        const containerRect = container.getBoundingClientRect();
+                        const pillRect = selectedPill.getBoundingClientRect();
+                        const isAbove = pillRect.top < containerRect.top;
+                        const isBelow = pillRect.bottom > containerRect.bottom;
+                        if (isBelow) {
+                            container.scrollBy({ top: (pillRect.bottom - containerRect.bottom) + 20, behavior: 'smooth' });
+                        } else if (isAbove) {
+                            container.scrollBy({ top: (pillRect.top - containerRect.top) - 20, behavior: 'smooth' });
+                        }
+                    } else if (attempts < 5) {
+                        setTimeout(() => tryScroll(attempts + 1), 80);
+                    }
+                };
+                setTimeout(() => tryScroll(0), 120);
+            },
+
+            async switchMarketAsync(marketName, marketId, targetUrl, pushHistory = true) {
+                if (this.selectedMarketId === marketId && !this.isMarketLoading) return;
+
+                this.selectedMarketId = marketId;
+                this.selectedMarketName = marketName;
+                this.isMarketExplicitlySelected = true;
+                this.showAllRadius = true;
+                this.isMarketLoading = true;
+                const startTime = Date.now();
+
+                if (pushHistory && window.history && window.history.pushState) {
+                    window.history.pushState({ market: marketName, marketId: marketId }, '', targetUrl);
+                }
+
+                this.$nextTick(() => {
+                    this.scrollToSelectedMandi();
+                });
+
+                try {
+                    const res = await fetch(targetUrl, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-Market-Switch': '1',
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const data = await res.json();
+
+                    if (data && data.success) {
+                        if (data.price_item) this.priceData = data.price_item;
+                        if (data.grades) this.gradesList = data.grades;
+                        if (data.where_to_sell_url) this.whereToSellUrl = data.where_to_sell_url;
+                        if (data.reset_url) this.resetUrl = data.reset_url;
+
+                        const advisoryContent = document.getElementById('crop-advisory-content');
+                        if (advisoryContent && data.advisory_html) {
+                            advisoryContent.innerHTML = data.advisory_html;
+                        }
+
+                        const forecastContent = document.getElementById('crop-forecast-content');
+                        if (forecastContent && data.forecast_html) {
+                            forecastContent.innerHTML = data.forecast_html;
+                        }
+
+                        const seasonalContent = document.getElementById('crop-seasonal-content');
+                        if (seasonalContent && data.seasonal_html) {
+                            seasonalContent.innerHTML = data.seasonal_html;
+                            if (typeof window.animateSeasonalBars === 'function') {
+                                window.animateSeasonalBars();
+                            }
+                        }
+
+                        window.dispatchEvent(new CustomEvent('market-changed', {
+                            detail: {
+                                marketId: data.market ? data.market.id : marketId,
+                                marketName: data.market ? data.market.display_name : marketName
+                            }
+                        }));
+                    }
+                } catch (err) {
+                    console.error('[MarketSwitch] Async fetch failed, falling back:', err);
+                    window.location.href = targetUrl;
+                    return;
+                } finally {
+                    const elapsed = Date.now() - startTime;
+                    const waitTime = Math.max(0, 480 - elapsed);
+                    setTimeout(() => {
+                        this.isMarketLoading = false;
+                    }, waitTime);
+                }
+            },
+
+            async resetMarketAsync(targetResetUrl) {
+                this.isMarketExplicitlySelected = false;
+                this.selectedMarketId = null;
+                this.selectedMarketName = this.stateAverageText;
+                this.isMarketLoading = true;
+                const startTime = Date.now();
+
+                if (window.history && window.history.pushState) {
+                    window.history.pushState({ market: null, marketId: null }, '', targetResetUrl);
+                }
+
+                try {
+                    const res = await fetch(targetResetUrl, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-Market-Switch': '1',
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const data = await res.json();
+
+                    if (data && data.success) {
+                        if (data.price_item) this.priceData = data.price_item;
+                        if (data.grades) this.gradesList = data.grades;
+                        if (data.where_to_sell_url) this.whereToSellUrl = data.where_to_sell_url;
+                        if (data.market) {
+                            this.selectedMarketId = data.market.id;
+                            this.selectedMarketName = data.market.display_name;
+                        }
+
+                        const advisoryContent = document.getElementById('crop-advisory-content');
+                        if (advisoryContent && data.advisory_html) {
+                            advisoryContent.innerHTML = data.advisory_html;
+                        }
+
+                        const forecastContent = document.getElementById('crop-forecast-content');
+                        if (forecastContent && data.forecast_html) {
+                            forecastContent.innerHTML = data.forecast_html;
+                        }
+
+                        const seasonalContent = document.getElementById('crop-seasonal-content');
+                        if (seasonalContent && data.seasonal_html) {
+                            seasonalContent.innerHTML = data.seasonal_html;
+                            if (typeof window.animateSeasonalBars === 'function') {
+                                window.animateSeasonalBars();
+                            }
+                        }
+
+                        window.dispatchEvent(new CustomEvent('market-changed', {
+                            detail: {
+                                marketId: data.market ? data.market.id : null,
+                                marketName: data.market ? data.market.display_name : ''
+                            }
+                        }));
+                    }
+                } catch (err) {
+                    window.location.href = targetResetUrl;
+                    return;
+                } finally {
+                    const elapsed = Date.now() - startTime;
+                    const waitTime = Math.max(0, 480 - elapsed);
+                    setTimeout(() => {
+                        this.isMarketLoading = false;
+                        this.$nextTick(() => this.scrollToSelectedMandi());
+                    }, waitTime);
+                }
+            },
+
+            get whatsappShareUrl() {
+                const mName = (this.priceData.display_market_name || '').replace(/\s+APMC$/i, '');
+                let text = '🌾 *' + this.brandName + this.cropName + '*\n'
+                    + '📍 ' + this.mktPrefix + mName + '\n'
+                    + '💰 ' + this.ratePrefix + (this.priceData.modal_formatted || '—') + ' / ' + (this.priceData.unit_label || 'Quintal') + '\n';
+
+                if (this.priceData.per_kg_formatted) {
+                    text += this.kgPrefix + this.priceData.per_kg_formatted + '\n';
+                }
+                text += this.dtPrefix + (this.priceData.date_formatted || '—') + '\n'
+                    + this.linkPrefix + window.location.href;
+
+                return 'https://wa.me/?text=' + encodeURIComponent(text);
+            },
+
+            init() {
+                this.scrollToSelectedMandi();
+                window.addEventListener('popstate', (e) => {
+                    if (e.state && e.state.market) {
+                        this.switchMarketAsync(e.state.market, e.state.marketId, window.location.href, false);
+                    } else {
+                        this.resetMarketAsync(this.resetUrl);
+                    }
+                });
+            }
+        };
+    }
+    window.cropMarketBox = cropMarketBox;
+    if (window.Alpine) {
+        window.Alpine.data('cropMarketBox', cropMarketBox);
+    } else {
+        document.addEventListener('alpine:init', () => {
+            window.Alpine.data('cropMarketBox', cropMarketBox);
+        });
+    }
+</script>
+
+<div class="space-y-6" x-data="cropMarketBox(window.cropMarketBoxConfig)" x-init="init()">
 
     <!-- 1. Top Breadcrumb & Back Navigation -->
     <div class="flex items-center justify-between gap-3">
@@ -75,7 +429,97 @@
             background: #1C5A2C;
             border-radius: 4px;
         }
-    </style>
+
+        /* ── Exact Weather-Widget Shimmer Engine (Mirrored from Homepage) ── */
+        @keyframes kbWeatherShimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .kb-crop-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .kb-crop-shimmer::after {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.40) 35%,
+                rgba(255, 255, 255, 0.85) 50%,
+                rgba(255, 255, 255, 0.40) 65%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: kbWeatherShimmer 1.5s infinite ease-in-out;
+            content: '';
+        }
+
+        .kb-crop-shimmer-dark {
+            position: relative;
+            overflow: hidden;
+        }
+        .kb-crop-shimmer-dark::after {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(52, 211, 153, 0.12) 35%,
+                rgba(167, 243, 208, 0.35) 50%,
+                rgba(52, 211, 153, 0.12) 65%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: kbWeatherShimmer 1.5s infinite ease-in-out;
+            content: '';
+        }
+
+        /* Base Mandi Pill */
+        .mandi-pill {
+            background-color: #ffffff;
+            border-color: #e7e5e4;
+            color: #44403c;
+            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mandi-pill:hover {
+            background-color: #fafaf9;
+            border-color: #d6d3d1;
+        }
+        .mandi-pill .mandi-pill-title {
+            color: #44403c;
+        }
+        .mandi-pill .mandi-pill-dist {
+            color: #a8a29e;
+        }
+        .mandi-pill .mandi-pill-price {
+            background-color: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #d1fae5;
+        }
+
+        /* Active / Selected Mandi Pill - Guaranteed High Specificity */
+        .mandi-pill.mandi-pill-active {
+            background-color: #1C5A2C !important;
+            border-color: #1C5A2C !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(28, 90, 44, 0.38) !important;
+        }
+        .mandi-pill.mandi-pill-active .mandi-pill-star {
+            color: #fcd34d !important;
+            display: inline-block !important;
+        }
+        .mandi-pill.mandi-pill-active .mandi-pill-title {
+            color: #ffffff !important;
+        }
+        .mandi-pill.mandi-pill-active .mandi-pill-dist {
+            color: #a7f3d0 !important;
+        }
+        .mandi-pill.mandi-pill-active .mandi-pill-price {
+            background-color: rgba(255, 255, 255, 0.24) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.45) !important;
+        }</style>
 
     <!-- 2. Hero Showcase: Classic Two-Box Aligned Architecture with Responsive Mobile Flow -->
     <div class="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[1fr_auto] gap-5 items-stretch">
@@ -155,223 +599,246 @@
         <!-- ELEMENT 2: BOX 1 (CURRENT PRICE, PICK YOUR GRADE, VIEW DIFFERENT MARKET) -->
         <!-- Mobile: Order 2 | Desktop: Right Column Rows 1-2 (Cols 6-12)              -->
         <!-- ========================================================================= -->
-        <div class="order-2 lg:order-none lg:col-span-7 lg:col-start-6 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-5 sm:p-7 border-2 border-[#D9CEB8] shadow-sm flex flex-col justify-between space-y-4 h-full"
-             x-data="{ 
-                 activeSort: '{{ $defaultMarketSort ?? 'nearest_first' }}', 
-                 showAllRadius: {{ (!empty($selectedMarket) && empty($selectedMarket->is_within_radius)) ? 'true' : 'false' }}, 
-                 showAllGrades: true,
-                 scrollToSelectedMandi() {
-                     const tryScroll = (attempts = 0) => {
-                         const container = this.$refs.mandiScrollBox;
-                         if (!container) return;
-                         const selectedPill = container.querySelector('.mandi-pill-selected');
-                         if (selectedPill) {
-                             const containerRect = container.getBoundingClientRect();
-                             const pillRect = selectedPill.getBoundingClientRect();
-                             const isAbove = pillRect.top < containerRect.top;
-                             const isBelow = pillRect.bottom > containerRect.bottom;
-                             if (isBelow) {
-                                 container.scrollBy({ top: (pillRect.bottom - containerRect.bottom) + 20, behavior: 'smooth' });
-                             } else if (isAbove) {
-                                 container.scrollBy({ top: (pillRect.top - containerRect.top) - 20, behavior: 'smooth' });
-                             }
-                         } else if (attempts < 5) {
-                             setTimeout(() => tryScroll(attempts + 1), 80);
-                         }
-                     };
-                     setTimeout(() => tryScroll(0), 120);
-                 }
-             }"
-             x-init="scrollToSelectedMandi()">
+        <div class="order-2 lg:order-none lg:col-span-7 lg:col-start-6 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-5 sm:p-7 border-2 border-[#D9CEB8] shadow-sm flex flex-col justify-between space-y-4 h-full">
             
-            <!-- 1. Current Price Section -->
-            <div class="space-y-2">
-                <div class="flex items-center justify-between text-xs">
-                    <span class="font-extrabold tracking-wider text-stone-400 uppercase text-[11px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? 'CURRENT PRICE' : 'ಇಂದಿನ ದರ' }}
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold text-[11px] sm:text-xs shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        <span class="w-2 h-2 rounded-full {{ ($activePriceItem?->price_date || $latestDate) ? 'bg-emerald-500 animate-pulse' : 'bg-stone-300' }} shrink-0"></span>
-                        <span class="text-emerald-700 font-semibold">{{ $activeLocale === 'en' ? 'Updated:' : 'ನವೀಕರಿಸಲಾಗಿದೆ:' }}</span>
-                        <span class="font-black text-[#1C5A2C]">{{ ($activePriceItem?->price_date || $latestDate) ? \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M Y') : '—' }}</span>
-                    </span>
+            <!-- Top Content Section: Price & Grades with Zero Layout Shift Shimmer Overlay -->
+            <div class="space-y-4 relative">
+                
+                <!-- Shimmer Glass Overlay (Exact Weather-Widget Shimmer Engine with Dynamic Multi-Row Grade Matching) -->
+                <div x-show="isMarketLoading" 
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-250"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="absolute -inset-2 bg-white/98 backdrop-blur-xs z-20 flex flex-col justify-start rounded-2xl p-4 sm:p-5 pointer-events-none select-none"
+                     aria-hidden="true">
+                    
+                    <div class="space-y-3.5 w-full">
+                        <!-- Top Row: CURRENT PRICE label -->
+                        <div class="flex items-center justify-between w-full">
+                            <div class="h-3.5 w-24 bg-stone-200 rounded-md kb-crop-shimmer"></div>
+                            <div class="h-5 w-24 bg-emerald-100/60 rounded-full kb-crop-shimmer"></div>
+                        </div>
+
+                        <!-- Price Row: Big Price + Unit + Trend Pill -->
+                        <div class="flex items-baseline gap-3">
+                            <div class="h-11 sm:h-12 w-40 sm:w-48 bg-stone-200 rounded-xl kb-crop-shimmer"></div>
+                            <div class="h-5 w-20 bg-stone-200/80 rounded-md kb-crop-shimmer"></div>
+                            <div class="h-5 w-24 bg-emerald-100/60 rounded-md kb-crop-shimmer"></div>
+                        </div>
+
+                        <!-- Market/Unit Details Row: Mandi name, Day range, Distance, As of Date -->
+                        <div class="flex items-center gap-2 pt-0.5 flex-wrap">
+                            <div class="h-4 w-36 bg-stone-200/90 rounded-md kb-crop-shimmer"></div>
+                            <div class="h-4 w-28 bg-stone-200/70 rounded-md kb-crop-shimmer"></div>
+                            <div class="h-5 w-24 bg-stone-200/70 rounded-full kb-crop-shimmer"></div>
+                            <div class="h-4 w-20 bg-stone-200/60 rounded-md kb-crop-shimmer"></div>
+                        </div>
+
+                        <!-- Dynamic Pick Your Grade Skeleton (Matches exact 1, 2, or multi-row count) -->
+                        <div class="pt-3 border-t border-stone-100 space-y-2" x-show="gradesList && gradesList.length > 0">
+                            <!-- Single Grade Market Skeleton -->
+                            <template x-if="gradesList && gradesList.length === 1">
+                                <div class="inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-emerald-50/70 border-2 border-emerald-300/40 kb-crop-shimmer">
+                                    <div class="space-y-1.5">
+                                        <div class="h-2.5 w-24 bg-stone-300/60 rounded-md"></div>
+                                        <div class="h-4 w-20 bg-stone-300/80 rounded-md"></div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Multi-Grade Market Skeleton (1:1 mapping with active grades across single or multiple rows) -->
+                            <template x-if="gradesList && gradesList.length > 1">
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <div class="h-3 w-36 bg-stone-200/80 rounded-md kb-crop-shimmer"></div>
+                                        <div class="h-3 w-28 bg-stone-100 rounded-md kb-crop-shimmer hidden sm:block"></div>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2 text-xs">
+                                        <template x-for="(g, idx) in (showAllGrades ? gradesList : gradesList.slice(0, Math.min(gradesList.length, 4)))" :key="'shim_g_' + idx">
+                                            <div class="px-3.5 py-2 rounded-2xl border-2 kb-crop-shimmer flex flex-col items-start gap-1.5 min-w-[96px] sm:min-w-[108px]"
+                                                 :class="isGradeSelected(g) ? 'bg-emerald-50/70 border-emerald-300/50' : 'bg-stone-50 border-stone-200/80'">
+                                                <div class="h-2.5 w-16 bg-stone-300/60 rounded-md"></div>
+                                                <div class="h-3.5 w-14 bg-stone-300/80 rounded-md"></div>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Shimmer for Show More/Fewer toggle button -->
+                                    <template x-if="gradesList.length > 4">
+                                        <div class="pt-0.5">
+                                            <div class="h-3 w-32 bg-stone-200/60 rounded-md kb-crop-shimmer"></div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="flex flex-wrap items-baseline gap-3">
-                    <div class="text-4xl sm:text-5xl font-black text-stone-900 tracking-tight font-sans">
-                        {{ $displayModal > 0 ? '₹' . number_format($displayModal, 0) : '—' }}
+                <!-- Live Data View (Maintains exact layout bounds with zero shift, clean cross-fade) -->
+                <div :class="isMarketLoading ? 'opacity-0 select-none pointer-events-none' : 'opacity-100'" 
+                     class="transition-opacity duration-200 space-y-4">
+                
+                <!-- 1. Current Price Section -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-extrabold tracking-wider text-stone-400 uppercase text-[11px] {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            {{ $activeLocale === 'en' ? 'CURRENT PRICE' : 'ಇಂದಿನ ದರ' }}
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold text-[11px] sm:text-xs shadow-2xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                            <span class="text-emerald-700 font-semibold">{{ $activeLocale === 'en' ? 'Updated:' : 'ನವೀಕರಿಸಲಾಗಿದೆ:' }}</span>
+                            <span class="font-black text-[#1C5A2C]" x-text="priceData.date_formatted">{{ ($activePriceItem?->price_date || $latestDate) ? \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M Y') : '—' }}</span>
+                        </span>
                     </div>
 
-                    @if($perKgPrice)
-                        <div class="text-base sm:text-lg font-bold text-stone-500 font-sans">
-                            ≈ ₹{{ $perKgPrice }}/kg
+                    <div class="flex flex-wrap items-baseline gap-3">
+                        <div class="text-4xl sm:text-5xl font-black text-stone-900 tracking-tight font-sans" x-text="priceData.modal_formatted">
+                            {{ $displayModal > 0 ? '₹' . number_format($displayModal, 0) : '—' }}
                         </div>
-                    @else
-                        <div class="text-sm font-semibold text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            / {{ $activeLocale === 'kn' ? ($crop->standard_unit === 'Quintal' ? 'ಕ್ವಿಂಟಾಲ್' : ($crop->standard_unit ?? 'ಕ್ವಿಂಟಾಲ್')) : strtolower($crop->standard_unit ?? 'quintal') }}
-                        </div>
-                    @endif
 
-                    @if(isset($dailyPriceChangeTrend) && $dailyPriceChangeTrend === 'rise')
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold font-sans border border-emerald-200">
-                            <span>↑</span>
-                            <span>+₹{{ number_format(abs($dailyPriceChange), 0) }}</span>
-                            <span class="text-[11px] font-semibold text-emerald-600">(+{{ abs($dailyPriceChangePercent) }}%)</span>
+                        <template x-if="priceData.per_kg_formatted">
+                            <div class="text-base sm:text-lg font-bold text-stone-500 font-sans" x-text="priceData.per_kg_formatted">
+                                ≈ ₹{{ $perKgPrice }}/kg
+                            </div>
+                        </template>
+                        <template x-if="!priceData.per_kg_formatted">
+                            <div class="text-sm font-semibold text-stone-400" x-text="'/ ' + priceData.unit_label">
+                                / {{ $activeLocale === 'kn' ? ($crop->standard_unit === 'Quintal' ? 'ಕ್ವಿಂಟಾಲ್' : ($crop->standard_unit ?? 'ಕ್ವಿಂಟಾಲ್')) : strtolower($crop->standard_unit ?? 'quintal') }}
+                            </div>
+                        </template>
+
+                        <template x-if="priceData.daily_trend === 'rise'">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold font-sans border border-emerald-200">
+                                <span>↑</span>
+                                <span x-text="'+₹' + Math.abs(Math.round(priceData.daily_change || 0))"></span>
+                                <span class="text-[11px] font-semibold text-emerald-600" x-text="'(+' + Math.abs(priceData.daily_change_percent || 0) + '%)'"></span>
+                            </span>
+                        </template>
+                        <template x-if="priceData.daily_trend === 'drop'">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 text-xs font-bold font-sans border border-red-200">
+                                <span>↓</span>
+                                <span x-text="'-₹' + Math.abs(Math.round(priceData.daily_change || 0))"></span>
+                                <span class="text-[11px] font-semibold text-red-600" x-text="'(' + (priceData.daily_change_percent || 0) + '%)'"></span>
+                            </span>
+                        </template>
+                        <template x-if="priceData.daily_trend === 'stable' && priceData.daily_change !== null">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-700 text-xs font-bold font-sans border border-stone-200">
+                                <span>→</span>
+                                <span>₹0</span>
+                                <span class="text-[11px] font-semibold text-stone-500">({{ $activeLocale === 'en' ? 'Stable' : 'ಸ್ಥಿರ' }})</span>
+                            </span>
+                        </template>
+                    </div>
+
+                    <!-- Active Mandi / Centre Details Bar -->
+                    <div class="flex flex-wrap items-center gap-2 text-xs text-stone-600 pt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                        <span class="font-bold text-stone-800 uppercase" x-text="priceData.unit_label + ' • @ ' + (priceData.display_market_name || '').toUpperCase()">
+                            {{ $activeLocale === 'kn' ? ($crop->standard_unit === 'Quintal' ? 'ಕ್ವಿಂಟಾಲ್' : ($crop->standard_unit ?? 'ಕ್ವಿಂಟಾಲ್')) : ($crop->standard_unit ?? 'Quintal') }} • @ {{ strtoupper($displayMarketName) }}
                         </span>
-                    @elseif(isset($dailyPriceChangeTrend) && $dailyPriceChangeTrend === 'drop')
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 text-xs font-bold font-sans border border-red-200">
-                            <span>↓</span>
-                            <span>-₹{{ number_format(abs($dailyPriceChange), 0) }}</span>
-                            <span class="text-[11px] font-semibold text-red-600">({{ $dailyPriceChangePercent }}%)</span>
-                        </span>
-                    @elseif(isset($dailyPriceChangeTrend) && $dailyPriceChangeTrend === 'stable' && $dailyPriceChange !== null)
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-700 text-xs font-bold font-sans border border-stone-200">
-                            <span>→</span>
-                            <span>₹0</span>
-                            <span class="text-[11px] font-semibold text-stone-500">({{ $activeLocale === 'en' ? 'Stable' : 'ಸ್ಥಿರ' }})</span>
-                        </span>
-                    @endif
+
+                        <template x-if="priceData.spread_formatted">
+                            <span class="inline-flex items-center gap-1.5">
+                                <span class="text-stone-300">•</span>
+                                <span class="text-stone-600 font-semibold" title="{{ $activeLocale === 'en' ? 'Day auction min-max range' : 'ದೈನಂದಿನ ಹರಾಜು ಕನಿಷ್ಠ-ಗರಿಷ್ಠ ವ್ಯಾಪ್ತಿ' }}">
+                                    {{ $activeLocale === 'en' ? 'Day Range:' : 'ಶ್ರೇಣಿ:' }} <span x-text="priceData.spread_formatted"></span>
+                                </span>
+                            </span>
+                        </template>
+
+                        <template x-if="priceData.distance_km && priceData.is_nearest">
+                            <span class="inline-flex items-center gap-1.5">
+                                <span class="text-stone-300">•</span>
+                                <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[#fff4e5] text-[#9a5b00] border border-[#ffe0b2] text-[11px] font-extrabold whitespace-nowrap shadow-2xs leading-none"
+                                      title="{{ $activeLocale === 'en' ? 'Closest mandi to your location' : 'ನಿಮ್ಮ ಸ್ಥಳಕ್ಕೆ ಅತ್ಯಂತ ಸಮೀಪದ ಮಾರುಕಟ್ಟೆ' }}">
+                                    <span class="inline-flex items-center leading-none">📍</span>
+                                    <span class="inline-flex items-center leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">{{ $activeLocale === 'en' ? 'nearest market' : 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆ' }} • <span x-text="Math.round(priceData.distance_km)"></span> km</span>
+                                </span>
+                            </span>
+                        </template>
+                        <template x-if="priceData.distance_km && !priceData.is_nearest">
+                            <span class="inline-flex items-center gap-1.5">
+                                <span class="text-stone-300">•</span>
+                                <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold whitespace-nowrap leading-none">
+                                    <span class="inline-flex items-center leading-none">📍</span>
+                                    <span class="inline-flex items-center leading-none"><span x-text="Math.round(priceData.distance_km)"></span> km {{ $activeLocale === 'en' ? 'away' : 'ದೂರ' }}</span>
+                                </span>
+                            </span>
+                        </template>
+
+                        <template x-if="priceData.as_of_text">
+                            <span class="inline-flex items-center gap-1.5">
+                                <span class="text-stone-300">•</span>
+                                <span class="text-stone-700 font-bold" title="{{ $activeLocale === 'en' ? 'Trading session date' : 'ವಹಿವಾಟು ನಡೆದ ದಿನಾಂಕ' }}">
+                                    <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" x-text="priceData.as_of_text">
+                                        {{ $asOfText }}
+                                    </span>
+                                </span>
+                            </span>
+                        </template>
+
+                        @if($boardMeta)
+                            <span class="text-amber-900 font-bold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} text-[11px]">({{ $activeLocale === 'en' ? $boardMeta['badge_en'] : $boardMeta['badge_kn'] }})</span>
+                        @endif
+                    </div>
                 </div>
 
-                <!-- Active Mandi / Centre Details Bar -->
-                <div class="flex flex-wrap items-center gap-2 text-xs text-stone-600 pt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <span class="font-bold text-stone-800 uppercase">
-                        {{ $activeLocale === 'kn' ? ($crop->standard_unit === 'Quintal' ? 'ಕ್ವಿಂಟಾಲ್' : ($crop->standard_unit ?? 'ಕ್ವಿಂಟಾಲ್')) : ($crop->standard_unit ?? 'Quintal') }} • @ {{ strtoupper($displayMarketName) }}
-                    </span>
+                <!-- 2. "PICK YOUR GRADE" Section -->
+                <div class="space-y-2 pt-2 border-t border-stone-100" x-show="gradesList && gradesList.length > 0">
+                    <template x-if="gradesList && gradesList.length === 1">
+                        <div class="inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#1C5A2C] text-white shadow-xs border-2 border-[#1C5A2C]">
+                            <div>
+                                <div class="text-[11px] font-extrabold tracking-wide uppercase text-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" x-text="gradesList[0].label"></div>
+                                <div class="text-base font-black text-white font-sans tracking-tight" x-text="gradesList[0].modal_formatted"></div>
+                            </div>
+                        </div>
+                    </template>
 
-                    @if($activePriceItem && $activePriceItem->min_price > 0 && $activePriceItem->max_price > 0 && $activePriceItem->price_spread > 0)
-                        <span class="text-stone-300">•</span>
-                        <span class="text-stone-600 font-semibold" title="{{ $activeLocale === 'en' ? 'Day auction min-max range' : 'ದೈನಂದಿನ ಹರಾಜು ಕನಿಷ್ಠ-ಗರಿಷ್ಠ ವ್ಯಾಪ್ತಿ' }}">
-                            {{ $activeLocale === 'en' ? 'Day Range:' : 'ಶ್ರೇಣಿ:' }} ₹{{ number_format($activePriceItem->min_price, 0) }} – ₹{{ number_format($activePriceItem->max_price, 0) }}
-                        </span>
-                    @endif
+                    <template x-if="gradesList && gradesList.length > 1">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider flex items-center gap-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
+                                    <span>{{ $activeLocale === 'en' ? 'PICK YOUR GRADE' : 'ಗ್ರೇಡ್ ಆಯ್ಕೆಮಾಡಿ' }}</span>
+                                    <span class="text-[10px] text-stone-500 font-bold" x-text="'(' + gradesList.length + ' {{ $activeLocale === 'en' ? 'VARIETIES' : 'ತಳಿಗಳು' }})'"></span>
+                                </div>
+                                <span class="text-[11px] text-stone-500 font-medium hidden sm:inline">
+                                    {{ $activeLocale === 'en' ? 'Active Market Trades' : 'ಸಕ್ರಿಯ ಮಾರುಕಟ್ಟೆ ವಹಿವಾಟು' }}
+                                </span>
+                            </div>
 
-                    @if(!empty($isSelectedActualNearest) && !empty($nearestDistanceKm))
-                        <span class="text-stone-300">•</span>
-                        <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[#fff4e5] text-[#9a5b00] border border-[#ffe0b2] text-[11px] font-extrabold whitespace-nowrap shadow-2xs leading-none"
-                              title="{{ $activeLocale === 'en' ? 'Closest mandi to your location' : 'ನಿಮ್ಮ ಸ್ಥಳಕ್ಕೆ ಅತ್ಯಂತ ಸಮೀಪದ ಮಾರುಕಟ್ಟೆ' }}">
-                            <span class="inline-flex items-center leading-none">📍</span>
-                            <span class="inline-flex items-center leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">{{ $activeLocale === 'en' ? 'nearest market' : 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆ' }} • {{ round($nearestDistanceKm) }} km</span>
-                        </span>
-                    @elseif(!empty($nearestDistanceKm))
-                        <span class="text-stone-300">•</span>
-                        <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold whitespace-nowrap leading-none">
-                            <span class="inline-flex items-center leading-none">📍</span>
-                            <span class="inline-flex items-center leading-none">{{ round($nearestDistanceKm) }} km {{ $activeLocale === 'en' ? 'away' : 'ದೂರ' }}</span>
-                            @if(!empty($actualNearestMarket) && $actualNearestMarket->id !== $selectedMarket?->id)
-                                <span class="text-[10px] text-emerald-600 font-medium leading-none">({{ $activeLocale === 'en' ? 'Nearest: ' : 'ಸಮೀಪ: ' }}{{ $activeLocale === 'en' ? $actualNearestMarket->name : ($actualNearestMarket->name_kn ?? $actualNearestMarket->name) }} {{ round($actualNearestMarket->distance_km) }}km)</span>
-                            @endif
-                        </span>
-                    @endif
+                            <div class="flex flex-wrap gap-2 text-xs">
+                                <template x-for="(g, idx) in gradesList" :key="g.variety_id + '_' + (g.grade || '')">
+                                    <a :href="g.url"
+                                       @click.prevent="switchGradeAsync(g, g.url)"
+                                       data-no-loader="true"
+                                       x-show="showAllGrades || (idx < 4 || isGradeSelected(g))"
+                                       :class="isGradeSelected(g) ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200'"
+                                       class="px-3.5 py-2 rounded-2xl font-bold transition border-2 flex flex-col items-start gap-0.5 cursor-pointer tap-feedback active:scale-95">
+                                        <span class="text-[11px]" :class="isGradeSelected(g) ? 'text-white' : 'text-stone-600'" x-text="g.label"></span>
+                                        <span class="text-sm font-black font-sans" :class="isGradeSelected(g) ? 'text-emerald-200' : 'text-[#1C5A2C]'" x-text="g.modal_formatted"></span>
+                                    </a>
+                                </template>
+                            </div>
 
-                    @if($activePriceItem?->price_date || $latestDate)
-                    <span class="text-stone-300">•</span>
-                    <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-950 border border-amber-300 text-[11px] font-bold whitespace-nowrap shadow-2xs leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        <span class="inline-flex items-center leading-none text-xs">📅</span>
-                        <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'as of' : 'ದಿನಾಂಕ:' }}</span>
-                        <span class="font-black text-amber-900 underline decoration-amber-400 decoration-1 leading-none">{{ \Carbon\Carbon::parse($activePriceItem->price_date ?? $latestDate)->format('d M') }}</span>
-                    </span>
-                    @endif
-
-                    @if($boardMeta)
-                        <span class="text-amber-900 font-bold {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} text-[11px]">({{ $activeLocale === 'en' ? $boardMeta['badge_en'] : $boardMeta['badge_kn'] }})</span>
-                    @endif
+                            <template x-if="gradesList.length > 4">
+                                <div class="pt-0.5">
+                                    <button type="button" 
+                                            @click="showAllGrades = !showAllGrades" 
+                                            class="text-[11px] font-bold text-[#1C5A2C] hover:underline transition inline-flex items-center gap-1 cursor-pointer">
+                                        <span x-text="showAllGrades ? '▲ {{ $activeLocale === 'en' ? 'Show fewer grades' : 'ಕಡಿಮೆ ತಳಿಗಳನ್ನು ತೋರಿಸಿ' }}' : '+ {{ $activeLocale === 'en' ? 'Show' : 'ತೋರಿಸಿ' }} ' + (gradesList.length - 4) + ' {{ $activeLocale === 'en' ? 'more grades' : 'ಹೆಚ್ಚಿನ ತಳಿಗಳು' }} ▾'"></span>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
                 </div>
             </div>
-
-            <!-- 2. "PICK YOUR GRADE" Section -->
-            @php
-                $displayMarketPrices = isset($selectedMarketPrices) && $selectedMarketPrices->isNotEmpty() ? $selectedMarketPrices : collect();
-                $totalGradesCount = $displayMarketPrices->count();
-            @endphp
-
-            @if($totalGradesCount === 1)
-                <!-- Single Grade: Clean Compact Box -->
-                <div class="pt-2 border-t border-stone-100">
-                    <div class="inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#1C5A2C] text-white shadow-xs border-2 border-[#1C5A2C]">
-                        <div>
-                            <div class="text-[11px] font-extrabold tracking-wide uppercase text-emerald-200 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                                {{ $displayMarketPrices->first()->getDisplayVarietyGrade($activeLocale) }}
-                            </div>
-                            <div class="text-base font-black text-white font-sans tracking-tight">
-                                ₹{{ number_format($displayMarketPrices->first()->modal_price, 0) }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @elseif($totalGradesCount > 1)
-                <!-- Multiple Grades: Responsive Wrap Row with Toggle -->
-                <div class="space-y-2 pt-2 border-t border-stone-100">
-                    <div class="flex items-center justify-between">
-                        <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider flex items-center gap-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            <span>{{ $activeLocale === 'en' ? 'PICK YOUR GRADE' : 'ಗ್ರೇಡ್ ಆಯ್ಕೆಮಾಡಿ' }}</span>
-                            <span class="text-[10px] text-stone-500 font-bold">({{ $totalGradesCount }} {{ $activeLocale === 'en' ? 'VARIETIES' : 'ತಳಿಗಳು' }})</span>
-                        </div>
-                        <span class="text-[11px] text-stone-500 font-medium hidden sm:inline">
-                            @if(isset($weeklyMinTradedPrice) && $weeklyMinTradedPrice > 0 && isset($weeklyMaxTradedPrice) && $weeklyMaxTradedPrice > 0)
-                                {{ $activeLocale === 'en' ? 'Trades this week: ₹' . number_format($weeklyMinTradedPrice, 0) . ' – ₹' . number_format($weeklyMaxTradedPrice, 0) : 'ಈ ವಾರದ ವಹಿವಾಟು: ₹' . number_format($weeklyMinTradedPrice, 0) . ' – ₹' . number_format($weeklyMaxTradedPrice, 0) }}
-                            @else
-                                {{ $activeLocale === 'en' ? 'Active Market Trades' : 'ಸಕ್ರಿಯ ಮಾರುಕಟ್ಟೆ ವಹಿವಾಟು' }}
-                            @endif
-                        </span>
-                    </div>
-
-                    <div class="flex flex-wrap gap-2 text-xs">
-                        @foreach($displayMarketPrices as $index => $smp)
-                            @php
-                                $isVarSelected = ($activePriceItem && $activePriceItem->variety_id == $smp->variety_id && (!$smp->grade || empty($gradeParam) || strcasecmp($activePriceItem->grade ?? '', $smp->grade) === 0));
-                                $vGradeLabel = $smp->getDisplayVarietyGrade($activeLocale);
-                                $isPrimaryGrade = ($index < 4 || $isVarSelected);
-                            @endphp
-                            <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'variety' => $smp->variety_id, 'grade' => $smp->grade, 'market' => $displayMarketName])) }}"
-                               x-show="showAllGrades || {{ $isPrimaryGrade ? 'true' : 'false' }}"
-                               class="px-3.5 py-2 rounded-2xl font-bold transition border-2 flex flex-col items-start gap-0.5 cursor-pointer tap-feedback active:scale-95 {{ $isVarSelected ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
-                                <span class="text-[11px] {{ $isVarSelected ? 'text-white' : 'text-stone-600' }} {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                                    {{ $vGradeLabel }}
-                                </span>
-                                <span class="text-sm font-black font-sans {{ $isVarSelected ? 'text-emerald-200' : 'text-[#1C5A2C]' }}">
-                                    ₹{{ number_format($smp->modal_price, 0) }}
-                                </span>
-                            </a>
-                        @endforeach
-                    </div>
-
-                    @if($totalGradesCount > 4)
-                        <div class="pt-0.5">
-                            <button type="button" 
-                                    @click="showAllGrades = !showAllGrades" 
-                                    class="text-[11px] font-bold text-[#1C5A2C] hover:underline transition inline-flex items-center gap-1 cursor-pointer">
-                                <span x-text="showAllGrades ? '▲ {{ $activeLocale === 'en' ? 'Show fewer grades' : 'ಕಡಿಮೆ ತಳಿಗಳನ್ನು ತೋರಿಸಿ' }}' : '+ {{ $activeLocale === 'en' ? 'Show' : 'ತೋರಿಸಿ' }} {{ $totalGradesCount - 4 }} {{ $activeLocale === 'en' ? 'more grades' : 'ಹೆಚ್ಚಿನ ತಳಿಗಳು' }} ▾'"></span>
-                            </button>
-                        </div>
-                    @endif
-                </div>
-            @elseif(isset($availableVarieties) && $availableVarieties->isNotEmpty())
-                <!-- Fallback General Varieties -->
-                <div class="space-y-2 pt-2 border-t border-stone-100">
-                    <div class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? 'PICK YOUR GRADE' : 'ಗ್ರೇಡ್ ಆಯ್ಕೆಮಾಡಿ' }}
-                    </div>
-
-                    <div class="flex flex-wrap gap-2 text-xs">
-                        <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'market' => $marketParam])) }}"
-                           class="px-3.5 py-2 rounded-xl font-bold transition border-2 {{ empty($varietyId) ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-2xs' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
-                            <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">{{ $activeLocale === 'en' ? 'All Grades (FAQ)' : 'ಎಲ್ಲಾ ತಳಿಗಳು / FAQ' }}</span>
-                        </a>
-
-                        @foreach($availableVarieties as $v)
-                            @php
-                                $isVarSelected = ($varietyId == $v->id);
-                                $vTitle = $v->displayName($activeLocale);
-                            @endphp
-                            <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'variety' => $v->id, 'market' => $marketParam])) }}"
-                               class="px-3.5 py-2 rounded-xl font-bold transition border-2 flex items-center gap-1.5 {{ $isVarSelected ? 'bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-2xs' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
-                                <span class="{{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">{{ $vTitle }}</span>
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
+            </div>
 
             <!-- 3. "VIEW DIFFERENT MARKET / CENTRE" -->
             <div class="space-y-2.5 pt-2 border-t border-stone-100">
@@ -408,14 +875,16 @@
                         @endif
                     </div>
 
-                    @if($marketParam)
-                        <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'variety' => $varietyId])) }}" 
-                           class="text-xs text-stone-500 hover:text-stone-800 font-bold flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-stone-100 hover:bg-stone-200 border border-stone-200 transition" 
-                           title="{{ $activeLocale === 'en' ? 'Reset to nearest market' : 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆಗೆ ಮರುಹೊಂದಿಸಿ' }}">
+                    <template x-if="isMarketExplicitlySelected">
+                        <button type="button" 
+                                data-no-loader="true"
+                                @click="resetMarketAsync(resetUrl)"
+                                class="text-xs text-stone-500 hover:text-stone-800 font-bold flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-stone-100 hover:bg-stone-200 border border-stone-200 transition cursor-pointer" 
+                                title="{{ $activeLocale === 'en' ? 'Reset to nearest market' : 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆಗೆ ಮರುಹೊಂದಿಸಿ' }}">
                             <span>✕</span>
                             <span>{{ $activeLocale === 'en' ? 'Reset' : 'ಮರುಹೊಂದಿಸಿ' }}</span>
-                        </a>
-                    @endif
+                        </button>
+                    </template>
                 </div>
 
                 <!-- Mandi Pills with Scrollbar -->
@@ -433,32 +902,39 @@
                             }
                         @endphp
                         <a href="{{ route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'market' => $am->name])) }}"
+                           data-no-loader="true"
+                           @click.prevent="switchMarketAsync('{{ $am->name }}', {{ $am->id }}, $el.href)"
                            x-show="showAllRadius || {{ ($isWithin || $isMktSelected) ? 'true' : 'false' }}"
                            :style="activeSort === 'highest_price_first' ? 'order: {{ $am->price_rank ?? 999 }}' : 'order: {{ $am->distance_rank ?? 999 }}'"
-                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition border-2 cursor-pointer tap-feedback active:scale-95 {{ $isMktSelected ? 'mandi-pill-selected bg-[#1C5A2C] text-white border-[#1C5A2C] shadow-sm ring-2 ring-emerald-600/30' : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200' }}">
-                            @if($isMktSelected)
-                                <span class="text-amber-300">★</span>
-                            @endif
-                            <span class="font-sans uppercase text-[12px] font-extrabold tracking-wide">{{ $amTitle }}</span>
+                           :class="isMandiSelected({{ $am->id }}) ? 'mandi-pill-active ring-2 ring-emerald-600/40' : ''"
+                           class="mandi-pill inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition border-2 cursor-pointer tap-feedback active:scale-95">
+                            <template x-if="isMandiSelected({{ $am->id }})">
+                                <span class="mandi-pill-star text-amber-300">★</span>
+                            </template>
+                            <span class="mandi-pill-title uppercase text-[12px] font-extrabold tracking-wide {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $amTitle }}</span>
                             @if(isset($am->distance_km) && $am->distance_km < 1000)
-                                <span class="text-[10px] {{ $isMktSelected ? 'text-emerald-200' : 'text-stone-400' }} font-medium">({{ round($am->distance_km) }}km)</span>
+                                <span class="mandi-pill-dist text-[10px] font-medium">({{ round($am->distance_km) }}km)</span>
                             @endif
 
                             @if(!empty($enableSmartBadges))
-                                @if(!empty($am->is_nearest) && !$isMktSelected)
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-200">
-                                        📍 {{ $activeLocale === 'en' ? 'Nearest' : 'ಹತ್ತಿರ' }}
+                                <template x-if="!isMandiSelected({{ $am->id }})">
+                                    <span class="inline-flex items-center gap-1">
+                                        @if(!empty($am->is_nearest))
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-200">
+                                                📍 {{ $activeLocale === 'en' ? 'Nearest' : 'ಹತ್ತಿರ' }}
+                                            </span>
+                                        @endif
+                                        @if(!empty($am->is_top_rate))
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
+                                                🔥 {{ $activeLocale === 'en' ? 'Top Rate' : 'ಅತ್ಯಧಿಕ' }}
+                                            </span>
+                                        @endif
                                     </span>
-                                @endif
-                                @if(!empty($am->is_top_rate) && !$isMktSelected)
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
-                                        🔥 {{ $activeLocale === 'en' ? 'Top Rate' : 'ಅತ್ಯಧಿಕ' }}
-                                    </span>
-                                @endif
+                                </template>
                             @endif
 
                             @if(isset($am->today_modal_price) && $am->today_modal_price > 0)
-                                <span class="px-2 py-0.5 rounded-md text-[11px] font-black font-sans {{ $isMktSelected ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800' }}">
+                                <span class="mandi-pill-price px-2 py-0.5 rounded-md text-[11px] font-black font-sans">
                                     ₹{{ number_format($am->today_modal_price, 0) }}
                                 </span>
                             @endif
@@ -486,66 +962,38 @@
         <div class="order-3 lg:order-none lg:col-span-5 lg:col-start-1 lg:row-start-2 bg-white rounded-2xl sm:rounded-3xl border-2 border-[#D9CEB8] shadow-sm overflow-hidden">
 
             <!-- Market Advisory / Sentiment Banner -->
-            @php
-                $h7Horizon = collect($forecast['horizons'] ?? [])->firstWhere('horizon_days', 7);
-                $advisoryPct = $h7Horizon ? abs($h7Horizon['percentage_change']) : null;
-                $advisoryConf = $h7Horizon ? (int)($h7Horizon['confidence_score'] ?? 0) : null;
-                $advisoryDir = $h7Horizon['direction'] ?? $forecastDir;
-            @endphp
-            <div class="px-3.5 py-2.5 sm:px-4 sm:py-3 {{ $forecastDir === 'down' ? 'bg-amber-50/90' : ($forecastDir === 'up' ? 'bg-emerald-50/90' : 'bg-stone-50') }}">
-                <div class="flex items-start gap-2.5">
-                    <!-- Left accent stripe -->
-                    <div class="w-1 self-stretch rounded-full shrink-0 {{ $forecastDir === 'down' ? 'bg-amber-400' : ($forecastDir === 'up' ? 'bg-emerald-500' : 'bg-stone-400') }}"></div>
+            <div id="crop-advisory-wrapper" class="relative overflow-hidden">
+                <div id="crop-advisory-content" :class="isMarketLoading ? 'opacity-25 select-none transition-opacity duration-150' : 'opacity-100 transition-opacity duration-150'">
+                    @include('farmer.crops.partials.advisory_banner')
+                </div>
 
-                    <div class="flex-1 space-y-1">
-                        <!-- Title row -->
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class="text-base sm:text-lg leading-none">{{ $forecastDir === 'down' ? '⏰' : ($forecastDir === 'up' ? '📈' : '💡') }}</span>
-                            <div class="font-extrabold text-xs sm:text-sm {{ $forecastDir === 'down' ? 'text-amber-950' : ($forecastDir === 'up' ? 'text-emerald-950' : 'text-stone-800') }} {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                                @if($forecastDir === 'down')
-                                    {{ $activeLocale === 'en' ? 'Optimal Time to Sell (Sell Now)' : 'ಮಾರಾಟಕ್ಕೆ ಸೂಕ್ತ ಸಮಯ' }}
-                                @elseif($forecastDir === 'up')
-                                    {{ $activeLocale === 'en' ? 'Price Rise Expected (Hold / Watch)' : 'ಧಾರಣೆ ಏರಿಕೆಯ ಮುನ್ಸೂಚನೆ' }}
-                                @else
-                                    {{ $activeLocale === 'en' ? 'Market Stable (Monitor)' : 'ಮಾರುಕಟ್ಟೆ ಸ್ಥಿರ — ಗಮನಿಸಿ' }}
-                                @endif
-                            </div>
+                <!-- Shimmer Glass Overlay (Exact Weather-Widget Shimmer Engine) -->
+                <div x-show="isMarketLoading"
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-250"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="absolute inset-0 bg-white/95 backdrop-blur-xs z-20 flex items-start gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-3 pointer-events-none select-none"
+                     aria-hidden="true">
+                    <!-- Accent stripe skeleton -->
+                    <div class="w-1 self-stretch rounded-full bg-stone-300 kb-crop-shimmer shrink-0"></div>
+                    <div class="flex-1 space-y-2">
+                        <!-- Icon & Title skeleton -->
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded-md bg-stone-200 kb-crop-shimmer"></div>
+                            <div class="w-48 sm:w-60 h-4 rounded-md bg-stone-200 kb-crop-shimmer"></div>
                         </div>
-
-                        <!-- Body text -->
-                        <p class="text-[11px] sm:text-xs leading-snug {{ $forecastDir === 'down' ? 'text-amber-800' : ($forecastDir === 'up' ? 'text-emerald-800' : 'text-stone-600') }} {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            @if($forecastDir === 'down')
-                                {{ $activeLocale === 'en' ? 'Arrivals are expected to increase over the coming weeks, which may cause prices to soften. Selling at current favorable rates is advisable.' : 'ಮುಂದಿನ ವಾರಗಳಲ್ಲಿ ಮಾರುಕಟ್ಟೆಗೆ ಆವಕ ಹೆಚ್ಚಾಗುವ ಮುನ್ಸೂಚನೆ ಇದ್ದು, ದರಗಳು ಕೊಂಚ ಇಳಿಕೆಯಾಗುವ ಸಾಧ್ಯತೆಯಿದೆ. ಸದ್ಯದ ಉತ್ತಮ ಬೆಲೆಯಲ್ಲಿ ಮಾರಾಟ ಮಾಡುವುದು ಸೂಕ್ತ.' }}
-                            @elseif($forecastDir === 'up')
-                                {{ $activeLocale === 'en' ? 'Signs of rising demand are observed in regional mandis. Prices may improve further in the coming days.' : 'ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಬೇಡಿಕೆ ಹೆಚ್ಚಾಗುವ ಲಕ್ಷಣಗಳು ಕಂಡುಬರುತ್ತಿದ್ದು, ಮುಂದಿನ ದಿನಗಳಲ್ಲಿ ದರ ಇನ್ನಷ್ಟು ಸುಧಾರಿಸುವ ಸಂಭವವಿದೆ.' }}
-                            @else
-                                {{ $activeLocale === 'en' ? 'Market rates are steady. Consider transportation costs and arrival volumes of nearby mandis before selling.' : 'ಮಾರುಕಟ್ಟೆ ದರಗಳು ಸ್ಥಿರವಾಗಿದ್ದು, ಹತ್ತಿರದ ಮಂಡಿಗಳ ಸಾರಿಗೆ ವೆಚ್ಚ ಮತ್ತು ಆವಕ ಗಮನಿಸಿ ಮಾರಾಟ ನಿರ್ಧಾರ ಕೈಗೊಳ್ಳಿ.' }}
-                            @endif
-                        </p>
-
-                        <!-- Live forecast stat pills with clear high-contrast numbers -->
-                        @if($advisoryPct !== null && !empty($forecast['is_sufficient']))
-                            <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                                <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border shadow-2xs leading-none {{ $forecastDir === 'up' ? 'bg-emerald-100/90 border-emerald-300' : ($forecastDir === 'down' ? 'bg-amber-100/90 border-amber-300' : 'bg-stone-100 border-stone-300') }}">
-                                    <span class="inline-flex items-center text-[10px] sm:text-[11px] font-bold text-stone-600 leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                                        {{ $activeLocale === 'en' ? '7-day forecast:' : '7 ದಿನ:' }}
-                                    </span>
-                                    <span class="inline-flex items-center text-xs sm:text-[13px] font-black font-sans tracking-tight leading-none {{ $forecastDir === 'up' ? 'text-emerald-700' : ($forecastDir === 'down' ? 'text-red-700' : 'text-stone-800') }}">
-                                        {{ $forecastDir === 'up' ? '↑ +' : ($forecastDir === 'down' ? '↓ -' : '→ ±') }}{{ $advisoryPct }}%
-                                    </span>
-                                </span>
-                                @if($advisoryConf > 0)
-                                    <span class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border border-slate-300 bg-slate-100/90 text-slate-900 shadow-2xs leading-none">
-                                        <span class="inline-flex items-center text-[10px] sm:text-[11px] font-bold text-slate-500 leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                                            {{ $activeLocale === 'en' ? 'Confidence:' : 'ವಿಶ್ವಾಸ:' }}
-                                        </span>
-                                        <span class="inline-flex items-center text-xs sm:text-[13px] font-black font-sans text-slate-900 tracking-tight leading-none">
-                                            {{ $advisoryConf }}%
-                                        </span>
-                                    </span>
-                                @endif
-                            </div>
-                        @endif
+                        <!-- Advisory text skeleton -->
+                        <div class="w-full h-3 rounded-md bg-stone-200/80 kb-crop-shimmer"></div>
+                        <div class="w-4/5 h-3 rounded-md bg-stone-200/60 kb-crop-shimmer"></div>
+                        <!-- Forecast pills skeleton -->
+                        <div class="flex items-center gap-2 pt-1">
+                            <div class="w-28 h-6 rounded-full bg-emerald-100/70 border border-emerald-200/50 kb-crop-shimmer"></div>
+                            <div class="w-24 h-6 rounded-full bg-slate-200/70 border border-slate-300/50 kb-crop-shimmer"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -588,7 +1036,8 @@
                         'from_crop' => 1,
                     ]);
                 @endphp
-                <a href="{{ route('farmer.decision.where-to-sell', $whereToSellParams) }}"
+                <a :href="whereToSellUrl"
+                   href="{{ route('farmer.decision.where-to-sell', $whereToSellParams) }}"
                    class="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2.5 rounded-xl sm:rounded-2xl bg-[#1C5A2C] hover:bg-[#154622] active:scale-95 text-white font-extrabold text-xs shadow-2xs transition-all cursor-pointer"
                    title="{{ $activeLocale === 'en' ? 'Simulate take-home profit for ' . ($crop->name) . ' across Karnataka mandis' : 'ಕರ್ನಾಟಕದ ಮಂಡಿಗಳಲ್ಲಿ ' . ($crop->name_kn ?: $crop->name) . ' ಬೆಳೆಯ ನಿವ್ವಳ ಲಾಭವನ್ನು ಲೆಕ್ಕಹಾಕಿ' }}">
                     <span class="text-xs sm:text-sm leading-none">⚖️</span>
@@ -657,485 +1106,164 @@
         </div>
     </div>
 
-    <!-- 4. "What's next" Forecast Horizons (Compact Classic 2-Column Mobile & 4-Column Desktop) -->
-    <div class="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-6 border-2 border-[#D9CEB8] shadow-sm space-y-3.5 sm:space-y-5 overflow-hidden">
-        
-        <!-- Section Header with Classic Editorial Layout -->
-        <div class="flex items-center justify-between gap-3 pb-3 border-b-2 border-[#F0EAE1]">
-            <div class="flex items-start gap-2.5">
-                <span class="w-1.5 h-8 sm:h-9 rounded-full bg-[#1C5A2C] shrink-0 mt-0.5"></span>
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                            {{ $activeLocale === 'en' ? 'When to Sell? — Price Forecast' : 'ಯಾವಾಗ ಮಾರಬೇಕು? — ಬೆಲೆ ಮುನ್ಸೂಚನೆ' }}
-                        </h2>
-                        @if($activePriceItem && $activePriceItem->variety)
-                            <span class="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-black bg-[#FAF6EE] text-[#1C5A2C] border border-[#D9CEB8] shadow-2xs leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                                <span class="inline-flex items-center leading-none">{{ $activePriceItem->getDisplayVarietyGrade($activeLocale) }}</span>
-                            </span>
-                        @endif
-                    </div>
-                    <p class="text-xs text-stone-500 font-medium mt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? '1 to 15-day projected price movement & market direction' : 'ಮುಂದಿನ 15 ದಿನಗಳ ನಿರೀಕ್ಷಿತ ದರ ಶ್ರೇಣಿ ಮತ್ತು ಮಾರುಕಟ್ಟೆ ಪ್ರವೃತ್ತಿ' }}
-                    </p>
-                </div>
-            </div>
-            <div class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0 leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#1C5A2C] animate-pulse shrink-0"></span>
-                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'Updated daily' : 'ದೈನಂದಿನ ಅಪ್ಡೇಟ್' }}</span>
-            </div>
+    <!-- 4. "What's next" Forecast Horizons (Dynamic Async with Shimmer Overlay) -->
+    <div id="crop-forecast-wrapper" class="relative">
+        <div id="crop-forecast-content" :class="isMarketLoading ? 'opacity-35 select-none transition-opacity duration-200' : 'opacity-100 transition-opacity duration-200'">
+            @include('farmer.crops.partials.forecast_card')
         </div>
+        <div x-show="isMarketLoading" x-cloak 
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-out duration-250"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="absolute inset-0 bg-white/95 backdrop-blur-md z-30 flex flex-col justify-start rounded-2xl sm:rounded-3xl p-5 sm:p-6 pointer-events-none select-none space-y-4 shadow-sm"
+             aria-hidden="true">
+            
+            <!-- Skeleton Forecast Header -->
+            <div class="flex items-center justify-between pb-3 border-b-2 border-[#F0EAE1]">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-1.5 h-8 rounded-full bg-[#1C5A2C]"></div>
+                    <div class="space-y-1.5">
+                        <div class="h-5 w-52 rounded-md bg-stone-200 kb-crop-shimmer"></div>
+                        <div class="h-3.5 w-64 rounded-md bg-stone-200/60 kb-crop-shimmer"></div>
+                    </div>
+                </div>
+                <div class="h-6 w-28 rounded-full bg-emerald-100/80 border border-emerald-200/60 kb-crop-shimmer"></div>
+            </div>
 
-        @if(!empty($forecast['is_sufficient']) && !empty($forecast['horizons']))
-            <!-- 4-Card Forecast Grid (2 Columns on Mobile, 4 Columns on Desktop) -->
+            <!-- 4 Horizon Card Skeletons -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3.5">
-                @foreach($forecast['horizons'] as $idx => $h)
-                    @php
-                        $hDays = $h['horizon_days'] ?? ($h['horizon'] ?? 1);
-                        $horizonTitles = [
-                            1 => ['en' => 'TOMORROW', 'kn' => 'ನಾಳೆ'],
-                            7 => ['en' => 'NEXT WEEK', 'kn' => 'ಮುಂದಿನ ವಾರ'],
-                            15 => ['en' => 'FORTNIGHT', 'kn' => '15 ದಿನ (ಪಕ್ಷ)'],
-                            30 => ['en' => 'NEXT MONTH', 'kn' => 'ಮುಂದಿನ ತಿಂಗಳು'],
-                        ];
-                        $horizonMeta = $horizonTitles[$hDays] ?? ['en' => "+{$hDays} DAYS", 'kn' => $h['label_kn'] ?? 'ಮುನ್ಸೂಚನೆ'];
-                        $shortDate = !empty($h['target_date']) ? \Carbon\Carbon::parse($h['target_date'])->format('d M') : str_replace(' ' . date('Y'), '', $h['target_date_formatted'] ?? '');
-
-                        $absPct = abs($h['percentage_change']);
-                        $dir = $h['direction'] ?? 'steady';
-                        if ($dir === 'up') {
-                            $heroChange = "↑ +{$absPct}%";
-                            $arrow = "↑";
-                            $dirColorClass = "text-[#16803C]";
-                            $accentColor = "bg-[#16803C]";
-                        } elseif ($dir === 'down') {
-                            $heroChange = "↓ -{$absPct}%";
-                            $arrow = "↓";
-                            $dirColorClass = "text-[#C0392B]";
-                            $accentColor = "bg-[#C0392B]";
-                        } else {
-                            $heroChange = "→ ≈ 0%";
-                            $arrow = "→";
-                            $dirColorClass = "text-[#B45309]";
-                            $accentColor = "bg-amber-600";
-                        }
-
-                        $confScore = (float)($h['confidence_score'] ?? 50);
-                        if ($confScore >= 70) {
-                            $qualLabelEn = 'LIKELY';
-                            $qualLabelKn = 'ಹೆಚ್ಚು ಸಾಧ್ಯತೆ';
-                            $confColor = '#16803C';
-                            $confTextClass = 'text-[#16803C]';
-                        } elseif ($confScore >= 50) {
-                            $qualLabelEn = 'POSSIBLE';
-                            $qualLabelKn = 'ಸಾಧ್ಯತೆ ಇದೆ';
-                            $confColor = '#D97706';
-                            $confTextClass = 'text-[#B45309]';
-                        } else {
-                            $qualLabelEn = 'LESS LIKELY';
-                            $qualLabelKn = 'ಸಾಧ್ಯತೆ ಕಡಿಮೆ';
-                            $confColor = '#9CA3AF';
-                            $confTextClass = 'text-stone-600';
-                        }
-                    @endphp
-                    <div class="bg-[#FAF8F5] rounded-xl sm:rounded-2xl p-2 sm:p-4 border-2 border-[#E5DECE] hover:border-[#1C5A2C] shadow-2xs transition-all duration-200 flex flex-col justify-between space-y-2 sm:space-y-3 relative overflow-hidden group">
-                        
-                        <!-- Top Accent Line -->
-                        <div class="absolute top-0 left-0 right-0 h-1 {{ $accentColor }} transition-colors"></div>
-
-                        <!-- Card Header: Brand Green Horizon Pill & Short Target Date -->
-                        <div class="flex items-center justify-between gap-1 pt-0.5">
-                            <span class="inline-flex items-center justify-center px-2 py-1 rounded bg-[#1C5A2C] text-white text-[9px] sm:text-[11px] font-black tracking-wider uppercase font-sans shadow-2xs border border-[#1C5A2C] leading-none {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? $horizonMeta['en'] : $horizonMeta['kn'] }}</span>
-                            </span>
-                            
-                            <span class="text-[9px] sm:text-xs font-bold text-stone-500 font-sans whitespace-nowrap leading-none inline-flex items-center">
-                                {{ $shortDate }}
-                            </span>
-                        </div>
-
-                        <!-- Hero Metric: Expected Movement Percentage (Negilu Style - Giant & Eye-Catching) -->
-                        <div class="space-y-0.5 sm:space-y-1">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-xl sm:text-2xl lg:text-[32px] font-black tracking-tight font-sans leading-none {{ $dirColorClass }}">
-                                    {{ $heroChange }}
-                                </span>
-                            </div>
-
-                            <!-- Sub-line: Predicted Target Price with Direction Arrow -->
-                            <div class="flex items-baseline gap-1 text-stone-900 font-sans flex-wrap leading-tight">
-                                <span class="text-xs sm:text-sm lg:text-base font-black tracking-tight">
-                                    ₹{{ number_format($h['expected_price'], 0) }}
-                                </span>
-                                <span class="text-xs font-black {{ $dirColorClass }}">
-                                    {{ $arrow }}
-                                </span>
-                                <span class="text-[9px] sm:text-[11px] font-semibold text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                                    /{{ $activeLocale === 'en' ? strtolower($crop->standard_unit ?? 'quintal') : 'ಕ್ವಿಂ' }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Bottom Section: Auction Range & Confidence -->
-                        <div class="pt-1.5 sm:pt-2.5 border-t border-[#EAE3D2] space-y-1.5 sm:space-y-2 text-xs">
-                            <!-- Expected Trading Range -->
-                            <div class="text-[9.5px] sm:text-xs text-stone-600 font-sans leading-tight">
-                                <span class="font-bold text-stone-400 {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                                    {{ $activeLocale === 'en' ? 'range: ' : 'ಶ್ರೇಣಿ: ' }}
-                                </span>
-                                <span class="font-black text-stone-800 whitespace-nowrap">
-                                    ₹{{ number_format($h['lower_bound'], 0) }} – ₹{{ number_format($h['upper_bound'], 0) }}
-                                </span>
-                            </div>
-
-                            <!-- Confidence Score & Progress Bar (with Qualitative Status) -->
-                            <div class="space-y-1">
-                                <div class="flex items-center justify-between gap-1 text-[8.5px] sm:text-[10px] font-bold tracking-wider uppercase">
-                                    <span class="text-stone-400 font-extrabold whitespace-nowrap {{ $activeLocale === 'kn' ? 'font-kannada' : '' }}">
-                                        {{ $activeLocale === 'en' ? 'CONFIDENCE' : 'ವಿಶ್ವಾಸ' }}
-                                    </span>
-                                    <span class="font-black font-sans whitespace-nowrap text-right {{ $confTextClass }} {{ $activeLocale === 'kn' ? 'font-kannada text-[8px] sm:text-[9.5px]' : '' }}">
-                                        {{ $activeLocale === 'en' ? $qualLabelEn : $qualLabelKn }}
-                                    </span>
-                                </div>
-                                <div class="w-full bg-[#E5DECE] h-1.5 rounded-full overflow-hidden">
-                                    <div class="h-full rounded-full transition-all duration-500" 
-                                         style="width: {{ min(100, max(10, $confScore)) }}%; background-color: {{ $confColor }};">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+                <div class="p-3.5 rounded-2xl border-2 border-stone-200/80 bg-[#FAF6EE] space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="h-4 w-16 rounded-md bg-stone-200 kb-crop-shimmer"></div>
+                        <div class="h-4 w-12 rounded-full bg-emerald-100 kb-crop-shimmer"></div>
                     </div>
-                @endforeach
-            </div>
-
-            <!-- Model Accuracy Caveat for Volatile Crops -->
-            @if(!empty($forecast['is_high_volatility']))
-                <div class="p-3 rounded-xl bg-amber-50/90 border border-amber-300/80 text-[11.5px] font-medium text-amber-900 flex items-start gap-2.5 leading-snug {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <span class="text-amber-700 shrink-0 text-sm">⚠️</span>
-                    <span>
-                        {{ $activeLocale === 'en' ? ($forecast['caveat_en'] ?? 'The model is subject to market arrival volatility for this crop — treat these projections as an informative indicator, not an absolute guarantee.') : ($forecast['caveat_kn'] ?? 'ಈ ಬೆಳೆಗೆ ಮಾರುಕಟ್ಟೆ ಆವಕದ ಏರಿಳಿತ ಹೆಚ್ಚಿರುತ್ತದೆ — ಈ ಮುನ್ಸೂಚನೆಯನ್ನು ಮಾಹಿತಿ ಮಾರ್ಗದರ್ಶಿಯಾಗಿ ಪರಿಗಣಿಸಿ, ಖಚಿತ ಗ್ಯಾರಂಟಿ ಅಲ್ಲ.') }}
-                    </span>
+                    <div class="h-8 w-28 rounded-xl bg-stone-200 kb-crop-shimmer"></div>
+                    <div class="h-2 w-full rounded-full bg-stone-200 kb-crop-shimmer"></div>
                 </div>
-            @endif
-
-
-        @else
-            <!-- Data Insufficiency Notice -->
-            <div class="p-4 rounded-2xl bg-amber-50/80 border-2 border-amber-200 text-amber-950 flex items-start gap-3">
-                <span class="text-xl shrink-0">ℹ️</span>
-                <div class="space-y-1 text-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    <div class="font-bold text-sm text-amber-900 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Data Insufficiency Notice' : 'ದರ ಮಾಹಿತಿ ಕೊರತೆ ಸೂಚನೆ' }}</div>
-                    <p class="leading-relaxed">
-                        {{ $activeLocale === 'en' ? ($forecast['message_en'] ?? 'Minimum 30 days of market prices required for a reliable forecast.') : ($forecast['message_kn'] ?? 'ವಿಶ್ವಾಸಾರ್ಹ ಮುನ್ಸೂಚನೆಗೆ ಕನಿಷ್ಠ 30 ದಿನಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ.') }}
-                    </p>
-                    <p class="text-amber-800/80">
-                        {{ $activeLocale === 'en' 
-                            ? 'Krushi Baandhava does not generate synthetic prices. Projections will automatically activate once 30 continuous days of mandi records are logged.' 
-                            : 'ಕೃಷಿ ಬಾಂಧವ ಕೃತಕ ಅಂದಾಜುಗಳನ್ನು ಪ್ರದರ್ಶಿಸುವುದಿಲ್ಲ. ಮಂಡಿಗಳಿಂದ 30 ದಿನಗಳ ನಿರಂತರ ದರಗಳು ದಾಖಲಾದ ನಂತರ ನಿಖರ ಗಣಿತೀಯ ಮುನ್ಸೂಚನೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸಕ್ರಿಯಗೊಳ್ಳುತ್ತದೆ.' }}
-                    </p>
+                <div class="p-3.5 rounded-2xl border-2 border-stone-200/80 bg-[#FAF6EE] space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="h-4 w-16 rounded-md bg-stone-200 kb-crop-shimmer"></div>
+                        <div class="h-4 w-12 rounded-full bg-emerald-100 kb-crop-shimmer"></div>
+                    </div>
+                    <div class="h-8 w-28 rounded-xl bg-stone-200 kb-crop-shimmer"></div>
+                    <div class="h-2 w-full rounded-full bg-stone-200 kb-crop-shimmer"></div>
+                </div>
+                <div class="p-3.5 rounded-2xl border-2 border-stone-200/80 bg-[#FAF6EE] space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="h-4 w-16 rounded-md bg-stone-200 kb-crop-shimmer"></div>
+                        <div class="h-4 w-12 rounded-full bg-emerald-100 kb-crop-shimmer"></div>
+                    </div>
+                    <div class="h-8 w-28 rounded-xl bg-stone-200 kb-crop-shimmer"></div>
+                    <div class="h-2 w-full rounded-full bg-stone-200 kb-crop-shimmer"></div>
+                </div>
+                <div class="p-3.5 rounded-2xl border-2 border-stone-200/80 bg-[#FAF6EE] space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="h-4 w-16 rounded-md bg-stone-200 kb-crop-shimmer"></div>
+                        <div class="h-4 w-12 rounded-full bg-emerald-100 kb-crop-shimmer"></div>
+                    </div>
+                    <div class="h-8 w-28 rounded-xl bg-stone-200 kb-crop-shimmer"></div>
+                    <div class="h-2 w-full rounded-full bg-stone-200 kb-crop-shimmer"></div>
                 </div>
             </div>
-        @endif
 
-        <!-- Disclaimer -->
-        <div class="rounded-xl p-2.5 sm:p-3 bg-stone-50 border border-stone-200 text-stone-500 flex items-start gap-2 text-[11px] leading-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-            <span class="text-sm shrink-0">📊</span>
-            <p>
-                <strong class="font-bold text-stone-700">{{ $activeLocale === 'en' ? 'Disclaimer: ' : 'ಹಕ್ಕುತ್ಯಾಗ: ' }}</strong>
-                <span>
-                    {{ $activeLocale === 'en' 
-                        ? ($forecast['disclaimer_en'] ?? 'Mathematical estimation based on past price patterns. Actual realized rates may vary based on weather, daily market arrival volumes, and government trade policies.') 
-                        : ($forecast['disclaimer_kn'] ?? 'ಇದು ಕೇವಲ ಹಿಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳ ಪ್ರವೃತ್ತಿ ಆಧಾರಿತ ಗಣಿತೀಯ ಅಂದಾಜು. ನೈಜ ದರಗಳು ಹವಾಮಾನ ಪರಿಸ್ಥಿತಿ, ಮಾರುಕಟ್ಟೆಯ ಆವಕ ಪ್ರಮಾಣ ಮತ್ತು ಸರ್ಕಾರದ ನೀತಿಗಳಿಂದ ವ್ಯತ್ಯಾಸವಾಗಬಹುದು.') }}
-                </span>
-            </p>
+            <!-- Skeleton Disclaimer bar -->
+            <div class="h-9 w-full rounded-xl bg-stone-100 border border-stone-200 kb-crop-shimmer"></div>
         </div>
     </div>
 
-    <!-- 5. Best Months to Sell — Krushi Harvest Calendar -->
-    @if(!empty($seasonalAnalysis['is_sufficient']) && !empty($seasonalAnalysis['best_months']))
-    <style>
-        /* ── Krushi Harvest Calendar ── */
-        .khc-card{background:linear-gradient(148deg,#081A0F 0%,#0F2A1A 38%,#1A4428 65%,#0D2318 100%);border-radius:24px;padding:20px 20px 18px;position:relative;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,0.32),inset 0 1px 0 rgba(255,255,255,0.07);}
-        .khc-card::after{content:'';position:absolute;inset:0;border-radius:24px;border:1px solid rgba(255,255,255,0.09);pointer-events:none;}
-        /* Ambient glows */
-        .khc-glow{position:absolute;border-radius:50%;filter:blur(48px);pointer-events:none;}
-        /* Header */
-        .khc-eyebrow{color:#86EFAC;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
-        .khc-title{color:#FFFFFF;font-size:20px;font-weight:900;line-height:1.1;}
-        .khc-badge-5y{background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:4px 12px;color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;}
-        /* Lead text */
-        .khc-lead{color:rgba(255,255,255,0.72);font-size:13px;font-weight:600;line-height:1.65;margin:10px 0 16px;}
-        .khc-lead strong{color:#FDE68A;font-weight:900;}
-        /* Peak month chip badges */
-        .khc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:35px;}
-        .khc-chip{background:linear-gradient(135deg,#7C2D12,#C2410C,#F59E0B);border-radius:14px;padding:5px 13px 5px 8px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 14px rgba(245,158,11,0.28);animation:chipPulse 3.5s ease-in-out infinite;}
-        @keyframes chipPulse{0%,100%{transform:scale(1);box-shadow:0 3px 14px rgba(245,158,11,0.28);}50%{transform:scale(1.03);box-shadow:0 5px 22px rgba(245,158,11,0.48);}}
-        /* Bar chart */
-        .khc-bars{display:flex;align-items:flex-end;gap:4px;height:130px;position:relative;}
-        /* Column */
-        .khc-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;position:relative;cursor:pointer;}
-        .khc-col:focus{outline:none;}
-        /* Track */
-        .khc-track{flex:1;width:100%;background:rgba(255,255,255,0.06);border-radius:6px 6px 0 0;overflow:hidden;display:flex;align-items:flex-end;position:relative;transition:background .2s;}
-        .khc-col:hover .khc-track{background:rgba(255,255,255,0.11);}
-        /* Fill */
-        .khc-fill{width:100%;border-radius:6px 6px 0 0;height:0%;transition:height .85s cubic-bezier(.34,1.4,.64,1);box-sizing:border-box;}
-        .khc-fill.pk{background:linear-gradient(180deg,#FDE68A 0%,#F59E0B 40%,#B45309 100%);}
-        .khc-fill.mid{background:linear-gradient(180deg,rgba(110,231,183,.75) 0%,rgba(16,185,129,.5) 100%);}
-        .khc-fill.lo{
-            background:linear-gradient(180deg,rgba(239,68,68,0.35) 0%,rgba(185,28,28,0.18) 100%);
-            border-top:2.5px solid #EF4444;
-            border-left:1.5px solid rgba(239,68,68,0.65);
-            border-right:1.5px solid rgba(239,68,68,0.65);
-            box-shadow:0 -2px 10px rgba(239,68,68,0.35);
-        }
-        .khc-fill.pk.khc-loaded{box-shadow:0 -8px 24px rgba(245,158,11,.55);animation:pkShine 2.8s ease-in-out 0s infinite;}
-        .khc-fill.lo.khc-loaded{animation:loPulse 3s ease-in-out infinite;}
-        @keyframes pkShine{0%,100%{box-shadow:0 -8px 24px rgba(245,158,11,.55);}50%{box-shadow:0 -14px 36px rgba(245,158,11,.85);}}
-        @keyframes loPulse{0%,100%{border-top-color:#EF4444;box-shadow:0 -2px 8px rgba(239,68,68,0.3);}50%{border-top-color:#F87171;box-shadow:0 -5px 16px rgba(239,68,68,0.65);}}
-        /* Inline price on peak bar */
-        .khc-price-inline{position:absolute;width:100%;bottom:4px;text-align:center;color:rgba(255,255,255,.9);font-size:7px;font-weight:900;line-height:1;opacity:0;transition:opacity .4s .95s;pointer-events:none;}
-        .khc-price-inline.khc-loaded{opacity:1;}
-        /* Month label */
-        .khc-lbl{font-size:9px;margin-top:5px;font-weight:700;color:rgba(255,255,255,.35);text-align:center;transition:color .2s;white-space:nowrap;}
-        .khc-lbl.pk{color:#FDE68A;font-weight:900;}
-        .khc-lbl.lo{color:#FCA5A5;font-weight:800;}
-        .khc-col:hover .khc-lbl:not(.pk):not(.lo){color:rgba(255,255,255,.72);}
-        /* Crown above peak */
-        .khc-crown{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:13px;line-height:1;opacity:0;transition:opacity .5s 1.1s;}
-        .khc-crown.khc-loaded{opacity:1;}
-        /* Tooltip */
-        .khc-tip{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);opacity:0;pointer-events:none;z-index:50;transition:opacity .15s,transform .15s;transform-origin:bottom center;white-space:nowrap;background:rgba(4,4,4,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;border-radius:10px;padding:7px 12px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 6px 24px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.1);}
-        .khc-col:hover .khc-tip,.khc-col:focus .khc-tip{opacity:1;transform:translateX(-50%) translateY(-2px);}
-        .khc-tip-arrow{width:7px;height:7px;background:rgba(4,4,4,.94);transform:rotate(45deg);margin-top:3px;align-self:center;flex-shrink:0;}
-        /* Bottom divider rule */
-        .khc-rule{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);margin:14px 0 0;}
-        /* Footer */
-        .khc-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px;}
-        .khc-avg{color:rgba(255,255,255,.48);font-size:10px;font-weight:700;}
-        .khc-avg strong{color:#86EFAC;font-size:11px;}
-        .khc-legend{display:flex;align-items:center;gap:10px;}
-        .khc-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
-        .khc-leg-txt{font-size:9.5px;font-weight:700;}
-    </style>
-
-    <div class="khc-card">
-        {{-- Ambient radial orbs --}}
-        <div class="khc-glow" style="top:-90px;right:-70px;width:220px;height:220px;background:radial-gradient(circle,rgba(46,139,78,.2) 0%,transparent 70%);"></div>
-        <div class="khc-glow" style="bottom:-70px;left:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(245,158,11,.09) 0%,transparent 70%);"></div>
-
-        {{-- Header --}}
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
-            <div>
-                <div class="khc-eyebrow {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                    <span style="display:inline-flex;align-items:center;gap:5px;">
-                        <span style="display:inline-block;width:6px;height:6px;background:#86EFAC;border-radius:50%;flex-shrink:0;"></span>
-                        {{ $activeLocale === 'en' ? 'HISTORICAL SEASONAL ANALYSIS' : 'ಐತಿಹಾಸಿಕ ಋತುಮಾನ ವಿಶ್ಲೇಷಣೆ' }}
-                    </span>
-                    @if(!empty($seasonalAnalysis['market_name']))
-                        <span style="background:rgba(255,255,255,0.12);padding:2px 8px;border-radius:12px;font-size:10.5px;color:#FDE68A;border:1px solid rgba(253,230,138,0.25);">
-                            📍 {{ $activeLocale === 'kn' && !empty($seasonalAnalysis['market_name_kn']) ? $seasonalAnalysis['market_name_kn'] : $seasonalAnalysis['market_name'] }}
-                        </span>
-                    @endif
-                    @if(($seasonalAnalysis['scope'] ?? '') === 'market_calibrated')
-                        <span style="background:rgba(99,102,241,0.18);padding:2px 8px;border-radius:12px;font-size:9.5px;color:rgba(196,198,255,0.85);border:1px solid rgba(99,102,241,0.3);" title="{{ $activeLocale === 'en' ? 'State seasonal pattern scaled to this mandi\'s actual price level' : 'ರಾಜ್ಯ ಋತುಮಾನ ಮಾದರಿ — ಈ ಮಂಡಿ ದರ ಮಟ್ಟಕ್ಕೆ ಹೊಂದಿಸಲಾಗಿದೆ' }}">
-                            {{ $activeLocale === 'en' ? '🔄 State pattern · local price' : '🔄 ರಾಜ್ಯ ಮಾದರಿ · ಸ್ಥಳೀಯ ಬೆಲೆ' }}
-                        </span>
-                    @endif
+    <!-- 5. Best Months to Sell — Krushi Harvest Calendar (Dynamic Async with Shimmer Overlay) -->
+    <div id="crop-seasonal-wrapper" class="relative">
+        <div id="crop-seasonal-content" :class="isMarketLoading ? 'opacity-35 select-none transition-opacity duration-200' : 'opacity-100 transition-opacity duration-200'">
+            @include('farmer.crops.partials.seasonal_card')
+        </div>
+        <div x-show="isMarketLoading" x-cloak 
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-out duration-250"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="absolute inset-0 rounded-3xl p-5 sm:p-6 text-white z-30 flex flex-col justify-start pointer-events-none select-none space-y-4 shadow-xl"
+             style="background: linear-gradient(148deg,#081A0F 0%,#0F2A1A 38%,#1A4428 65%,#0D2318 100%); border: 1px solid rgba(255,255,255,0.09);"
+             aria-hidden="true">
+            
+            <!-- Skeleton Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-white/10">
+                <div class="space-y-1.5">
+                    <div class="h-3 w-28 rounded-md bg-emerald-400/20 kb-crop-shimmer-dark"></div>
+                    <div class="h-6 w-56 rounded-md bg-white/15 kb-crop-shimmer-dark"></div>
                 </div>
-                <div class="khc-title mb-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    {{ $activeLocale === 'en' ? 'Best Months to Sell' : 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು' }}
+                <div class="h-6 w-24 rounded-full bg-white/10 border border-white/10 kb-crop-shimmer-dark"></div>
+            </div>
+
+            <!-- Skeleton Month Chips -->
+            <div class="flex gap-2">
+                <div class="h-7 w-24 rounded-xl bg-amber-500/20 border border-amber-500/30 kb-crop-shimmer-dark"></div>
+                <div class="h-7 w-24 rounded-xl bg-amber-500/20 border border-amber-500/30 kb-crop-shimmer-dark"></div>
+            </div>
+
+            <!-- Skeleton 12-Month Bar Chart Tracks -->
+            <div class="flex items-end gap-2 h-28 pt-4 pb-2 px-2 border-b border-white/5">
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-emerald-500/20 kb-crop-shimmer-dark" style="height: 45%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
                 </div>
-                <div class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.72);margin-top:2px;">
-                    {{ $activeLocale === 'en' ? '5-year historical price seasonality & peak harvest window' : '5 ವರ್ಷಗಳ ಮಂಡಿ ಇತಿಹಾಸದ ಆಧಾರದ ಮೇಲೆ ಗರಿಷ್ಠ ಧಾರಣೆ ಸಿಗುವ ತಿಂಗಳುಗಳು' }}
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-emerald-500/20 kb-crop-shimmer-dark" style="height: 55%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-emerald-500/20 kb-crop-shimmer-dark" style="height: 70%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-amber-400/30 kb-crop-shimmer-dark" style="height: 92%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-amber-400/35 kb-crop-shimmer-dark" style="height: 100%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-amber-400/30 kb-crop-shimmer-dark" style="height: 85%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-emerald-500/20 kb-crop-shimmer-dark" style="height: 60%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-emerald-500/20 kb-crop-shimmer-dark" style="height: 50%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-rose-500/20 kb-crop-shimmer-dark" style="height: 40%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-rose-500/20 kb-crop-shimmer-dark" style="height: 35%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-emerald-500/20 kb-crop-shimmer-dark" style="height: 42%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
+                </div>
+                <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div class="w-full rounded-t-md bg-emerald-500/20 kb-crop-shimmer-dark" style="height: 50%;"></div>
+                    <div class="h-2.5 w-4 rounded bg-white/10 kb-crop-shimmer-dark"></div>
                 </div>
             </div>
-            <div class="khc-badge-5y {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="margin-top:2px;">
-                @if(($seasonalAnalysis['distinct_months'] ?? 0) >= 12)
-                    {{ $activeLocale === 'en' ? 'Last 5 Years' : 'ಕಳೆದ 5 ವರ್ಷ' }}
-                @else
-                    {{ $seasonalAnalysis['distinct_months'] ?? 2 }} {{ $activeLocale === 'en' ? 'Months Recorded' : 'ತಿಂಗಳ ಮಂಡಿ ದಾಖಲೆ' }}
-                @endif
+
+            <!-- Skeleton Legend -->
+            <div class="flex justify-between items-center pt-1 text-xs">
+                <div class="h-3.5 w-40 rounded-md bg-emerald-400/20 kb-crop-shimmer-dark"></div>
+                <div class="h-3.5 w-32 rounded-md bg-white/10 kb-crop-shimmer-dark"></div>
             </div>
         </div>
-
-        {{-- Lead text --}}
-        <div class="khc-lead {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-            @if($activeLocale === 'en')
-                @if(!empty($seasonalAnalysis['peak_months_en']))
-                    Prices in <strong>{{ $seasonalAnalysis['market_name'] ?? 'Karnataka' }}</strong> are usually highest around <strong>{{ implode(', ', $seasonalAnalysis['peak_months_en']) }}</strong> — plan your harvest and sale for those months.
-                    @if(($seasonalAnalysis['scope'] ?? '') === 'market_calibrated')
-                        <span style="font-size:11px;font-weight:600;color:rgba(196,198,255,0.7);"> (Seasonal shape from statewide data, prices calibrated to this mandi's level.)</span>
-                    @endif
-                @else
-                    {{ $seasonalAnalysis['lead_summary_en'] ?? 'Seasonal price variations based on historical mandi arrivals.' }}
-                @endif
-            @else
-                @if(!empty($seasonalAnalysis['peak_months_kn']))
-                    <strong>{{ !empty($seasonalAnalysis['market_name_kn']) ? $seasonalAnalysis['market_name_kn'] : ($seasonalAnalysis['market_name'] ?? 'ಕರ್ನಾಟಕ') }}</strong> ಮಾರುಕಟ್ಟೆಯಲ್ಲಿ ಸಾಮಾನ್ಯವಾಗಿ <strong>{{ implode(', ', $seasonalAnalysis['peak_months_kn']) }}</strong> ತಿಂಗಳಲ್ಲಿ ಬೆಲೆ ಹೆಚ್ಚು — ಆ ಸಮಯಕ್ಕೆ ಬೆಳೆ ಮಾರಲು ಸಿದ್ಧರಾಗಿ.
-                    @if(($seasonalAnalysis['scope'] ?? '') === 'market_calibrated')
-                        <span style="font-size:11px;font-weight:600;color:rgba(196,198,255,0.7);"> (ರಾಜ್ಯ ಋತುಮಾನ ಮಾದರಿ — ಈ ಮಂಡಿ ಬೆಲೆಗೆ ಹೊಂದಿಸಲಾಗಿದೆ.)</span>
-                    @endif
-                @else
-                    {{ $seasonalAnalysis['lead_summary_kn'] ?? 'ಮಾರುಕಟ್ಟೆ ಇತಿಹಾಸ ಆಧಾರದ ಮೇಲೆ ಬೆಲೆ ವ್ಯತ್ಯಾಸ ತೋರಿಸಲಾಗಿದೆ.' }}
-                @endif
-            @endif
-        </div>
-
-        {{-- Peak month chips --}}
-        @php
-            $peakMonths = collect($seasonalAnalysis['monthly_profile'])
-                ->filter(fn($m) => !empty($m['is_peak']) || ($m['tier'] ?? '') === 'pk')
-                ->values();
-        @endphp
-        @if($peakMonths->isNotEmpty())
-            <div class="khc-chips">
-                @foreach($peakMonths as $pm)
-                    <div class="khc-chip {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        <span style="font-size:15px;line-height:1;">⭐</span>
-                        <div style="line-height:1.25;">
-                            <div style="color:#fff;font-size:12px;font-weight:900;">
-                                {{ $activeLocale === 'en' ? ($pm['name_en'] ?? $pm['short_name_en']) : ($pm['short_name_kn'] ?? $pm['name_kn']) }}
-                            </div>
-                            @if(($pm['avg_price'] ?? 0) > 0)
-                                <div style="color:rgba(255,255,255,.82);font-size:9.5px;font-weight:700;">₹{{ number_format($pm['avg_price'],0) }}/{{ $activeLocale === 'en' ? 'Qtl' : 'ಕ್ವಿಂ' }}</div>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @endif
-
-        {{-- Bar chart --}}
-        <div class="khc-bars season-bars-container" role="img" aria-label="{{ $activeLocale === 'en' ? 'Monthly Seasonal Price Trend' : 'ತಿಂಗಳವಾರ ಬೆಲೆ ಋತುಮಾನ ಗ್ರಾಫ್' }}">
-            @foreach($seasonalAnalysis['monthly_profile'] as $m)
-                @php
-                    $tier  = $m['tier'] ?? 'mid';
-                    $isPeak = $tier === 'pk' || !empty($m['is_peak']);
-                    $hasData = ($m['observations'] ?? 0) > 0 && ($m['avg_price'] ?? 0) > 0;
-                    $hPct  = $hasData ? max(7, (int)($m['bar_height_percent'] ?? 0)) : 0;
-                    $idxPct = $m['index_percentage'] ?? 0;
-                    $mName = $activeLocale === 'en' ? $m['name_en'] : $m['name_kn'];
-                    $mShort = $activeLocale === 'en' ? $m['short_name_en'] : ($m['short_name_kn'] ?? $m['name_kn']);
-                @endphp
-                <div class="khc-col {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}"
-                     tabindex="0"
-                     role="button"
-                     aria-label="{{ $mName }}{{ $hasData ? ': ₹'.number_format($m['avg_price'],0) : '' }}">
-
-                    {{-- Tooltip --}}
-                    <div class="khc-tip">
-                        <span style="font-weight:900;color:#FDE68A;font-size:12px;">{{ $mName }}</span>
-                        @if($hasData)
-                            <span style="font-weight:700;font-size:11.5px;">₹{{ number_format($m['avg_price'],0) }}<span style="font-size:9px;font-weight:600;opacity:.7;">/{{ $activeLocale === 'en' ? 'Qtl' : 'ಕ್ವಿಂ' }}</span></span>
-                            <span style="font-size:9px;font-weight:700;color:{{ $idxPct >= 0 ? '#6EE7B7' : '#FCA5A5' }};">{{ $idxPct >= 0 ? '+' : '' }}{{ $idxPct }}% avg</span>
-                            @if($tier === 'lo')
-                                <span style="font-size:9px;font-weight:700;color:#FCA5A5;background:rgba(239,68,68,0.22);border:1px solid rgba(239,68,68,0.5);padding:1px 6px;border-radius:6px;margin-top:2px;">
-                                    📉 {{ $activeLocale === 'en' ? 'Low Price Period' : 'ಕಡಿಮೆ ಬೆಲೆ ಅವಧಿ' }}
-                                </span>
-                            @elseif($isPeak)
-                                <span style="font-size:9px;font-weight:700;color:#FDE68A;background:rgba(245,158,11,0.25);border:1px solid rgba(245,158,11,0.5);padding:1px 6px;border-radius:6px;margin-top:2px;">
-                                    ⭐ {{ $activeLocale === 'en' ? 'Peak Selling Window' : 'ಅತ್ಯುತ್ತಮ ಧಾರಣೆ ಕಾಲ' }}
-                                </span>
-                            @endif
-                        @else
-                            <span style="font-size:10px;color:rgba(255,255,255,.4);">{{ $activeLocale === 'en' ? 'No Data' : 'ಮಾಹಿತಿ ಇಲ್ಲ' }}</span>
-                        @endif
-                        <div class="khc-tip-arrow"></div>
-                    </div>
-
-                    {{-- Crown (peak only) --}}
-                    @if($isPeak && $hasData)
-                        <div class="khc-crown" aria-hidden="true">🏆</div>
-                    @endif
-
-                    {{-- Track + Fill --}}
-                    <div class="khc-track">
-                        @if($hasData)
-                            <div class="khc-fill {{ $tier }} season-bar-fill"
-                                 data-target-height="{{ $hPct }}%"
-                                 style="height:{{ $hPct }}%;"></div>
-                            @if($isPeak)
-                                <div class="khc-price-inline bms-price-label">
-                                    ₹{{ number_format($m['avg_price'],0) }}
-                                </div>
-                            @endif
-                        @else
-                            <div style="width:100%;height:2px;background:rgba(255,255,255,.07);align-self:flex-end;"></div>
-                        @endif
-                    </div>
-
-                    {{-- Month label --}}
-                    <div class="khc-lbl {{ $isPeak ? 'pk' : ($tier === 'lo' ? 'lo' : '') }}">
-                        {{ $mShort }}
-                    </div>
-                </div>
-            @endforeach
-        </div>
-
-        {{-- Baseline divider --}}
-        <div class="khc-rule"></div>
-
-        {{-- Footer --}}
-        <div class="khc-foot">
-            @if(!empty($seasonalAnalysis['annual_baseline']) && $seasonalAnalysis['annual_baseline'] > 0)
-                <div class="khc-avg {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    {{ $activeLocale === 'en' ? 'Annual Baseline' : 'ವಾರ್ಷಿಕ ಸರಾಸರಿ' }}{{ !empty($seasonalAnalysis['market_name']) ? ' ('.($activeLocale === 'kn' && !empty($seasonalAnalysis['market_name_kn']) ? $seasonalAnalysis['market_name_kn'] : $seasonalAnalysis['market_name']).')' : '' }}: <strong>₹{{ number_format($seasonalAnalysis['annual_baseline'],0) }}/{{ $activeLocale === 'en' ? 'Qtl' : 'ಕ್ವಿಂ' }}</strong>
-                </div>
-            @endif
-            <div class="khc-legend">
-                <span style="display:inline-flex;align-items:center;gap:4px;">
-                    <span class="khc-dot" style="background:linear-gradient(135deg,#F59E0B,#B45309);"></span>
-                    <span class="khc-leg-txt {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="color:#FDE68A;">{{ $activeLocale === 'en' ? 'Peak Window' : 'ಉತ್ತಮ ಕಾಲ' }}</span>
-                </span>
-                <span style="display:inline-flex;align-items:center;gap:4px;">
-                    <span class="khc-dot" style="background:rgba(110,231,183,.65);"></span>
-                    <span class="khc-leg-txt {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="color:rgba(255,255,255,.42);">{{ $activeLocale === 'en' ? 'Normal' : 'ಸಾಮಾನ್ಯ' }}</span>
-                </span>
-                <span style="display:inline-flex;align-items:center;gap:5px;">
-                    <span class="khc-dot" style="background:rgba(239,68,68,0.25);border:1.5px solid #EF4444;box-shadow:0 0 6px rgba(239,68,68,0.45);"></span>
-                    <span class="khc-leg-txt {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="color:#FCA5A5;">{{ $activeLocale === 'en' ? 'Low Price Period' : 'ಕಡಿಮೆ ಬೆಲೆ' }}</span>
-                </span>
-            </div>
-        </div>
-
-        <div id="seasonalityCanvas" class="hidden" aria-hidden="true"></div>
     </div>
-
-    @else
-    {{-- Insufficient data: light header + amber notice --}}
-    <div class="space-y-3">
-        <div class="flex items-center justify-between gap-3">
-            <div class="flex items-start gap-2.5">
-                <span class="w-1.5 h-8 sm:h-9 rounded-full bg-[#1C5A2C] shrink-0 mt-0.5"></span>
-                <div>
-                    <h2 class="text-lg sm:text-xl font-black text-stone-900 tracking-tight {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? 'Best Months to Sell' : 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು' }}
-                    </h2>
-                    <p class="text-xs text-stone-500 font-medium mt-0.5 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                        {{ $activeLocale === 'en' ? '5-year historical price seasonality & peak harvest window' : '5 ವರ್ಷಗಳ ಮಂಡಿ ಇತಿಹಾಸದ ಆಧಾರದ ಮೇಲೆ ಗರಿಷ್ಠ ಧಾರಣೆ ಸಿಗುವ ತಿಂಗಳುಗಳು' }}
-                    </p>
-                </div>
-            </div>
-            <div class="inline-flex items-center justify-center leading-none text-xs font-bold text-stone-600 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} bg-stone-100 px-3 py-1.5 rounded-full border border-stone-200/80 shadow-2xs shrink-0">
-                <span class="inline-flex items-center leading-none">{{ $activeLocale === 'en' ? 'Last 5 Years' : 'ಕಳೆದ 5 ವರ್ಷ' }}</span>
-            </div>
-        </div>
-        <div class="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-950 flex items-start gap-3">
-            <span class="text-xl shrink-0">ℹ️</span>
-            <div class="space-y-1 text-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                <div class="font-bold text-sm text-amber-900 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
-                    {{ $activeLocale === 'en' ? 'Seasonal Data Insufficiency Notice' : 'ಋತುಮಾನ ಮಾಹಿತಿ ಕೊರತೆ ಸೂಚನೆ' }}
-                </div>
-                <p class="leading-relaxed">{{ $activeLocale === 'en' ? ($seasonalAnalysis['message_en'] ?? 'At least 2 distinct months of market price records are required for seasonal analysis.') : ($seasonalAnalysis['message_kn'] ?? 'ವಿಶ್ವಾಸಾರ್ಹ ಋತುಮಾನ ವಿಶ್ಲೇಷಣೆಗೆ ಕನಿಷ್ಠ 2 ಪ್ರತ್ಯೇಕ ತಿಂಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ.') }}</p>
-                <p class="text-amber-800/80">{{ $activeLocale === 'en' ? 'Krushi Baandhava does not generate synthetic prices. Seasonal Selling Indices will activate once at least 2 distinct months of continuous mandi records are logged.' : 'ಕೃಷಿ ಬಾಂಧವ ಕೃತಕ ಅಂದಾಜುಗಳನ್ನು ಪ್ರದರ್ಶಿಸುವುದಿಲ್ಲ. ಮಂಡಿಗಳಿಂದ ಕನಿಷ್ಠ 2 ಪ್ರತ್ಯೇಕ ತಿಂಗಳುಗಳ ನಿರಂತರ ದರಗಳು ದಾಖಲಾದ ನಂತರ ನಿಖರ ಋತುಮಾನ ಸೂಚ್ಯಂಕ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸಕ್ರಿಯಗೊಳ್ಳುತ್ತದೆ.' }}</p>
-            </div>
-        </div>
-        <div id="seasonalityCanvas" class="hidden" aria-hidden="true"></div>
-    </div>
-    @endif
 
     <!-- 6. Historical Analytics & Interactive Price Trends -->
     @php
@@ -1220,6 +1348,7 @@
             return {
                 cropSlug: config.cropSlug || '',
                 marketId: config.marketId || '',
+                marketName: config.marketName || @json(preg_replace('/\s+APMC$/i', '', $displayMarketName)),
                 varietyId: config.varietyId || '',
                 activeRange: config.activeRange || '30d',
                 activeLocale: config.activeLocale || 'kn',
@@ -1231,6 +1360,13 @@
 
                 init() {
                     this.renderChart();
+                    window.addEventListener('market-changed', (e) => {
+                        if (e.detail) {
+                            this.marketId = e.detail.marketId || '';
+                            this.marketName = (e.detail.marketName || '').replace(/\s+APMC$/i, '');
+                            this.selectRange(this.activeRange, true);
+                        }
+                    });
                 },
 
                 renderChart() {
@@ -1258,8 +1394,8 @@
                     return Math.round(Number(val)).toLocaleString('en-IN');
                 },
 
-                async selectRange(rangeKey) {
-                    if (this.activeRange === rangeKey || this.isLoading) return;
+                async selectRange(rangeKey, force = false) {
+                    if ((this.activeRange === rangeKey && !force) || this.isLoading) return;
 
                     this.activeRange = rangeKey;
                     this.rangeDays = rangeMap[rangeKey] || 30;
@@ -1302,6 +1438,7 @@
         window.priceTrendInitialConfig = {
             cropSlug: @json($crop->slug),
             marketId: @json($selectedMarket?->id ?? ''),
+            marketName: @json(preg_replace('/\s+APMC$/i', '', $displayMarketName)),
             varietyId: @json($activeVarietyId ?? ''),
             activeRange: @json($rangeParam),
             activeLocale: @json($activeLocale),
@@ -1371,21 +1508,19 @@
                     </div>
 
                     <div class="flex items-center gap-1.5 mt-0.5 text-xs text-stone-500 font-medium {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }} flex-wrap">
-                        @if($selectedMarket)
+                        <template x-if="marketId && marketName">
                             <span class="font-bold text-stone-700">
-                                📍 {{ preg_replace('/\s+APMC$/i', '', $displayMarketName) }}
+                                📍 <span x-text="marketName"></span>
                             </span>
-                            <span>
-                                — <span x-text="rangeDays"></span>{{ $activeLocale === 'en' ? '-day modal auctions & arrival volume' : ' ದಿನಗಳ ಹರಾಜು ದರಗಳು & ಆವಕ ದಾಖಲೆ' }}
-                            </span>
-                        @else
+                        </template>
+                        <template x-if="!marketId || !marketName">
                             <span class="font-bold text-stone-700">
                                 🌐 {{ $activeLocale === 'en' ? ($boardMeta ? 'Karnataka Board Average' : 'Karnataka State Average') : ('ಕರ್ನಾಟಕ ' . ($boardMeta ? 'ಮಂಡಳಿ' : 'ರಾಜ್ಯ') . ' ಸರಾಸರಿ') }}
                             </span>
-                            <span>
-                                — <span x-text="rangeDays"></span>{{ $activeLocale === 'en' ? '-day statewide trend' : ' ದಿನಗಳ ರಾಜ್ಯ ಸರಾಸರಿ ವರದಿ' }}
-                            </span>
-                        @endif
+                        </template>
+                        <span>
+                            — <span x-text="rangeDays"></span>{{ $activeLocale === 'en' ? '-day modal auctions & arrival volume' : ' ದಿನಗಳ ಹರಾಜು ದರಗಳು & ಆವಕ ದಾಖಲೆ' }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -1706,9 +1841,13 @@
                         @else
                             <span>{{ $activeLocale === 'en' ? 'Ranked by highest modal price near your location' : 'ನಿಮ್ಮ ಸಮೀಪದ ಮಾರುಕಟ್ಟೆಗಳಲ್ಲಿ ಇಂದಿನ ಗರಿಷ್ಠ ದರಗಳ ಆಧಾರದಲ್ಲಿ' }}</span>
                             @if(isset($displayMarketName))
-                                <span class="text-stone-300">•</span>
-                                <span class="inline-flex items-center gap-1 font-bold text-stone-700 bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#D9CEB8] text-[11px]">
-                                    📍 {{ $activeLocale === 'en' ? 'Currently: ' : 'ಪ್ರಸ್ತುತ: ' }}{{ $displayMarketName }}
+                                <span x-data="{ currentMarketDisplay: '{{ $displayMarketName }}' }"
+                                      x-init="window.addEventListener('market-changed', (e) => { if (e.detail && e.detail.marketName) currentMarketDisplay = e.detail.marketName; })"
+                                      class="inline-flex items-center gap-1">
+                                    <span class="text-stone-300">•</span>
+                                    <span class="inline-flex items-center gap-1 font-bold text-stone-700 bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#D9CEB8] text-[11px]">
+                                        📍 {{ $activeLocale === 'en' ? 'Currently: ' : 'ಪ್ರಸ್ತುತ: ' }}<span x-text="currentMarketDisplay">{{ $displayMarketName }}</span>
+                                    </span>
                                 </span>
                             @endif
                         @endif
@@ -1951,61 +2090,58 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
 
-        @if(!empty($seasonalAnalysis['is_sufficient']) && !empty($seasonalAnalysis['best_months']))
+                window.animateSeasonalBars = function() {
             const barFills = document.querySelectorAll('.season-bar-fill');
-            if (barFills.length > 0) {
-                const animateBars = () => {
-                    // Double rAF forces browser to paint height:0 before transitioning
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(() => {
-                            barFills.forEach((bar, idx) => {
-                                const targetHeight = bar.getAttribute('data-target-height') || '0%';
+            if (!barFills || barFills.length === 0) return;
+            // Double rAF forces browser to paint height:0 before transitioning
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    barFills.forEach((bar, idx) => {
+                        const targetHeight = bar.getAttribute('data-target-height') || '0%';
+                        setTimeout(() => {
+                            bar.style.height = targetHeight;
+                            // After spring-bounce settles (~900ms), activate peak glow + crown + price
+                            if (bar.classList.contains('pk')) {
                                 setTimeout(() => {
-                                    bar.style.height = targetHeight;
-                                    // After spring-bounce settles (~900ms), activate peak glow + crown + price
-                                    if (bar.classList.contains('pk')) {
-                                        setTimeout(() => {
-                                            bar.classList.add('khc-loaded');
-                                            const col = bar.closest('.khc-col');
-                                            if (col) {
-                                                const crown = col.querySelector('.khc-crown');
-                                                if (crown) crown.classList.add('khc-loaded');
-                                                const priceLabel = col.querySelector('.khc-price-inline');
-                                                if (priceLabel) priceLabel.classList.add('khc-loaded');
-                                            }
-                                        }, 900);
-                                    } else if (bar.classList.contains('lo')) {
-                                        setTimeout(() => {
-                                            bar.classList.add('khc-loaded');
-                                        }, 900);
+                                    bar.classList.add('khc-loaded');
+                                    const col = bar.closest('.khc-col');
+                                    if (col) {
+                                        const crown = col.querySelector('.khc-crown');
+                                        if (crown) crown.classList.add('khc-loaded');
+                                        const priceLabel = col.querySelector('.khc-price-inline');
+                                        if (priceLabel) priceLabel.classList.add('khc-loaded');
                                     }
-                                }, 60 * idx);
-                            });
-                        });
-                    });
-                };
-
-                if ('IntersectionObserver' in window) {
-                    const observer = new IntersectionObserver((entries) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                animateBars();
-                                observer.disconnect();
+                                }, 900);
+                            } else if (bar.classList.contains('lo')) {
+                                setTimeout(() => {
+                                    bar.classList.add('khc-loaded');
+                                }, 900);
                             }
-                        });
-                    }, { threshold: 0.08 });
+                        }, 60 * idx);
+                    });
+                });
+            });
+        };
 
-                    const container = document.querySelector('.season-bars-container');
-                    if (container) {
-                        observer.observe(container);
-                    } else {
-                        setTimeout(animateBars, 200);
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        window.animateSeasonalBars();
+                        observer.disconnect();
                     }
-                } else {
-                    setTimeout(animateBars, 200);
-                }
+                });
+            }, { threshold: 0.08 });
+
+            const container = document.querySelector('.season-bars-container');
+            if (container) {
+                observer.observe(container);
+            } else {
+                setTimeout(window.animateSeasonalBars, 200);
             }
-        @endif
+        } else {
+            setTimeout(window.animateSeasonalBars, 200);
+        }
     });
 </script>
 @endsection

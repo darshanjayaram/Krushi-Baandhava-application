@@ -18,7 +18,9 @@ use App\Models\PriceForecast;
 use App\Models\SyncLog;
 use App\Models\SystemSetting;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
@@ -54,6 +56,75 @@ class DashboardController extends Controller
             'afternoon_time' => SystemSetting::get('cron_market_afternoon_time', '12:30'),
             'enable_hourly' => (bool) SystemSetting::get('cron_market_enable_hourly', true),
             'operating_days' => SystemSetting::get('cron_market_operating_days', 'mon_sat'),
+        ];
+
+        $cronStatus['tasks'] = [
+            'mandi_prices' => [
+                'name' => 'Mandi Market Prices Ingestion',
+                'title' => 'Mandi Market Prices Ingestion',
+                'icon' => '🌾',
+                'setting_key' => 'cron_task_mandi_prices',
+                'frequency' => ($cronStatus['morning_time'] ?: '06:00') . (!empty($cronStatus['afternoon_time']) ? ', ' . $cronStatus['afternoon_time'] : '') . ' & ' . ($cronStatus['evening_time'] ?: '19:30') . ' IST',
+                'timing' => ($cronStatus['morning_time'] ?: '06:00') . (!empty($cronStatus['afternoon_time']) ? ', ' . $cronStatus['afternoon_time'] : '') . ' & ' . ($cronStatus['evening_time'] ?: '19:30') . ' IST',
+                'purpose' => 'Syncs KRAMA Karnataka Mandis, Official Agmarknet, Coffee Board & Coconut Board',
+                'is_active' => (bool) SystemSetting::get('cron_task_mandi_prices', true),
+                'enabled' => (bool) SystemSetting::get('cron_task_mandi_prices', true),
+            ],
+            'weather_sync' => [
+                'name' => 'Hyperlocal Weather Advisories',
+                'title' => 'Hyperlocal Weather Advisories',
+                'icon' => '🌦️',
+                'setting_key' => 'cron_task_weather_sync',
+                'frequency' => '05:30 & 14:30 IST Daily',
+                'timing' => '05:30 & 14:30 IST Daily',
+                'purpose' => 'Updates 7-day agricultural forecasts via Open-Meteo & prunes cache',
+                'is_active' => (bool) SystemSetting::get('cron_task_weather_sync', true),
+                'enabled' => (bool) SystemSetting::get('cron_task_weather_sync', true),
+            ],
+            'analytics_stats' => [
+                'name' => 'Historical Analytics & Seasonality',
+                'title' => 'Historical Analytics & Seasonality',
+                'icon' => '📊',
+                'setting_key' => 'cron_task_analytics_stats',
+                'frequency' => '01:00 IST Nightly',
+                'timing' => '01:00 IST Nightly',
+                'purpose' => 'Computes 12-month seasonal indices & modal averages',
+                'is_active' => (bool) SystemSetting::get('cron_task_analytics_stats', true),
+                'enabled' => (bool) SystemSetting::get('cron_task_analytics_stats', true),
+            ],
+            'forecasting' => [
+                'name' => 'Price Forecasting Engine',
+                'title' => 'Price Forecasting Engine',
+                'icon' => '🔮',
+                'setting_key' => 'cron_task_forecasting',
+                'frequency' => '02:00 IST Nightly',
+                'timing' => '02:00 IST Nightly',
+                'purpose' => 'Generates 1D, 7D, 15D, 30D Holt\'s Linear projections',
+                'is_active' => (bool) SystemSetting::get('cron_task_forecasting', true),
+                'enabled' => (bool) SystemSetting::get('cron_task_forecasting', true),
+            ],
+            'retention_pruning' => [
+                'name' => '1-Year Rolling Retention Pruner',
+                'title' => '1-Year Rolling Retention Pruner',
+                'icon' => '🧹',
+                'setting_key' => 'cron_task_retention_pruning',
+                'frequency' => '23:00 IST Nightly',
+                'timing' => '23:00 IST Nightly',
+                'purpose' => 'Prunes records >365 days; keeps database fast (~35MB)',
+                'is_active' => (bool) SystemSetting::get('cron_task_retention_pruning', true),
+                'enabled' => (bool) SystemSetting::get('cron_task_retention_pruning', true),
+            ],
+            'data_integrity' => [
+                'name' => 'Data Integrity Auditor',
+                'title' => 'Data Integrity Auditor',
+                'icon' => '🛡️',
+                'setting_key' => 'cron_task_data_integrity',
+                'frequency' => '03:00 IST Nightly',
+                'timing' => '03:00 IST Nightly',
+                'purpose' => 'Flags anomalously stale or isolated price points',
+                'is_active' => (bool) SystemSetting::get('cron_task_data_integrity', true),
+                'enabled' => (bool) SystemSetting::get('cron_task_data_integrity', true),
+            ],
         ];
 
         $totalMarkets = Market::karnataka()->count();
@@ -218,5 +289,54 @@ class DashboardController extends Controller
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', 'Scheduler test encountered an issue: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Toggle active/paused state of a specific background cron task.
+     */
+    public function toggleScheduledTask(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'task' => ['required_without:task_key', 'string', 'in:mandi_prices,weather_sync,analytics_stats,forecasting,retention_pruning,data_integrity'],
+            'task_key' => ['required_without:task', 'string', 'in:mandi_prices,weather_sync,analytics_stats,forecasting,retention_pruning,data_integrity'],
+            'enabled' => ['nullable', 'boolean'],
+        ]);
+
+        $taskKey = $validated['task'] ?? $validated['task_key'];
+        $settingKey = 'cron_task_' . $taskKey;
+        $currentValue = (bool) SystemSetting::get($settingKey, true);
+        
+        $newValue = $request->has('enabled')
+            ? $request->boolean('enabled')
+            : !$currentValue;
+
+        SystemSetting::set($settingKey, $newValue ? 'true' : 'false', 'boolean', 'cron', "Master enable toggle for scheduled task {$taskKey}");
+        Cache::forget('cron_task_statuses');
+
+        AuditLog::log(
+            'toggle_scheduled_cron_task',
+            'SystemSetting',
+            null,
+            [$settingKey => $currentValue],
+            [$settingKey => $newValue]
+        );
+
+        $taskName = ucwords(str_replace('_', ' ', $taskKey));
+        $msg = $newValue
+            ? "Scheduled task '{$taskName}' resumed in cPanel cron."
+            : "Scheduled task '{$taskName}' paused from cPanel cron.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'task' => $taskKey,
+                'task_key' => $taskKey,
+                'enabled' => $newValue,
+                'is_active' => $newValue,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 }

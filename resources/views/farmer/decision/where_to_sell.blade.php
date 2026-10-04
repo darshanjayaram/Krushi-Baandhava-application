@@ -1503,7 +1503,7 @@ function whereToSellApp(config) {
         originLabel: (config.locale === 'en' 
             ? (config.initialComparison?.origin?.name || config.initialComparison?.origin?.name_kn) 
             : (config.initialComparison?.origin?.name_kn || config.initialComparison?.origin?.name)) || 'Karnataka',
-        hasResults: Boolean(config.initialComparison?.markets && config.initialComparison.markets.length > 0),
+        hasResults: false,
         hasCalculated: false,
         hasUncalculatedChanges: false,
         isLoading: false,
@@ -1549,6 +1549,7 @@ function whereToSellApp(config) {
                 if (this.hasCalculated) {
                     this.$nextTick(() => {
                         this.initLeafletMap();
+                        this.updateMapMarkers();
                     });
                 }
 

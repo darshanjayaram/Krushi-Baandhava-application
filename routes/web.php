@@ -112,6 +112,7 @@ Route::prefix('admin')->group(function () {
         Route::get('/', fn () => redirect()->route('admin.dashboard'));
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
         Route::post('/scheduler/test', [DashboardController::class, 'runSchedulerTest'])->name('admin.scheduler.test');
+        Route::post('/scheduler/toggle-task', [DashboardController::class, 'toggleScheduledTask'])->name('admin.scheduler.toggle-task');
 
         // Master Data: Districts & Taluks
         Route::patch('/districts/{district}/toggle', [DistrictController::class, 'toggleStatus'])->name('admin.districts.toggle');
@@ -140,6 +141,7 @@ Route::prefix('admin')->group(function () {
         Route::post('/datasources/sync-all', [DataSourceController::class, 'syncAll'])->name('admin.datasources.sync-all');
         Route::post('/datasources/update-schedule-timings', [DataSourceController::class, 'updateScheduleTimings'])->name('admin.datasources.update-schedule-timings');
         Route::post('/datasources/{datasource}/toggle-status', [DataSourceController::class, 'toggleStatus'])->name('admin.datasources.toggle-status');
+        Route::post('/datasources/{datasource}/toggle-cron', [DataSourceController::class, 'toggleCron'])->name('admin.datasources.toggle-cron');
         Route::match(['GET', 'POST'], '/datasources/{datasource}/test-connection', [DataSourceController::class, 'testConnection'])->name('admin.datasources.test-connection');
         Route::post('/datasources/{datasource}/trigger-sync', [DataSourceController::class, 'triggerSync'])->name('admin.datasources.trigger-sync');
         Route::post('/datasources/{datasource}/retry-crop', [DataSourceController::class, 'retryCrop'])->name('admin.datasources.retry-crop');

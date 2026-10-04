@@ -243,7 +243,10 @@
         if (!href) return;
 
         // Ignore anchors, JS links, protocols, new tabs, downloads, or modifier keys
-        if (href.startsWith('#') ||
+        if (e.defaultPrevented ||
+            link.hasAttribute('data-no-loader') ||
+            link.closest('[data-no-loader]') ||
+            href.startsWith('#') ||
             href.startsWith('javascript:') ||
             href.startsWith('tel:') ||
             href.startsWith('mailto:') ||

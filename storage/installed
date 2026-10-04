@@ -1,7 +1,0 @@
-{
-    "installed_at": "2026-10-02T16:41:01+00:00",
-    "reason": "Active database detected with existing users or agricultural data",
-    "districts_count": 31,
-    "markets_count": 189,
-    "crops_count": 23
-}

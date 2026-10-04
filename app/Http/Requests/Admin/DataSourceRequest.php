@@ -39,6 +39,7 @@ class DataSourceRequest extends FormRequest
             'timeout_seconds' => ['required', 'integer', 'min:5', 'max:120'],
             'rate_limit_per_minute' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'is_active' => ['sometimes', 'boolean'],
+            'is_cron_enabled' => ['sometimes', 'boolean'],
             'api_key' => ['nullable', 'string', 'max:1000'],
             'client_id' => ['nullable', 'string', 'max:255'],
             'client_secret' => ['nullable', 'string', 'max:1000'],

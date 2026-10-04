@@ -29,19 +29,19 @@ class SyncMarketPricesCommandTest extends TestCase
             ]
         );
 
-        $this->dataSource = DataSource::where('code', 'data_gov_mandi')->firstOrFail();
+        $this->dataSource = DataSource::where('code', 'agmarknet_official')->firstOrFail();
     }
 
     public function test_sync_command_runs_successfully_for_datagov_source(): void
     {
         $exitCode = Artisan::call('krushi:sync-market-prices', [
-            'source' => 'data_gov_mandi',
+            'source' => 'agmarknet_official',
         ]);
 
         $this->assertEquals(0, $exitCode);
         $output = Artisan::output();
         $this->assertStringContainsString('KRUSHI BAANDHAVA', $output);
-        $this->assertStringContainsString('data_gov_mandi', $output);
+        $this->assertStringContainsString('agmarknet_official', $output);
     }
 
     public function test_sync_command_dry_run_does_not_mutate_market_prices(): void
@@ -49,7 +49,7 @@ class SyncMarketPricesCommandTest extends TestCase
         $beforeCount = MarketPrice::count();
 
         $exitCode = Artisan::call('krushi:sync-market-prices', [
-            'source' => 'data_gov_mandi',
+            'source' => 'agmarknet_official',
             '--dry-run' => true,
             '--force' => true,
         ]);
@@ -69,7 +69,7 @@ class SyncMarketPricesCommandTest extends TestCase
     {
         // Ensure at least one price exists
         Artisan::call('krushi:sync-market-prices', [
-            'source' => 'data_gov_mandi',
+            'source' => 'agmarknet_official',
             '--force' => true,
         ]);
 

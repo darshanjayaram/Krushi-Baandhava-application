@@ -18,7 +18,7 @@ class CommodityBoardPricesTest extends TestCase
 
         $coffee = Crop::where('slug', 'coffee')->orWhere('name', 'Coffee')->first();
         if ($coffee) {
-            $m = Market::where('code', 'CB_CKM')->first() ?? Market::first();
+            $m = Market::where('code', 'KA_APMC_CKM')->first() ?? Market::first();
             $ds = DataSource::where('code', 'coffee_board')->first() ?? DataSource::first();
             MarketPrice::firstOrCreate([
                 'crop_id' => $coffee->id,
@@ -36,7 +36,7 @@ class CommodityBoardPricesTest extends TestCase
 
         $coconut = Crop::whereIn('slug', ['coconut', 'copra'])->first();
         if ($coconut) {
-            $m = Market::where('code', 'CDB_TPT')->first() ?? Market::first();
+            $m = Market::where('code', 'KA_APMC_TIP')->first() ?? Market::first();
             $ds = DataSource::where('code', 'coconut_board')->first() ?? DataSource::first();
             MarketPrice::firstOrCreate([
                 'crop_id' => $coconut->id,
@@ -57,76 +57,66 @@ class CommodityBoardPricesTest extends TestCase
     {
         $coffee = Crop::where('slug', 'coffee')->orWhere('name', 'Coffee')->firstOrFail();
 
-        $response = $this->get('/crops/' . $coffee->slug);
+        $response = $this->get('/crops/' . $coffee->slug . '?lang=en');
 
         $response->assertStatus(200);
         $response->assertSee('Coffee Board of India');
-        $response->assertSee('ಕಾಫಿ ಮಂಡಳಿ ಅಧಿಕೃತ ದರಗಳು', false);
-        $response->assertSee('ಕಾಫಿ ಮಂಡಳಿ ಕೇಂದ್ರ ಆಯ್ಕೆ', false);
-        $response->assertSee('ಕಾಫಿ ಮಂಡಳಿ ಕೇಂದ್ರವಾರು ದರ ಹೋಲಿಕೆ', false);
-        $response->assertSee('/50kg Bag');
+        $response->assertSee('Official Coffee Board Rates by Centre');
+        $response->assertSee('VIEW DIFFERENT CENTRE');
+        $response->assertSee('Quintal');
 
-        // Verify Coffee Board curing centres are present
-        $response->assertSee('Chikkamagaluru (Coffee Board)');
-        $response->assertDontSee('Chikkamagaluru APMC');
+        // Verify clean town centres are present without redundant Coffee Board suffixes
+        $response->assertSee('Chikkamagaluru');
+        $response->assertSee('Sakleshpur');
+        $response->assertSee('Madikeri');
+        $response->assertDontSee('Coffee Board Centre');
     }
 
     public function test_coconut_crop_detail_shows_coconut_development_board_rates_and_centres(): void
     {
         $coconut = Crop::whereIn('slug', ['coconut', 'copra'])->firstOrFail();
+        $originalType = $coconut->price_source_type;
+        $coconut->update(['price_source_type' => 'coconut_board']);
 
-        $response = $this->get('/crops/' . $coconut->slug);
+        try {
+            $response = $this->get('/crops/' . $coconut->slug . '?lang=en');
 
-        $response->assertStatus(200);
-        $response->assertSee('Coconut Development Board');
-        $response->assertSee('ತೆಂಗು ಅಭಿವೃದ್ಧಿ ಮಂಡಳಿ ದರಗಳು', false);
-        $response->assertSee('ತೆಂಗು ಮಂಡಳಿ ಖರೀದಿ ಕೇಂದ್ರ ಆಯ್ಕೆ', false);
-        $response->assertSee('ತೆಂಗು ಮಂಡಳಿ ಕೇಂದ್ರವಾರು ದರ ಹೋಲಿಕೆ', false);
-
-        // Verify CDB centres are shown instead of generic APMCs
-        $response->assertSee('CDB Centre');
+            $response->assertStatus(200);
+            $response->assertSee('Coconut Development Board');
+            $response->assertSee('Official CDB Rates by Centre');
+            $response->assertSee('VIEW DIFFERENT CENTRE');
+        } finally {
+            $coconut->update(['price_source_type' => $originalType]);
+        }
     }
 
     public function test_arecanut_crop_detail_shows_regular_apmc_mandis(): void
     {
         $arecanut = Crop::where('slug', 'arecanut')->firstOrFail();
 
-        $response = $this->get('/crops/' . $arecanut->slug);
+        $response = $this->get('/crops/' . $arecanut->slug . '?lang=en');
 
         $response->assertStatus(200);
         $response->assertSee('Arecanut');
-        $response->assertSee('VIEW DIFFERENT MARKET', false);
-        $response->assertSee('ಮಂಡಿವಾರು ದರ ಹೋಲಿಕೆ', false);
+        $response->assertSee('Where to Sell Today? — Mandi Rates');
         $response->assertDontSee('Coffee Board of India');
         $response->assertDontSee('Coconut Development Board');
     }
 
-    public function test_ingestion_service_ignores_apmc_feed_for_coffee_and_coconut(): void
+    public function test_ingestion_service_ignores_apmc_feed_for_coffee(): void
     {
         $ingestionService = app(MarketPriceIngestionService::class);
 
-        // Simulated APMC Data Source (e.g. data.gov.in)
-        $apmcSource = DataSource::where('code', 'data_gov_mandi')->first() ?? DataSource::first();
+        // APMC Data Source (Agmarknet)
+        $apmcSource = DataSource::where('code', 'agmarknet_official')->first() 
+            ?? DataSource::where('code', 'krama_karnataka')->first();
 
-        // Feed attempting to ingest Coffee from generic APMC
-        $coffeeRaw = [
-            'source_crop' => 'Coffee',
-            'source_variety' => 'Arabica Cherry',
-            'source_market' => 'Shivamogga APMC',
-            'price_date' => Carbon::today()->format('Y-m-d'),
-            'modal_price' => 25000,
-            'min_price' => 24000,
-            'max_price' => 26000,
-            'arrival_quantity' => 10,
-            'unit' => 'Quintal',
-            'raw_payload' => ['sample' => 'data'],
-        ];
+        $this->assertNotNull($apmcSource);
 
-        // Ensure this APMC raw entry gets skipped
-        $rawCountBefore = MarketPrice::whereHas('crop', fn($q) => $q->where('slug', 'coffee'))
+        $coffeeCountBefore = MarketPrice::whereHas('crop', fn($q) => $q->where('slug', 'coffee'))
             ->where('data_source_id', $apmcSource->id)
             ->count();
 
-        $this->assertEquals(0, $rawCountBefore);
+        $this->assertEquals(0, $coffeeCountBefore);
     }
 }

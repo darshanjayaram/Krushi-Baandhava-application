@@ -28,40 +28,45 @@ $afternoonTime = \App\Models\SystemSetting::get('cron_market_afternoon_time', '1
 $enableHourly = \App\Models\SystemSetting::get('cron_market_enable_hourly', true);
 
 if (!empty($morningTime)) {
-    Schedule::command('krushi:sync-market-prices')
+    Schedule::command('krushi:sync-market-prices --cron-only')
         ->dailyAt($morningTime)
+        ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_mandi_prices', true))
         ->withoutOverlapping(60)
         ->runInBackground()
         ->appendOutputTo(storage_path('logs/sync_morning.log'));
 }
 
 if (!empty($eveningTime)) {
-    Schedule::command('krushi:sync-market-prices')
+    Schedule::command('krushi:sync-market-prices --cron-only')
         ->dailyAt($eveningTime)
+        ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_mandi_prices', true))
         ->withoutOverlapping(60)
         ->runInBackground()
         ->appendOutputTo(storage_path('logs/sync_evening.log'));
 }
 
 if (!empty($afternoonTime)) {
-    Schedule::command('krushi:sync-market-prices')
+    Schedule::command('krushi:sync-market-prices --cron-only')
         ->dailyAt($afternoonTime)
+        ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_mandi_prices', true))
         ->withoutOverlapping(60)
         ->runInBackground()
         ->appendOutputTo(storage_path('logs/sync_afternoon.log'));
 }
 
 if ($enableHourly) {
-    Schedule::command('krushi:sync-market-prices')
+    Schedule::command('krushi:sync-market-prices --cron-only')
         ->hourly()
+        ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_mandi_prices', true))
         ->withoutOverlapping(60)
         ->runInBackground()
         ->appendOutputTo(storage_path('logs/sync_periodic.log'));
 }
 
 // Every 15 minutes, check any custom data source schedules using isDue()
-Schedule::command('krushi:sync-market-prices')
+Schedule::command('krushi:sync-market-prices --cron-only')
     ->everyFifteenMinutes()
+    ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_mandi_prices', true))
     ->withoutOverlapping(15)
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/sync_check.log'));
@@ -80,7 +85,9 @@ Schedule::command('krushi:sync-market-prices')
 // Nightly automatic cleanup of expired weather forecasts (keeps records from piling up)
 Schedule::call(function () {
     \App\Services\Weather\WeatherSyncService::pruneForecasts(7);
-})->dailyAt('03:30')->name('prune-weather-forecasts');
+})->dailyAt('03:30')
+  ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_weather_sync', true))
+  ->name('prune-weather-forecasts');
 
 /*
 |--------------------------------------------------------------------------
@@ -92,6 +99,7 @@ Schedule::call(function () {
 */
 Schedule::command('krushi:compute-statistics --months')
     ->dailyAt('01:00')
+    ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_analytics_stats', true))
     ->withoutOverlapping(60)
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/analytics_nightly.log'));
@@ -106,6 +114,7 @@ Schedule::command('krushi:compute-statistics --months')
 */
 Schedule::command('krushi:generate-forecasts')
     ->dailyAt('02:00')
+    ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_forecasting', true))
     ->withoutOverlapping(60)
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/forecast_nightly.log'));
@@ -120,6 +129,7 @@ Schedule::command('krushi:generate-forecasts')
 */
 Schedule::command('krushi:prune-prices --days=365')
     ->dailyAt('23:00')
+    ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_retention_pruning', true))
     ->withoutOverlapping(60)
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/prune_nightly.log'));
@@ -134,6 +144,7 @@ Schedule::command('krushi:prune-prices --days=365')
 */
 Schedule::command('data:audit-integrity --days=3 --fix')
     ->dailyAt('20:30')
+    ->when(fn () => (bool) \App\Models\SystemSetting::get('cron_task_data_integrity', true))
     ->withoutOverlapping(30)
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/audit_integrity.log'));

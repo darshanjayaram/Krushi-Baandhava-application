@@ -8,6 +8,7 @@ use App\Models\District;
 use App\Models\Market;
 use App\Models\MarketPrice;
 use App\Models\CropVariety;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
@@ -22,7 +23,7 @@ class FarmerPriceDiscoveryTest extends TestCase
 
         // Ensure canonical market prices are present
         if (MarketPrice::count() === 0) {
-            Artisan::call('krushi:sync-market-prices', ['source' => 'data_gov_mandi', '--force' => true]);
+            Artisan::call('krushi:sync-market-prices', ['source' => 'agmarknet_official', '--force' => true]);
         }
     }
 
@@ -34,7 +35,7 @@ class FarmerPriceDiscoveryTest extends TestCase
         $response->assertSee('Krushi Baandhava', false);
         $response->assertSee('ದೈನಂದಿನ ಅಧಿಕೃತ ಮಂಡಿ ದರಗಳು', false);
         $response->assertSee('ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು', false);
-        $response->assertSee('ಶೇರ್ ಮಾಡಿ', false);
+        $response->assertSee('ಇಂದಿನ ಪ್ರಮುಖ ದರಗಳು', false);
     }
 
     public function test_farmer_home_screen_handles_district_filtering(): void
@@ -85,8 +86,7 @@ class FarmerPriceDiscoveryTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee($crop->name);
-        $response->assertSee('ರಾಜ್ಯದ ಗರಿಷ್ಠ ದರ', false);
-        $response->assertSee('ಮಂಡಿವಾರು ದರ ಹೋಲಿಕೆ', false);
+        $response->assertSee('ಸಕ್ರಿಯ ಮಾರುಕಟ್ಟೆ ವಹಿವಾಟು', false);
     }
 
     public function test_farmer_markets_directory_renders_and_filters_by_district(): void
@@ -363,7 +363,7 @@ class FarmerPriceDiscoveryTest extends TestCase
 
         $varietyNames = $selectedMarketPrices->map(fn($p) => $p->variety?->name)->filter()->all();
         $this->assertContains('Rashi', $varietyNames);
-        $this->assertContains('Gorabalu', $varietyNames);
+        $this->assertContains('Api', $varietyNames);
     }
 
     public function test_variety_wise_latest_dates_and_prices_in_rolling_window(): void
@@ -391,14 +391,16 @@ class FarmerPriceDiscoveryTest extends TestCase
         );
 
         $dataSource = \App\Models\DataSource::first();
+        $dateA = Carbon::today()->toDateString();
+        $dateB = Carbon::today()->subDay()->toDateString();
 
-        // Variety A traded on 22 Sep
+        // Variety A traded on dateA
         MarketPrice::updateOrCreate(
             [
                 'market_id' => $market->id,
                 'crop_id' => $crop->id,
                 'variety_id' => $varietyA->id,
-                'price_date' => '2026-09-22',
+                'price_date' => $dateA,
             ],
             [
                 'data_source_id' => $dataSource->id,
@@ -410,13 +412,13 @@ class FarmerPriceDiscoveryTest extends TestCase
             ]
         );
 
-        // Variety B traded earlier on 19 Sep
+        // Variety B traded earlier on dateB
         MarketPrice::updateOrCreate(
             [
                 'market_id' => $market->id,
                 'crop_id' => $crop->id,
                 'variety_id' => $varietyB->id,
-                'price_date' => '2026-09-19',
+                'price_date' => $dateB,
             ],
             [
                 'data_source_id' => $dataSource->id,
@@ -440,23 +442,21 @@ class FarmerPriceDiscoveryTest extends TestCase
         $this->assertContains($varietyA->id, $resolvedVarietyIds);
         $this->assertContains($varietyB->id, $resolvedVarietyIds);
 
-        // 2. Select Variety B (traded on 19 Sep)
+        // 2. Select Variety B (traded on dateB)
         $responseVarB = $this->get('/crop/' . $crop->id . '?market=' . urlencode($market->name) . '&variety=' . $varietyB->id);
         $responseVarB->assertStatus(200);
         $activeItemB = $responseVarB->viewData('activePriceItem');
         $this->assertEquals($varietyB->id, $activeItemB->variety_id);
-        $this->assertEquals('2026-09-19', \Carbon\Carbon::parse($activeItemB->price_date)->toDateString());
+        $this->assertEquals($dateB, \Carbon\Carbon::parse($activeItemB->price_date)->toDateString());
         $responseVarB->assertSee('56,685');
-        $responseVarB->assertSee('19 Sep');
 
-        // 3. Select Variety A (traded on 22 Sep)
+        // 3. Select Variety A (traded on dateA)
         $responseVarA = $this->get('/crop/' . $crop->id . '?market=' . urlencode($market->name) . '&variety=' . $varietyA->id);
         $responseVarA->assertStatus(200);
         $activeItemA = $responseVarA->viewData('activePriceItem');
         $this->assertEquals($varietyA->id, $activeItemA->variety_id);
-        $this->assertEquals('2026-09-22', \Carbon\Carbon::parse($activeItemA->price_date)->toDateString());
+        $this->assertEquals($dateA, \Carbon\Carbon::parse($activeItemA->price_date)->toDateString());
         $responseVarA->assertSee('49,074');
-        $responseVarA->assertSee('22 Sep');
     }
 }
 

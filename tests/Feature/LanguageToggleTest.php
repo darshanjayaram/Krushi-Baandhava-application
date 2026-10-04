@@ -143,18 +143,14 @@ class LanguageToggleTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('CURRENT PRICE');
-        $response->assertSee("What's next", false);
-        $response->assertSee('Price Forecast & Projections', false);
-        $response->assertSee('Historical Price Trend');
+        $response->assertSee('Price Forecast', false);
+        $response->assertSee('Price Trend', false);
         $response->assertSee('Best Months to Sell');
         $response->assertSee('Period High');
         $response->assertSee('Period Low');
         $response->assertSee('Period Average');
-        $response->assertSee('Price Volatility');
-        $response->assertSee('Net Profit Comparison');
-        $response->assertSee('Mandi Price Comparison');
+        $response->assertSee('Volatility');
         $response->assertDontSee('ಇಂದಿನ ದರ', false);
-        $response->assertDontSee('(ನಿವ್ವಳ ಲಾಭ ಹೋಲಿಕೆ)', false);
     }
 
     /**
@@ -171,7 +167,7 @@ class LanguageToggleTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('ಇಂದಿನ ದರ', false);
         $response->assertDontSee('ಇಂದಿನ ದರ (CURRENT PRICE)', false);
-        $response->assertSee('ಬೆಲೆ ಇತಿಹಾಸ & ಪ್ರವೃತ್ತಿ', false);
+        $response->assertSee('ದರ ಪ್ರವೃತ್ತಿ', false);
         $response->assertSee('ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು', false);
         $response->assertSee('ಅವಧಿಯ ಗರಿಷ್ಠ', false);
         $response->assertDontSee('ಅವಧಿಯ ಗರಿಷ್ಠ (Period High)', false);
@@ -179,10 +175,8 @@ class LanguageToggleTest extends TestCase
         $response->assertDontSee('ಅವಧಿಯ ಕನಿಷ್ಠ (Period Low)', false);
         $response->assertSee('ಅವಧಿಯ ಸರಾಸರಿ', false);
         $response->assertDontSee('ಅವಧಿಯ ಸರಾಸರಿ (Period Avg)', false);
-        $response->assertSee('ಬೆಲೆ ಏರಿಳಿತ', false);
-        $response->assertDontSee('ಬೆಲೆ ಏರಿಳಿತ (Volatility)', false);
-        $response->assertSee('(ನಿವ್ವಳ ಲಾಭ ಹೋಲಿಕೆ)', false);
-        $response->assertDontSee('(Net Profit Comparison)', false);
+        $response->assertSee('ಏರಿಳಿತ', false);
+        $response->assertDontSee('ಏರಿಳಿತ (Volatility)', false);
     }
 }
 

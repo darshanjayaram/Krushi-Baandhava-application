@@ -101,12 +101,9 @@ class FarmerCmsTest extends TestCase
         $filterResponse->assertStatus(200);
         $filterResponse->assertSee('ಕೃಷಿ ಸಿಂಚಾಯಿ ಯೋಜನೆ');
 
-        // 3. Scheme Show
+        // 3. Scheme Show (Redirects to official/apply URL)
         $showResponse = $this->get("/schemes/{$this->scheme->slug}");
-        $showResponse->assertStatus(200);
-        $showResponse->assertSee('ಅರ್ಹತೆಯ ಮಾನದಂಡಗಳು');
-        $showResponse->assertSee('ಅಗತ್ಯವಿರುವ ದಾಖಲೆಗಳು');
-        $showResponse->assertSee('https://fruits.karnataka.gov.in');
+        $showResponse->assertRedirect('https://fruits.karnataka.gov.in');
     }
 
     public function test_farmer_can_view_news_list_and_detail(): void

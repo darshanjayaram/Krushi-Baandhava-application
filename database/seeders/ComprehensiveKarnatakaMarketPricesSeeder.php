@@ -272,14 +272,14 @@ class ComprehensiveKarnatakaMarketPricesSeeder extends Seeder
                         'KA_APMC_SRS' => 'SIRSI',
                         'KA_APMC_SAG' => 'SAGAR',
                         'KA_APMC_CHN' => 'CHANNAGIRI',
-                        'KA_MKT_CKM'  => 'CB_CKM',
-                        'KA_MKT_MDK'  => 'CB_MDK',
-                        'KA_MKT_HAS'  => 'CB_HSN',
-                        'KA_MKT_SKL'  => 'CB_SKP',
-                        'KA_CDB_TUM'  => 'CDB_TMK',
-                        'KA_CDB_ARS'  => 'CDB_ASK',
-                        'KA_CDB_MNG'  => 'CDB_MLR',
-                        'KA_CDB_TIP'  => 'CDB_TPT',
+                        'KA_MKT_CKM'  => 'KA_APMC_CKM',
+                        'KA_MKT_MDK'  => 'KA_MKT_MDK',
+                        'KA_MKT_HAS'  => 'KA_APMC_HAS',
+                        'KA_MKT_SKL'  => 'KA_APMC_SAK',
+                        'KA_CDB_TUM'  => 'KA_APMC_TUM',
+                        'KA_CDB_ARS'  => 'KA_APMC_ASK',
+                        'KA_CDB_MNG'  => 'KA_APMC_MNG',
+                        'KA_CDB_TIP'  => 'KA_APMC_TIP',
                     ];
                     if (isset($codeMap[$marketCode])) {
                         $market = Market::where('code', $codeMap[$marketCode])->first();

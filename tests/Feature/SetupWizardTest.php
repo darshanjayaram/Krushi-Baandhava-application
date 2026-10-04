@@ -17,11 +17,13 @@ class SetupWizardTest extends TestCase
         if (File::exists(storage_path('installed'))) {
             File::delete(storage_path('installed'));
         }
+        config(['app.force_wizard_unlocked' => false]);
         parent::tearDown();
     }
 
     public function test_setup_wizard_page_is_accessible_when_unlocked(): void
     {
+        config(['app.force_wizard_unlocked' => true]);
         if (File::exists(storage_path('installed'))) {
             File::delete(storage_path('installed'));
         }
@@ -37,15 +39,17 @@ class SetupWizardTest extends TestCase
 
     public function test_setup_wizard_locks_permanently_after_installation(): void
     {
+        config(['app.force_wizard_unlocked' => false]);
+
         // Create lock file
         File::put(storage_path('installed'), json_encode([
             'installed_at' => now()->toIso8601String(),
             'version' => '1.0.0',
         ]));
 
-        // Visiting /setup when installed should show the locked view
+        // Visiting /setup when installed should show the locked view (403 Forbidden)
         $response = $this->get(route('setup.index'));
-        $response->assertStatus(200);
+        $response->assertStatus(403);
         $response->assertSee('Setup Wizard is Locked');
         $response->assertSee('permanently disabled');
         $response->assertSee('Go to Admin Login');
@@ -67,6 +71,8 @@ class SetupWizardTest extends TestCase
 
     public function test_setup_test_db_ajax_endpoint_returns_json(): void
     {
+        config(['app.force_wizard_unlocked' => true]);
+
         $response = $this->postJson(route('setup.test-db'), [
             'host' => config('database.connections.mysql.host', '127.0.0.1'),
             'port' => config('database.connections.mysql.port', '3306'),
@@ -117,7 +123,7 @@ class SetupWizardTest extends TestCase
         );
 
         $response = $this->actingAs($admin)->post(route('admin.deployment-hub.sync-prices'), [
-            'source' => 'data_gov_mandi',
+            'source' => 'agmarknet_official',
         ]);
 
         $response->assertRedirect();

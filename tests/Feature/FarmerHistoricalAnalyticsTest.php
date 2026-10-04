@@ -45,7 +45,7 @@ class FarmerHistoricalAnalyticsTest extends TestCase
         $response = $this->get(route('farmer.crops.show', $this->crop->slug));
 
         $response->assertStatus(200);
-        $response->assertSee('ಬೆಲೆ ಇತಿಹಾಸ & ಪ್ರವೃತ್ತಿ', false);
+        $response->assertSee('ದರ ಪ್ರವೃತ್ತಿ', false);
         $response->assertSee('ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು', false);
         $response->assertSee('priceTrendCanvas');
         $response->assertSee('seasonalityCanvas');
@@ -198,6 +198,16 @@ class FarmerHistoricalAnalyticsTest extends TestCase
 
         $mandyaMarket = Market::where('name', 'like', '%Mandya%')->firstOrFail();
         $yeshwanthpurMarket = Market::where('name', 'like', '%Yeshwanthpur%')->firstOrFail();
+
+        $today = Carbon::today()->toDateString();
+        MarketPrice::updateOrCreate(
+            ['crop_id' => $ragi->id, 'market_id' => $mandyaMarket->id, 'price_date' => $today],
+            ['min_price' => 2800, 'max_price' => 3200, 'modal_price' => 3000, 'unit' => 'Quintal']
+        );
+        MarketPrice::updateOrCreate(
+            ['crop_id' => $ragi->id, 'market_id' => $yeshwanthpurMarket->id, 'price_date' => $today],
+            ['min_price' => 3100, 'max_price' => 3500, 'modal_price' => 3300, 'unit' => 'Quintal']
+        );
 
         // 1. Test Mandya Market
         $mandyaResponse = $this->withSession(['locale' => 'en'])->get(route('farmer.crops.show', [

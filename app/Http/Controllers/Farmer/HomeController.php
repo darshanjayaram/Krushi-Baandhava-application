@@ -71,19 +71,21 @@ class HomeController extends Controller
         $allCrops = $cropsQuery->orderBy('name')->get();
 
         // For each crop, resolve the best price for the farmer's location on latestDate:
-        // Priority 1: Direct report from active district on latestPriceDate (Reliable)
-        // Priority 2: Closest market in Karnataka or state average on latestPriceDate (Benchmark)
-        // Priority 3: Most recent historical price in DB
+        // Priority 1: Direct report from active district strictly within freshness window (Reliable)
+        // Priority 2: Closest market in Karnataka or state benchmark within freshness window (Benchmark)
+        // Priority 3: Most recent historical price in DB (Fallback)
         $curatedPrices = collect();
         foreach ($allCrops as $crop) {
             $price = null;
             $isLocal = false;
+            $cutoffDate = $crop->getFreshnessCutoffDate($latestPriceDate);
 
             if ($viewScope !== 'all' && $activeDistrict) {
                 $price = MarketPrice::karnataka()
                     ->with(['crop.category', 'variety', 'market.district', 'dataSource'])
                     ->where('crop_id', $crop->id)
                     ->whereHas('market', fn ($m) => $m->where('district_id', $activeDistrict->id))
+                    ->where('price_date', '>=', $cutoffDate)
                     ->orderBy('price_date', 'desc')
                     ->orderBy('modal_price', 'desc')
                     ->first();
@@ -97,7 +99,8 @@ class HomeController extends Controller
                 $price = MarketPrice::karnataka()
                     ->with(['crop.category', 'variety', 'market.district', 'dataSource'])
                     ->where('crop_id', $crop->id)
-                    ->where('price_date', $latestPriceDate)
+                    ->where('price_date', '>=', $cutoffDate)
+                    ->orderBy('price_date', 'desc')
                     ->orderBy('modal_price', 'desc')
                     ->first();
                 $isLocal = false;
@@ -240,6 +243,9 @@ class HomeController extends Controller
 
         $activeLocalArea = $request->cookie('selected_local_area') ?? session('selected_local_area');
         $activeLocalAreaKn = $request->cookie('selected_local_area_kn') ?? session('selected_local_area_kn');
+        if ($activeLocalArea && $activeLocalAreaKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $activeLocalAreaKn) && !preg_match('/bengaluru|bangalore/i', $activeLocalArea)) {
+            $activeLocalAreaKn = $activeLocalArea;
+        }
 
         return view('farmer.home', compact(
             'activeDistrict',
@@ -320,7 +326,7 @@ class HomeController extends Controller
                 $addrKn = $resKn['address'] ?? [];
 
                 // Smart hierarchical extraction: city/town first (except metro Bengaluru where suburb/locality is preferred)
-                $extractPlace = function (array $data) {
+                $extractPlace = function (array $data, ?string $enPlace = null) {
                     $addr = $data['address'] ?? [];
                     $city = $addr['city'] ?? null;
                     $town = $addr['town'] ?? null;
@@ -331,11 +337,15 @@ class HomeController extends Controller
                     $hamlet = $addr['hamlet'] ?? null;
 
                     // 1. Bengaluru / Bangalore Metro: locality/suburb/quarter is the primary identity (e.g. Kothanur, Yelahanka)
-                    $isBengaluru = $city && preg_match('/bengaluru|bangalore/i', $city);
+                    $isBengaluru = $city && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $city);
                     if ($isBengaluru) {
                         $local = $quarter ?: ($suburb ?: ($neighbourhood ?: null));
                         if ($local) {
                             return $local;
+                        }
+                        // If specific English locality exists, retain that English locality instead of collapsing to broad "Bengaluru" / "ಬೆಂಗಳೂರು"
+                        if ($enPlace && !preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $enPlace)) {
+                            return $enPlace;
                         }
                         return $city;
                     }
@@ -345,17 +355,12 @@ class HomeController extends Controller
                         return $town;
                     }
 
-                    // 3. Recognized City across Karnataka (e.g. Shivamogga, Hubballi, Mysuru, Belagavi, Mangaluru, Davanagere)
-                    if ($city) {
-                        return $city;
-                    }
-
-                    // 4. Suburb / Village for rural or semi-urban areas
+                    // 3. Suburb / Village / Quarter for rural or semi-urban areas
                     if ($suburb) return $suburb;
                     if ($village) return $village;
                     if ($quarter) return $quarter;
 
-                    // 5. County/Taluk check (e.g. "Madduru taluk" -> "Maddur")
+                    // 4. County/Taluk check (e.g. "Madduru taluk" -> "Maddur")
                     if (!empty($addr['county'])) {
                         $cleanCounty = trim(preg_replace('/\b(taluk|taluka|hobli)\b/iu', '', $addr['county']));
                         if (!empty($cleanCounty)) {
@@ -363,18 +368,32 @@ class HomeController extends Controller
                         }
                     }
 
+                    // 5. Recognized City across Karnataka (e.g. Shivamogga, Hubballi, Mysuru, Belagavi, Mangaluru, Davanagere)
+                    if ($city) {
+                        // If English has a specific locality/suburb/village, do not collapse to broad district/city
+                        if ($enPlace && !preg_match('/' . preg_quote($city, '/') . '/iu', $enPlace) && !preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $enPlace)) {
+                            return $enPlace;
+                        }
+                        return $city;
+                    }
+
                     // 6. Hamlet / Neighbourhood / Root Name fallback
                     if ($hamlet) return $hamlet;
                     if ($neighbourhood) return $neighbourhood;
 
-                    return !empty($data['name']) ? trim($data['name']) : null;
+                    return !empty($data['name']) ? trim($data['name']) : ($enPlace ?: null);
                 };
 
                 $placeEn = $resEn ? $extractPlace($resEn) : null;
-                $placeKn = $resKn ? $extractPlace($resKn) : null;
+                $placeKn = $resKn ? $extractPlace($resKn, $placeEn) : null;
 
                 if (!$placeEn && !$placeKn) {
                     return null;
+                }
+
+                // If placeKn is just the broad city/district while placeEn is a specific locality, keep placeEn
+                if ($placeEn && $placeKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $placeKn) && !preg_match('/bengaluru|bangalore/i', $placeEn)) {
+                    $placeKn = $placeEn;
                 }
 
                 return [
@@ -448,12 +467,17 @@ class HomeController extends Controller
 
             // Persist or clear hyper-local place name
             if ($localArea) {
+                $safeKn = $localAreaKn;
+                if ($safeKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $safeKn) && !preg_match('/bengaluru|bangalore/i', $localArea)) {
+                    $safeKn = $localArea;
+                }
+
                 session([
                     'selected_local_area' => $localArea,
-                    'selected_local_area_kn' => $localAreaKn ?: $localArea,
+                    'selected_local_area_kn' => $safeKn ?: $localArea,
                 ]);
                 cookie()->queue('selected_local_area', $localArea, 525600);
-                cookie()->queue('selected_local_area_kn', $localAreaKn ?: $localArea, 525600);
+                cookie()->queue('selected_local_area_kn', $safeKn ?: $localArea, 525600);
             } else {
                 // User explicitly selected district from dropdown: clear previous GPS local area
                 session()->forget(['selected_local_area', 'selected_local_area_kn']);
@@ -461,20 +485,22 @@ class HomeController extends Controller
                 cookie()->queue(cookie()->forget('selected_local_area_kn'));
             }
 
+            $weatherService = app(\App\Services\Weather\WeatherSyncService::class);
+
             // If farmer gave GPS coordinates, sync farm-level weather on demand
             if ($lat && $lon) {
                 try {
-                    \App\Services\Weather\WeatherSyncService::syncCoordinates((float) $lat, (float) $lon, $district, false);
+                    $weatherService->syncCoordinates((float) $lat, (float) $lon, $district, false);
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::warning('GPS weather sync failed in setLocation: ' . $e->getMessage());
                 }
             } else {
                 // If farmer selected a district, ensure fresh weather exists within TTL
                 try {
-                    $ttl = \App\Services\Weather\WeatherSyncService::getCacheTtlMinutes();
+                    $ttl = $weatherService->getCacheTtlMinutes();
                     $freshWeather = \App\Models\WeatherForecast::forDistrict($district->id)->today()->first();
                     if (!$freshWeather || \Carbon\Carbon::parse($freshWeather->fetched_at)->lt(\Carbon\Carbon::now()->subMinutes($ttl))) {
-                        \App\Services\Weather\WeatherSyncService::syncDistrict($district, true);
+                        $weatherService->syncDistrict($district, true);
                     }
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::warning('District weather sync failed in setLocation: ' . $e->getMessage());
@@ -483,13 +509,18 @@ class HomeController extends Controller
 
             $todayWeather = \App\Models\WeatherForecast::forDistrict($district->id)->today()->first();
 
+            $safeKn = $localAreaKn;
+            if ($localArea && $safeKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $safeKn) && !preg_match('/bengaluru|bangalore/i', $localArea)) {
+                $safeKn = $localArea;
+            }
+
             return response()->json([
                 'success' => true,
                 'district_id' => $district->id,
                 'district_name' => $district->name,
                 'district_name_kn' => $district->name_kn,
                 'local_area' => $localArea,
-                'local_area_kn' => $localAreaKn ?: $localArea,
+                'local_area_kn' => $safeKn ?: $localArea,
                 'weather' => $todayWeather ? [
                     'temperature' => round($todayWeather->current_temperature ?? $todayWeather->temp_max ?? 28),
                     'temp_max' => round($todayWeather->temp_max ?? 30),

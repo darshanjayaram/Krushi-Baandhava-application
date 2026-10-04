@@ -69,7 +69,7 @@ class CropController extends Controller
      * Display the detailed price profile and APMC mandi comparison for a specific crop.
      * Supports filtering by Karnataka APMC mandi (?market=BINNY%20MILL%20%28F%26V%29).
      */
-    public function show(string $cropIdentifier, Request $request): View
+    public function show(string $cropIdentifier, Request $request): View|\Illuminate\Http\JsonResponse
     {
         $cropQuery = Crop::with(['category', 'varieties' => fn ($q) => $q->where('is_active', true)])
             ->where('is_active', true);
@@ -401,6 +401,7 @@ class CropController extends Controller
 
         // Matched selected market if filtered or auto-resolve nearest
         $selectedMarket = null;
+        $isMarketParamMatched = false;
         if ($marketParam !== '') {
             $selectedMarket = $availableMarkets->first(function ($m) use ($marketParam) {
                 return strcasecmp($m->name, $marketParam) === 0
@@ -409,25 +410,8 @@ class CropController extends Controller
                     || stripos($m->name, $marketParam) !== false;
             });
 
-            if (!$selectedMarket) {
-                $selectedMarket = Market::karnataka()->where(function ($mq) use ($marketParam) {
-                    $mq->where('name', $marketParam)
-                        ->orWhere('name', 'like', "%{$marketParam}%")
-                        ->orWhere('code', $marketParam)
-                        ->orWhere('name_kn', $marketParam);
-                })->first();
-
-                if ($selectedMarket && !isset($selectedMarket->distance_km) && $selectedMarket->latitude && $selectedMarket->longitude && $refLat && $refLon) {
-                    $latFrom = deg2rad($refLat);
-                    $lonFrom = deg2rad($refLon);
-                    $latTo = deg2rad($selectedMarket->latitude);
-                    $lonTo = deg2rad($selectedMarket->longitude);
-                    $latDelta = $latTo - $latFrom;
-                    $lonDelta = $lonTo - $lonFrom;
-                    $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
-                        cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
-                    $selectedMarket->distance_km = round($angle * 6371, 1);
-                }
+            if ($selectedMarket) {
+                $isMarketParamMatched = true;
             }
         }
 
@@ -470,6 +454,31 @@ class CropController extends Controller
                 ->map(fn($recs) => $recs->first())
                 ->sortByDesc('modal_price')
                 ->values();
+
+            // If the selected market has no positive trades within freshness window, fall back to best active market
+            if ($selectedMarketPrices->isEmpty() && $availableMarkets->isNotEmpty()) {
+                $fallback = $availableMarkets->firstWhere('is_same_district', true) ?? $availableMarkets->first();
+                if ($fallback && (!$selectedMarket || $fallback->id !== $selectedMarket->id)) {
+                    $selectedMarket = $fallback;
+                    $isMarketParamMatched = false;
+                    $recentMarketPricesRaw = (clone $basePricesQuery)
+                        ->with(['variety', 'market.district', 'dataSource'])
+                        ->where('market_id', $selectedMarket->id)
+                        ->where('price_date', '>=', $cutoffDate)
+                        ->where('modal_price', '>', 0)
+                        ->orderBy('price_date', 'desc')
+                        ->orderBy('modal_price', 'desc')
+                        ->get();
+
+                    $selectedMarketPrices = $recentMarketPricesRaw
+                        ->groupBy(function ($item) {
+                            return ($item->variety_id ?? 'default') . '_' . ($item->grade ?? '');
+                        })
+                        ->map(fn($recs) => $recs->first())
+                        ->sortByDesc('modal_price')
+                        ->values();
+                }
+            }
         }
 
         $activePriceItem = null;
@@ -591,6 +600,92 @@ class CropController extends Controller
             ->take(3)
             ->get();
 
+        $displayModal = $activePriceItem ? (float) $activePriceItem->modal_price : ($stats['avg_modal'] > 0 ? (float) $stats['avg_modal'] : 0);
+        $rawMktName = $selectedMarket ? $selectedMarket->name : ($activePriceItem ? $activePriceItem->market->name : null);
+        $rawMktKn = $selectedMarket ? $selectedMarket->name_kn : ($activePriceItem ? $activePriceItem->market->name_kn : null);
+        $displayMarketName = $rawMktName 
+            ? ($activeLocale === 'en' ? $rawMktName : ($rawMktKn ?? $rawMktName)) 
+            : ($activeLocale === 'en' ? 'State Average (Karnataka)' : 'ಕರ್ನಾಟಕ ಸರಾಸರಿ');
+        $displayMarketDistrict = $selectedMarket?->district?->name ?? ($activePriceItem?->market?->district?->name ?? 'Karnataka');
+        $isStandardQuintal = ($crop->standard_unit === 'Quintal' || !$crop->standard_unit);
+        $perKgPrice = ($isStandardQuintal && $displayModal > 0) ? round($displayModal / 100, 1) : null;
+
+        $gradesList = $selectedMarketPrices->map(function ($smp) use ($activeLocale, $activePriceItem, $crop) {
+            $isVarSelected = ($activePriceItem && $activePriceItem->variety_id == $smp->variety_id && (!$smp->grade || $activePriceItem->grade == $smp->grade));
+            return [
+                'variety_id' => $smp->variety_id,
+                'grade' => $smp->grade,
+                'label' => $smp->getDisplayVarietyGrade($activeLocale),
+                'modal_price' => (float) $smp->modal_price,
+                'modal_formatted' => '₹' . number_format($smp->modal_price, 0),
+                'is_selected' => $isVarSelected,
+                'url' => route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'variety' => $smp->variety_id, 'grade' => $smp->grade, 'market' => $smp->market?->name])),
+            ];
+        })->values();
+
+        $whereToSellUrl = route('farmer.decision.where-to-sell', array_filter([
+            'crop' => $crop->slug,
+            'variety_id' => $activeVarietyId ?? ($activePriceItem?->variety_id ?? null),
+            'market_id' => $selectedMarket?->id,
+            'district_id' => $selectedMarket?->district_id ?? ($userDistrict?->id ?? null),
+            'from_crop' => 1,
+        ]));
+
+        $resetUrl = route('farmer.crop.detail', array_filter(['crop' => $crop->id, 'variety' => $varietyId]));
+
+        $priceData = [
+            'modal_price' => $displayModal,
+            'modal_formatted' => $displayModal > 0 ? '₹' . number_format($displayModal, 0) : '—',
+            'per_kg_formatted' => $perKgPrice ? ('≈ ₹' . $perKgPrice . '/kg') : null,
+            'unit_label' => $activeLocale === 'kn' ? ($crop->standard_unit === 'Quintal' ? 'ಕ್ವಿಂಟಾಲ್' : ($crop->standard_unit ?? 'ಕ್ವಿಂಟಾಲ್')) : ($crop->standard_unit ?? 'Quintal'),
+            'price_date' => $activePriceItem?->price_date ?? $latestDate,
+            'date_formatted' => ($activePriceItem?->price_date || $latestDate) 
+                ? Carbon::parse($activePriceItem?->price_date ?? $latestDate)->format('d M Y') 
+                : '—',
+            'as_of_text' => ($activePriceItem?->price_date || $latestDate)
+                ? (Carbon::parse($activePriceItem?->price_date ?? $latestDate)->isToday()
+                    ? ($activeLocale === 'en' ? 'as of now' : 'ಇಂದಿನವರೆಗೆ')
+                    : ($activeLocale === 'en' ? 'as of ' . Carbon::parse($activePriceItem?->price_date ?? $latestDate)->format('d M') : 'ದಿನಾಂಕ: ' . Carbon::parse($activePriceItem?->price_date ?? $latestDate)->format('d M')))
+                : ($activeLocale === 'en' ? 'as of now' : 'ಇಂದಿನವರೆಗೆ'),
+            'min_price' => (float) ($activePriceItem?->min_price ?? 0),
+            'max_price' => (float) ($activePriceItem?->max_price ?? 0),
+            'spread_formatted' => ($activePriceItem && $activePriceItem->min_price > 0 && $activePriceItem->max_price > 0 && $activePriceItem->price_spread > 0)
+                ? ('₹' . number_format($activePriceItem->min_price, 0) . ' – ₹' . number_format($activePriceItem->max_price, 0))
+                : null,
+            'daily_change' => $dailyPriceChange,
+            'daily_change_percent' => $dailyPriceChangePercent,
+            'daily_trend' => $dailyPriceChangeTrend,
+            'display_market_name' => $displayMarketName,
+            'district_name' => $displayMarketDistrict,
+            'distance_km' => $nearestDistanceKm,
+            'is_nearest' => (bool) $isSelectedActualNearest,
+        ];
+
+        $firstHorizon = !empty($forecast['horizons']) ? ($forecast['horizons'][1] ?? $forecast['horizons'][0]) : null;
+        $forecastDir = $firstHorizon['direction'] ?? 'neutral';
+
+        if ($request->ajax() || $request->wantsJson() || $request->header('X-Market-Switch')) {
+            return response()->json([
+                'success' => true,
+                'market' => [
+                    'id' => $selectedMarket?->id,
+                    'name' => $selectedMarket?->name,
+                    'name_kn' => $selectedMarket?->name_kn,
+                    'display_name' => $displayMarketName,
+                    'distance_km' => $nearestDistanceKm,
+                    'district_name' => $displayMarketDistrict,
+                    'is_nearest' => (bool) $isSelectedActualNearest,
+                ],
+                'price_item' => $priceData,
+                'grades' => $gradesList,
+                'where_to_sell_url' => $whereToSellUrl,
+                'reset_url' => $resetUrl,
+                'advisory_html' => view('farmer.crops.partials.advisory_banner', compact('forecast', 'forecastDir', 'activeLocale'))->render(),
+                'forecast_html' => view('farmer.crops.partials.forecast_card', compact('forecast', 'crop', 'activeLocale', 'activePriceItem', 'boardMeta'))->render(),
+                'seasonal_html' => view('farmer.crops.partials.seasonal_card', compact('seasonalAnalysis', 'crop', 'activeLocale'))->render(),
+            ]);
+        }
+
         return view('farmer.crops.show', compact(
             'crop',
             'mandiPrices',
@@ -635,7 +730,16 @@ class CropController extends Controller
             'activeVarietyId',
             'activeLocale',
             'stalenessThresholdDays',
-            'cutoffDate'
+            'cutoffDate',
+            'displayModal',
+            'displayMarketName',
+            'displayMarketDistrict',
+            'perKgPrice',
+            'priceData',
+            'gradesList',
+            'whereToSellUrl',
+            'resetUrl',
+            'isMarketParamMatched'
         ));
     }
 
@@ -669,6 +773,7 @@ class CropController extends Controller
         }
 
         $activeLocale = $request->query('lang') ?: (session('locale') ?: ($request->cookie('locale') ?: app()->getLocale()));
+        $varietyId = $request->filled('variety') ? (int) $request->query('variety') : null;
 
         $dailyTrends = $this->analyticsService->getDailyTrends($crop->id, $marketId, $rangeDays, $varietyId);
         $statisticalSummary = $this->analyticsService->getStatisticalSummary($crop->id, $marketId, $rangeDays, $varietyId);

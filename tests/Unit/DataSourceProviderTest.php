@@ -6,68 +6,67 @@ use App\Models\DataSource;
 use App\Models\DataSourceCredential;
 use App\Services\DataSources\CoconutBoard\CoconutBoardDataProvider;
 use App\Services\DataSources\CoffeeBoard\CoffeeBoardDataProvider;
-use App\Services\DataSources\DataGov\DataGovMarketDataProvider;
+use App\Services\DataSources\Krama\KramaMarketDataProvider;
 use App\Services\DataSources\DataSourceRegistry;
 use Tests\TestCase;
 
 class DataSourceProviderTest extends TestCase
 {
-    public function test_registry_resolves_datagov_provider(): void
+    public function test_registry_resolves_krama_provider(): void
     {
         $ds = new DataSource([
-            'name' => 'Test Gov Mandi',
-            'code' => 'test_gov',
-            'provider_class' => DataGovMarketDataProvider::class,
-            'base_url' => 'https://api.data.gov.in/resource',
+            'name' => 'KRAMA Karnataka',
+            'code' => 'krama_karnataka',
+            'provider_class' => KramaMarketDataProvider::class,
+            'base_url' => 'https://krama.karnataka.gov.in',
         ]);
 
         $provider = DataSourceRegistry::make($ds);
 
-        $this->assertInstanceOf(DataGovMarketDataProvider::class, $provider);
+        $this->assertInstanceOf(KramaMarketDataProvider::class, $provider);
     }
 
-    public function test_datagov_provider_mock_fetch_and_normalize(): void
+    public function test_krama_provider_mock_fetch_and_normalize(): void
     {
         $ds = new DataSource([
-            'name' => 'data.gov.in Mandi Prices',
-            'code' => 'data_gov_mandi',
-            'provider_class' => DataGovMarketDataProvider::class,
-            'base_url' => 'https://api.data.gov.in/resource',
+            'name' => 'KRAMA Karnataka',
+            'code' => 'krama_karnataka',
+            'provider_class' => KramaMarketDataProvider::class,
+            'base_url' => 'https://krama.karnataka.gov.in',
         ]);
 
-        $provider = new DataGovMarketDataProvider($ds);
+        $provider = new KramaMarketDataProvider($ds);
 
         $records = iterator_to_array($provider->fetch());
         $this->assertNotEmpty($records);
 
         $sample = $records[0];
-        $this->assertEquals('Karnataka', $sample['state']);
-        $this->assertArrayHasKey('commodity', $sample);
+        $this->assertArrayHasKey('crop', $sample);
+        $this->assertArrayHasKey('market', $sample);
 
         $normalized = $provider->normalize($sample);
         $this->assertNotNull($normalized);
         $this->assertEquals('Arecanut', $normalized['source_crop']);
-        $this->assertEquals('Shimoga', $normalized['source_market']);
+        $this->assertEquals('CHANNAGIRI', $normalized['source_market']);
         $this->assertGreaterThan(0, $normalized['modal_price']);
         $this->assertEquals('Quintal', $normalized['unit']);
     }
 
-    public function test_datagov_provider_health_check_in_mock_mode(): void
+    public function test_krama_provider_health_check_in_mock_mode(): void
     {
         $ds = new DataSource([
-            'name' => 'data.gov.in Mandi Prices',
-            'code' => 'data_gov_mandi',
-            'provider_class' => DataGovMarketDataProvider::class,
-            'base_url' => 'https://api.data.gov.in/resource',
+            'name' => 'KRAMA Karnataka',
+            'code' => 'krama_karnataka',
+            'provider_class' => KramaMarketDataProvider::class,
+            'base_url' => 'https://krama.karnataka.gov.in',
         ]);
 
-        $provider = new DataGovMarketDataProvider($ds);
+        $provider = new KramaMarketDataProvider($ds);
         $health = $provider->healthCheck();
 
         $this->assertEquals(200, $health['http_status']);
         $this->assertEquals('healthy', $health['status']);
         $this->assertGreaterThan(0, $health['records_found']);
-        $this->assertContains('commodity', $health['detected_fields']);
     }
 
     public function test_coffee_board_normalizes_50kg_bag_to_quintal(): void

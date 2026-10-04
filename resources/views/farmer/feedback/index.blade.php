@@ -384,22 +384,38 @@
                                 <span>🔒</span>
                                 <span x-text="insecureContextNotice 
                                     ? '{{ $isKn ? 'ಭದ್ರತಾ ಸೂಚನೆ (HTTPS ಅಗತ್ಯವಿದೆ)' : 'Security Notice (HTTPS Required)' }}' 
-                                    : '{{ $isKn ? 'ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ಸರಿಪಡಿಸುವ ವಿಧಾನ (Chrome Settings):' : 'How to enable microphone access (Chrome Settings):' }}'"></span>
+                                    : '{{ $isKn ? 'ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ಸರಿಪಡಿಸುವ ವಿಧಾನ:' : 'How to enable microphone access:' }}'"></span>
                             </div>
                             <div class="leading-relaxed space-y-1" x-show="!insecureContextNotice">
-                                <p>{{ $isKn 
-                                    ? 'ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ localhost ಗೆ ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ "Block" ಆಗಿದೆ. ಆದ್ದರಿಂದ ಬ್ರೌಸರ್ ಪಾಪ್-ಅಪ್ ಕೇಳುತ್ತಿಲ್ಲ.' 
-                                    : 'Microphone permission for localhost is currently set to "Block" in Chrome, so Chrome is not showing the prompt.' }}</p>
+                                <p>
+                                    @if($isKn)
+                                        ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ <strong class="font-mono text-amber-950" x-text="window.location.hostname"></strong> ಗೆ ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ "Block" ಆಗಿದೆ.
+                                    @else
+                                        Microphone permission for <strong class="font-mono text-amber-950" x-text="window.location.hostname"></strong> is currently blocked in your browser.
+                                    @endif
+                                </p>
                                 <ol class="list-decimal pl-4 space-y-0.5 font-medium">
-                                    <li>{{ $isKn ? 'Chrome URL ಬಾರ್‌ನಲ್ಲಿ localhost ಪಕ್ಕದಲ್ಲಿರುವ Tune / Lock (🔒) ಐಕಾನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.' : 'Click the Tune / Lock (🔒) icon on the left of localhost in the address bar.' }}</li>
-                                    <li>{{ $isKn ? 'Microphone ಅನ್ನು "Ask" ಅಥವಾ "Allow" ಮಾಡಿ (ಅಥವಾ "Reset permission" ಕ್ಲಿಕ್ ಮಾಡಿ).' : 'Change Microphone to "Ask (default)" or "Allow" (or click "Reset permission").' }}</li>
+                                    <li>
+                                        @if($isKn)
+                                            Chrome: URL ಬಾರ್‌ನಲ್ಲಿ Tune / Lock (🔒) ಐಕಾನ್ ಕ್ಲಿಕ್ ಮಾಡಿ Microphone "Allow" ಮಾಡಿ.
+                                        @else
+                                            Chrome: Click the Tune / Lock (🔒) icon in the address bar and set Microphone to "Allow".
+                                        @endif
+                                    </li>
+                                    <li>
+                                        @if($isKn)
+                                            iPhone / Safari: URL ಬಾರ್‌ನಲ್ಲಿ <strong>aA</strong> ಐಕಾನ್ → Website Settings → Microphone "Allow" ಮಾಡಿ.
+                                        @else
+                                            iPhone / Safari: Tap <strong>aA</strong> icon in address bar → Website Settings → Microphone "Allow".
+                                        @endif
+                                    </li>
                                     <li>{{ $isKn ? 'ಪೇಜ್ ರಿಫ್ರೆಶ್ ಮಾಡಿ ಮತ್ತೆ "ರೆಕಾರ್ಡ್ ಮಾಡಿ" ಕ್ಲಿಕ್ ಮಾಡಿ.' : 'Refresh the page and tap "Record Voice Note" again.' }}</li>
                                 </ol>
                             </div>
                             <p class="leading-relaxed" x-show="insecureContextNotice">
                                 {{ $isKn 
-                                    ? 'ಬ್ರೌಸರ್‌ನ ನೇರ ಮೈಕ್ ರೆಕಾರ್ಡಿಂಗ್‌ಗೆ HTTPS ಅಥವಾ localhost ಅಗತ್ಯವಿದೆ. ನೀವು ಮೊಬೈಲ್ ನೆಟ್‌ವರ್ಕ್ ಐಪಿ ಮೂಲಕ ಪರೀಕ್ಷಿಸುತ್ತಿದ್ದರೆ, ದಯವಿಟ್ಟು ಮೇಲಿನ "📁 ಫೋನ್ ರೆಕಾರ್ಡರ್ / ಫೈಲ್" ಬಟನ್ ಒತ್ತಿ ನಿಮ್ಮ ಧ್ವನಿ ರೆಕಾರ್ಡ್ ಮಾಡಿ ಕಳುಹಿಸಿ.' 
-                                    : 'Direct in-browser microphone requires HTTPS or localhost. If testing via mobile network IP, please tap "📁 Device Audio / File" to record directly.' }}
+                                    ? 'ಬ್ರೌಸರ್‌ನ ನೇರ ಮೈಕ್ ರೆಕಾರ್ಡಿಂಗ್‌ಗೆ HTTPS ಅಗತ್ಯವಿದೆ. ನೀವು ಮೊಬೈಲ್ ನೆಟ್‌ವರ್ಕ್ ಐಪಿ ಮೂಲಕ ಪರೀಕ್ಷಿಸುತ್ತಿದ್ದರೆ, ದಯವಿಟ್ಟು ಮೇಲಿನ "📁 ಫೋನ್ ರೆಕಾರ್ಡರ್ / ಫೈಲ್" ಬಟನ್ ಒತ್ತಿ ನಿಮ್ಮ ಧ್ವನಿ ರೆಕಾರ್ಡ್ ಮಾಡಿ ಕಳುಹಿಸಿ.' 
+                                    : 'Direct in-browser microphone requires HTTPS. If testing via mobile network IP, please tap "📁 Device Audio / File" to record directly.' }}
                             </p>
                         </div>
                     </div>
