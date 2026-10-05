@@ -11,6 +11,7 @@ use App\Models\PriceForecast;
 use App\Models\SyncLog;
 use App\Models\SystemSetting;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -196,75 +197,120 @@ class SystemSettingController extends Controller
     /**
      * Clear all application caches (framework optimize, views, routes, config, memory stores).
      */
-    public function clearCache(Request $request): RedirectResponse
+    public function clearCache(Request $request): RedirectResponse|JsonResponse
     {
         Artisan::call('optimize:clear');
         Cache::flush();
 
         AuditLog::log('system.clear_cache', 'System', null, [], ['status' => 'cleared']);
 
+        $message = 'All application caches (config, routes, views, memory cache) cleared successfully.';
+
+        if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+            ]);
+        }
+
         $tab = $request->input('tab', 'maintenance');
 
         return redirect()->route('admin.settings.index', ['tab' => $tab])
-            ->with('success', 'All application caches (config, routes, views, memory cache) cleared successfully.');
+            ->with('success', $message);
     }
 
     /**
      * Compile and cache configuration, routes, and views for production maximum performance.
      */
-    public function optimizeApp(Request $request): RedirectResponse
+    public function optimizeApp(Request $request): RedirectResponse|JsonResponse
     {
         Artisan::call('optimize');
 
         AuditLog::log('system.optimize_app', 'System', null, [], ['status' => 'optimized']);
 
+        $message = 'Application optimized for production! Config, routes, and views have been pre-compiled for maximum performance.';
+
+        if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+            ]);
+        }
+
         $tab = $request->input('tab', 'maintenance');
 
         return redirect()->route('admin.settings.index', ['tab' => $tab])
-            ->with('success', 'Application optimized for production! Config, routes, and views have been pre-compiled for maximum performance.');
+            ->with('success', $message);
     }
 
     /**
      * Safely run pending migrations and synchronize system seeders.
      */
-    public function updateDatabase(Request $request): RedirectResponse
+    public function updateDatabase(Request $request): RedirectResponse|JsonResponse
     {
         Artisan::call('migrate', ['--force' => true]);
         Artisan::call('db:seed', ['--class' => 'SystemSettingSeeder', '--force' => true]);
 
         AuditLog::log('system.update_database', 'System', null, [], ['status' => 'migrated']);
 
+        $message = 'Database schema migrated and master seeds updated successfully.';
+
+        if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+            ]);
+        }
+
         $tab = $request->input('tab', 'maintenance');
 
         return redirect()->route('admin.settings.index', ['tab' => $tab])
-            ->with('success', 'Database schema migrated and master seeds updated successfully.');
+            ->with('success', $message);
     }
 
     /**
      * Prune stale historical logs and expired raw payloads older than 30 days.
      */
-    public function pruneData(): RedirectResponse
+    public function pruneData(Request $request): RedirectResponse|JsonResponse
     {
         $cutoff = Carbon::now()->subDays(30);
         $deletedSyncLogs = SyncLog::where('created_at', '<', $cutoff)->delete();
 
         AuditLog::log('system.prune_data', 'System', null, [], ['deleted_sync_logs' => $deletedSyncLogs]);
 
+        $message = "Stale system logs pruned successfully ({$deletedSyncLogs} expired logs removed).";
+
+        if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+            ]);
+        }
+
         return redirect()->route('admin.settings.index', ['tab' => 'maintenance'])
-            ->with('success', "Stale system logs pruned successfully ({$deletedSyncLogs} expired logs removed).");
+            ->with('success', $message);
     }
 
     /**
      * Trigger on-demand batch price forecasting across all Karnataka crops.
      */
-    public function triggerForecasting(): RedirectResponse
+    public function triggerForecasting(Request $request): RedirectResponse|JsonResponse
     {
         Artisan::call('krushi:generate-forecasts');
 
         AuditLog::log('system.trigger_forecasting', 'System', null, [], ['status' => 'completed']);
 
+        $message = 'Statistical price forecasting batch execution completed across all active Karnataka crops.';
+
+        if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+            ]);
+        }
+
         return redirect()->route('admin.settings.index', ['tab' => 'forecasting'])
-            ->with('success', 'Statistical price forecasting batch execution completed across all active Karnataka crops.');
+            ->with('success', $message);
     }
 
     /**

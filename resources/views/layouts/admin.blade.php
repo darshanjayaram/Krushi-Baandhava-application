@@ -289,7 +289,7 @@
                             </span>
                         @endif
                     </a>
-                    <a href="{{ route('admin.notifications.index') }}" class="flex items-center justify-between px-3 py-2 rounded-lg font-medium {{ request()->routeIs('admin.notifications.*') ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.notifications.index') ? route('admin.notifications.index') : url('/admin/notifications') }}" class="flex items-center justify-between px-3 py-2 rounded-lg font-medium {{ request()->routeIs('admin.notifications.*') ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition">
                         <div class="flex items-center gap-3">
                             <span class="text-base leading-none">📲</span>
                             <span>PWA Push Alerts</span>

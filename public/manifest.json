@@ -3,7 +3,7 @@
     "name": "Krushi Baandhava - Farmer Market Intelligence",
     "short_name": "Krushi Baandhava",
     "description": "Real-time Karnataka mandi prices, live arrival rates, price projections, weather advisories, and nearest market discovery.",
-    "start_url": "./?source=pwa",
+    "start_url": "/?source=pwa",
     "scope": "./",
     "display": "standalone",
     "background_color": "#064e3b",

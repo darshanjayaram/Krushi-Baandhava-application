@@ -297,6 +297,45 @@ class DataSourceController extends Controller
     }
 
     /**
+     * Toggle automatic live price failover from KRAMA to AGMARKNET.
+     */
+    public function toggleKramaFailover(Request $request): JsonResponse|RedirectResponse
+    {
+        $current = (bool) SystemSetting::get('krama_agmarknet_failover_enabled', true);
+        $newValue = $request->has('enabled') ? $request->boolean('enabled') : !$current;
+
+        SystemSetting::set(
+            'krama_agmarknet_failover_enabled',
+            $newValue,
+            'boolean',
+            'data_sources',
+            'Automatic Failover to Official AGMARKNET when KRAMA live price feed is unavailable or returns 0 records'
+        );
+
+        AuditLog::log(
+            'toggle_setting',
+            'SystemSetting',
+            null,
+            ['krama_agmarknet_failover_enabled' => $current],
+            ['krama_agmarknet_failover_enabled' => $newValue]
+        );
+
+        $msg = $newValue
+            ? "Automatic live price failover to AGMARKNET is enabled. If KRAMA returns 0 records, prices will automatically fetch from AGMARKNET."
+            : "Automatic live price failover to AGMARKNET is disabled. KRAMA will not automatically fall back to AGMARKNET.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'enabled' => $newValue,
+                'message' => $msg,
+            ]);
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
      * Test connection to provider endpoint and return health diagnostic.
      */
     public function testConnection(Request $request, DataSource $datasource): JsonResponse|RedirectResponse
@@ -754,34 +793,32 @@ class DataSourceController extends Controller
         ]);
 
         try {
-            /** @var \App\Services\DataSources\Agmarknet\AgmarknetHistoricalDataProvider $provider */
-            $provider = DataSourceRegistry::make($datasource);
-
-            // Verify captcha first
-            $verifyRes = $provider->verifyCaptcha($validated['captcha_key'], $validated['captcha_code']);
-            if (!$verifyRes['success']) {
-                return response()->json([
-                    'ok' => false,
-                    'error' => $verifyRes['message'] ?? 'Invalid CAPTCHA code. Please try again.',
-                ], 422);
-            }
-
-            // Run ingestion with captcha parameters
+            // Run ingestion with captcha parameters directly passed to the official report API
             $result = $ingestionService->ingest($datasource, [
                 'captcha_key' => $validated['captcha_key'],
+                'captcha_code' => $validated['captcha_code'],
                 'captcha_value' => $validated['captcha_code'],
                 'from_date' => $validated['from_date'] ?? null,
                 'to_date' => $validated['to_date'] ?? null,
                 'crop_id' => $validated['crop_id'] ?? null,
+                'force' => true,
             ]);
+
+            $inserted = (int) ($result['inserted'] ?? 0);
+            $updated = (int) ($result['updated'] ?? 0);
+            $received = (int) ($result['received'] ?? 0);
+
+            $msg = ($inserted > 0 || $updated > 0)
+                ? "Agmarknet historical sync completed: {$inserted} new records inserted, {$updated} updated ({$received} received)."
+                : "Agmarknet sync completed: Verified official API, but no mandi records were reported by Agmarknet for this date range.";
 
             return response()->json([
                 'ok' => true,
                 'result' => $result,
-                'message' => "Agmarknet historical sync completed: {$result['inserted']} new records inserted, {$result['updated']} updated.",
+                'message' => $msg,
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 422);
         }
     }
 

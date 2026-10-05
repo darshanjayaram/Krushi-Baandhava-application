@@ -93,13 +93,16 @@
                 <div class="khc-title mb-2 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     {{ $activeLocale === 'en' ? 'Best Months to Sell' : 'ಮಾರಾಟಕ್ಕೆ ಉತ್ತಮ ತಿಂಗಳು' }}
                 </div>
+                @php
+                    $yearsCount = (int) ($seasonalAnalysis['seasonality_years'] ?? \App\Models\SystemSetting::get('seasonality_years', 5));
+                @endphp
                 <div class="{{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.72);margin-top:2px;">
-                    {{ $activeLocale === 'en' ? '5-year historical price seasonality & peak harvest window' : '5 ವರ್ಷಗಳ ಮಂಡಿ ಇತಿಹಾಸದ ಆಧಾರದ ಮೇಲೆ ಗರಿಷ್ಠ ಧಾರಣೆ ಸಿಗುವ ತಿಂಗಳುಗಳು' }}
+                    {{ $activeLocale === 'en' ? "{$yearsCount}-year historical price seasonality & peak harvest window" : "{$yearsCount} ವರ್ಷಗಳ ಮಂಡಿ ಇತಿಹಾಸದ ಆಧಾರದ ಮೇಲೆ ಗರಿಷ್ಠ ಧಾರಣೆ ಸಿಗುವ ತಿಂಗಳುಗಳು" }}
                 </div>
             </div>
             <div class="khc-badge-5y {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}" style="margin-top:2px;">
                 @if(($seasonalAnalysis['distinct_months'] ?? 0) >= 12)
-                    {{ $activeLocale === 'en' ? 'Last 5 Years' : 'ಕಳೆದ 5 ವರ್ಷ' }}
+                    {{ $activeLocale === 'en' ? "Last {$yearsCount} Years" : "ಕಳೆದ {$yearsCount} ವರ್ಷ" }}
                 @else
                     {{ $seasonalAnalysis['distinct_months'] ?? 2 }} {{ $activeLocale === 'en' ? 'Months Recorded' : 'ತಿಂಗಳ ಮಂಡಿ ದಾಖಲೆ' }}
                 @endif

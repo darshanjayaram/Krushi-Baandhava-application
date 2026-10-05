@@ -73,9 +73,10 @@ class NearbyMarketController extends Controller
             }
         }
 
-        // Fallback default if neither GPS nor district specified: use Shivamogga coordinates
+        // Fallback default if neither GPS nor district specified: use default district coordinates
         if ($userLat === null || $userLon === null) {
-            $defaultDistrict = $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
+            $defaultDistrictName = \App\Models\SystemSetting::get('default_district', 'Shivamogga');
+            $defaultDistrict = $allDistricts->firstWhere('name', $defaultDistrictName) ?? $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
             if ($defaultDistrict) {
                 $userLat = (float) $defaultDistrict->latitude;
                 $userLon = (float) $defaultDistrict->longitude;

@@ -81,12 +81,13 @@
                         }
 
                         $confScore = (float)($h['confidence_score'] ?? 50);
-                        if ($confScore >= 70) {
+                        $confThreshold = (int) \App\Models\SystemSetting::get('forecast_confidence_threshold', 70);
+                        if ($confScore >= $confThreshold) {
                             $qualLabelEn = 'LIKELY';
                             $qualLabelKn = 'ಹೆಚ್ಚು ಸಾಧ್ಯತೆ';
                             $confColor = '#16803C';
                             $confTextClass = 'text-[#16803C]';
-                        } elseif ($confScore >= 50) {
+                        } elseif ($confScore >= max(30, $confThreshold - 20)) {
                             $qualLabelEn = 'POSSIBLE';
                             $qualLabelKn = 'ಸಾಧ್ಯತೆ ಇದೆ';
                             $confColor = '#D97706';
@@ -186,13 +187,16 @@
                 <span class="text-xl shrink-0">ℹ️</span>
                 <div class="space-y-1 text-xs {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">
                     <div class="font-bold text-sm text-amber-900 {{ $activeLocale === 'kn' ? 'font-kannada' : 'font-sans' }}">{{ $activeLocale === 'en' ? 'Data Insufficiency Notice' : 'ದರ ಮಾಹಿತಿ ಕೊರತೆ ಸೂಚನೆ' }}</div>
+                    @php
+                        $minObs = $forecast['min_required'] ?? (int) \App\Models\SystemSetting::get('forecast_minimum_observations', 30);
+                    @endphp
                     <p class="leading-relaxed">
-                        {{ $activeLocale === 'en' ? ($forecast['message_en'] ?? 'Minimum 30 days of market prices required for a reliable forecast.') : ($forecast['message_kn'] ?? 'ವಿಶ್ವಾಸಾರ್ಹ ಮುನ್ಸೂಚನೆಗೆ ಕನಿಷ್ಠ 30 ದಿನಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ.') }}
+                        {{ $activeLocale === 'en' ? ($forecast['message_en'] ?? "Minimum {$minObs} days of market prices required for a reliable forecast.") : ($forecast['message_kn'] ?? "ವಿಶ್ವಾಸಾರ್ಹ ಮುನ್ಸೂಚನೆಗೆ ಕನಿಷ್ಠ {$minObs} ದಿನಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ.") }}
                     </p>
                     <p class="text-amber-800/80">
                         {{ $activeLocale === 'en' 
-                            ? 'Krushi Baandhava does not generate synthetic prices. Projections will automatically activate once 30 continuous days of mandi records are logged.' 
-                            : 'ಕೃಷಿ ಬಾಂಧವ ಕೃತಕ ಅಂದಾಜುಗಳನ್ನು ಪ್ರದರ್ಶಿಸುವುದಿಲ್ಲ. ಮಂಡಿಗಳಿಂದ 30 ದಿನಗಳ ನಿರಂತರ ದರಗಳು ದಾಖಲಾದ ನಂತರ ನಿಖರ ಗಣಿತೀಯ ಮುನ್ಸೂಚನೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸಕ್ರಿಯಗೊಳ್ಳುತ್ತದೆ.' }}
+                            ? "Krushi Baandhava does not generate synthetic prices. Projections will automatically activate once {$minObs} continuous days of mandi records are logged." 
+                            : "ಕೃಷಿ ಬಾಂಧವ ಕೃತಕ ಅಂದಾಜುಗಳನ್ನು ಪ್ರದರ್ಶಿಸುವುದಿಲ್ಲ. ಮಂಡಿಗಳಿಂದ {$minObs} ದಿನಗಳ ನಿರಂತರ ದರಗಳು ದಾಖಲಾದ ನಂತರ ನಿಖರ ಗಣಿತೀಯ ಮುನ್ಸೂಚನೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸಕ್ರಿಯಗೊಳ್ಳುತ್ತದೆ." }}
                     </p>
                 </div>
             </div>

@@ -351,15 +351,63 @@
                 <div class="flex items-center justify-between pb-1.5 border-b border-amber-200/80">
                     <div class="flex items-center gap-2 font-black text-amber-950 text-xs sm:text-[13px]">
                         <span class="text-base">📍</span>
+                        <span x-show="deviceType === 'android-pwa'">{{ $isEn ? 'How to enable Location in Krushi Baandhava App:' : 'ಕೃಷಿ ಬಾಂಧವ ಆ್ಯಪ್‌ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ಆನ್ ಮಾಡುವ ವಿಧಾನ:' }}</span>
+                        <span x-show="deviceType === 'ios-pwa'">{{ $isEn ? 'How to enable Location in Krushi Baandhava (iPhone):' : 'iPhone ನಲ್ಲಿ ಕೃಷಿ ಬಾಂಧವ ಆ್ಯಪ್‌ಗೆ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
                         <span x-show="deviceType === 'ios-safari'">{{ $isEn ? 'How to enable Location on iPhone (Safari):' : 'iPhone Safari ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
                         <span x-show="deviceType === 'ios-chrome'">{{ $isEn ? 'How to enable Location in Chrome on iPhone:' : 'iPhone Chrome ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
                         <span x-show="deviceType === 'android-chrome'">{{ $isEn ? 'How to enable Location in Chrome (Android):' : 'Android Chrome ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
-                        <span x-show="deviceType !== 'ios-safari' && deviceType !== 'ios-chrome' && deviceType !== 'android-chrome'">{{ $isEn ? 'How to enable Location in Browser:' : 'ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
+                        <span x-show="!['android-pwa', 'ios-pwa', 'ios-safari', 'ios-chrome', 'android-chrome'].includes(deviceType)">{{ $isEn ? 'How to enable Location in Browser:' : 'ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡುವ ವಿಧಾನ:' }}</span>
                     </div>
                     <span class="px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-900 font-mono text-[10px] font-bold" x-text="currentHost"></span>
                 </div>
 
-                <!-- 1. iPhone Safari Guide -->
+                <!-- 1. Android Installed PWA Guide -->
+                <div x-show="deviceType === 'android-pwa'" class="leading-relaxed space-y-2 text-stone-700 font-medium">
+                    <p class="text-xs">{{ $isEn 
+                        ? 'Location permission is currently turned OFF in the installed app.' 
+                        : 'ಸ್ಥಾಪಿಸಲಾದ ಕೃಷಿ ಬಾಂಧವ ಆ್ಯಪ್‌ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ (Location) ಆಫ್ ಆಗಿದೆ.' }}</p>
+                    
+                    <div class="p-2.5 rounded-xl bg-amber-100/80 border border-amber-300 text-stone-900 text-xs space-y-1.5">
+                        <div class="font-bold text-amber-950 flex items-center gap-1.5 text-[11.5px] sm:text-xs">
+                            <span>✨</span>
+                            <span>{{ $isEn ? 'Method 1: Directly inside this App (Quickest)' : 'ವಿಧಾನ 1: ಆ್ಯಪ್‌ನ ಒಳಗಡೆಯಿಂದಲೇ (ಸುಲಭ)' }}</span>
+                        </div>
+                        <ol class="list-decimal pl-4 space-y-1 font-semibold text-stone-800 text-[11px] sm:text-xs">
+                            <li>{{ $isEn ? 'Tap the 3 dots ( ⋮ ) at the top right of this screen.' : 'ಪರದೆಯ ಮೇಲ್ಭಾಗದ ಬಲಗಡೆ ಇರುವ 3 ಚುಕ್ಕೆಗಳನ್ನು ( ⋮ ) ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                            <li>{{ $isEn ? 'Tap "App info" ( ℹ️ ) or "Site settings".' : '"App info" ( ℹ️ ) ಅಥವಾ "Site settings" ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                            <li>{{ $isEn ? 'Turn the "Location" switch ON (or tap "Delete data and reset permissions").' : '"Location" ಸ್ವಿಚ್ ಅನ್ನು ಆನ್ (ON) ಮಾಡಿ (ಅಥವಾ Reset permissions ಒತ್ತಿ).' }}</li>
+                            <li>{{ $isEn ? 'Return here and tap "Try GPS Again" below.' : 'ನಂತರ ಇಲ್ಲಿಗೆ ಬಂದು ಕೆಳಗಿನ "ಮತ್ತೆ ಜಿಪಿಎಸ್ ಪ್ರಯತ್ನಿಸಿ" ಒತ್ತಿ.' }}</li>
+                        </ol>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-white/80 border border-amber-200 text-stone-800 text-xs space-y-1">
+                        <div class="font-bold text-amber-950 flex items-center gap-1.5 text-[11px] sm:text-[11.5px]">
+                            <span>📱</span>
+                            <span>{{ $isEn ? 'Method 2: From Phone Home Screen' : 'ವಿಧಾನ 2: ಫೋನ್ ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ನಿಂದ' }}</span>
+                        </div>
+                        <p class="text-[11px] text-stone-700 pl-4 font-medium leading-relaxed">
+                            {{ $isEn 
+                                ? 'Long-press the "Krushi Baandhava" app icon on your phone home screen → Tap "App info" ( ℹ️ ) → Permissions → Location → Select "Allow only while using the app".' 
+                                : 'ಫೋನ್ ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ನಲ್ಲಿ "ಕೃಷಿ ಬಾಂಧವ" ಆ್ಯಪ್ ಐಕಾನ್ ಅನ್ನು 1 ಸೆಕೆಂಡ್ ಒತ್ತಿ ಹಿಡಿಯಿರಿ → "App info" ( ℹ️ ) ಒತ್ತಿ → Permissions → Location → "Allow" ಆಯ್ಕೆಮಾಡಿ.' }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 2. iOS Installed PWA Guide -->
+                <div x-show="deviceType === 'ios-pwa'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
+                    <p>{{ $isEn 
+                        ? 'Location permission is blocked on iPhone for the Krushi Baandhava app.' 
+                        : 'iPhone ನಲ್ಲಿ ಕೃಷಿ ಬಾಂಧವ ಆ್ಯಪ್‌ಗೆ ಸ್ಥಳ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ.' }}</p>
+                    <ol class="list-decimal pl-4 space-y-1 font-semibold text-stone-800 text-[11.5px] sm:text-xs">
+                        <li>{{ $isEn ? 'Open iPhone "Settings" app.' : 'iPhone ನ "Settings" ಆ್ಯಪ್ ತೆರೆಯಿರಿ.' }}</li>
+                        <li>{{ $isEn ? 'Tap "Privacy & Security" → "Location Services".' : '"Privacy & Security" → "Location Services" ಟ್ಯಾಪ್ ಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Find "Safari Websites" (or Krushi Baandhava).' : '"Safari Websites" (ಅಥವಾ ಕೃಷಿ ಬಾಂಧವ) ಆಯ್ಕೆಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Select "While Using the App".' : '"While Using the App" ಆಯ್ಕೆಮಾಡಿ.' }}</li>
+                        <li>{{ $isEn ? 'Return here and tap "Try GPS Again" below.' : 'ನಂತರ ಇಲ್ಲಿಗೆ ಬಂದು "ಮತ್ತೆ ಜಿಪಿಎಸ್ ಪ್ರಯತ್ನಿಸಿ" ಒತ್ತಿ.' }}</li>
+                    </ol>
+                </div>
+
+                <!-- 3. iPhone Safari Browser Guide -->
                 <div x-show="deviceType === 'ios-safari'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
                     <p>{{ $isEn 
                         ? 'Location permission is currently blocked in Safari for ' 
@@ -375,7 +423,7 @@
                     </p>
                 </div>
 
-                <!-- 2. iPhone Chrome Guide -->
+                <!-- 4. iPhone Chrome Browser Guide -->
                 <div x-show="deviceType === 'ios-chrome'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
                     <p>{{ $isEn 
                         ? 'Location permission is currently blocked in Chrome for ' 
@@ -388,7 +436,7 @@
                     </ol>
                 </div>
 
-                <!-- 3. Android Chrome Guide -->
+                <!-- 5. Android Chrome Browser Guide (Shows lock icon since address bar exists) -->
                 <div x-show="deviceType === 'android-chrome'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
                     <p>{{ $isEn 
                         ? 'Location permission is blocked in Chrome for ' 
@@ -400,8 +448,8 @@
                     </ol>
                 </div>
 
-                <!-- 4. Desktop / Generic Guide -->
-                <div x-show="deviceType !== 'ios-safari' && deviceType !== 'ios-chrome' && deviceType !== 'android-chrome'" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
+                <!-- 6. Desktop / Generic Browser Guide -->
+                <div x-show="!['android-pwa', 'ios-pwa', 'ios-safari', 'ios-chrome', 'android-chrome'].includes(deviceType)" class="leading-relaxed space-y-1.5 text-stone-700 font-medium">
                     <p>{{ $isEn 
                         ? 'Location permission is currently blocked in your browser for ' 
                         : 'ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ' }}<strong class="font-mono text-stone-900" x-text="currentHost"></strong>{{ $isEn ? '.' : ' ಗೆ ಸ್ಥಳ ಅನುಮತಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ.' }}</p>
@@ -659,7 +707,15 @@ function locationModalHandler() {
 
         detectDevice() {
             const ua = navigator.userAgent || '';
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                                 window.navigator.standalone === true || 
+                                 document.referrer.includes('android-app://');
             const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+            if (isStandalone) {
+                return isIOS ? 'ios-pwa' : 'android-pwa';
+            }
+
             if (isIOS) {
                 if (/CriOS/i.test(ua)) return 'ios-chrome';
                 return 'ios-safari';

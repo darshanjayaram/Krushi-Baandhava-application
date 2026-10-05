@@ -125,14 +125,16 @@ class ForecastingEngineService
             $scope = 'state_benchmark';
         }
 
-        // Check Hard Minimum Observations (need at least 30 observations for statistically reliable forecasting)
-        if ($observationsCount < self::MIN_OBSERVATIONS) {
+        $minObservations = max(5, (int) \App\Models\SystemSetting::get('forecast_minimum_observations', self::MIN_OBSERVATIONS));
+
+        // Check Hard Minimum Observations (dynamically configured in Admin > System Settings)
+        if ($observationsCount < $minObservations) {
             return [
                 'is_sufficient' => false,
                 'observations_count' => $observationsCount,
-                'min_required' => self::MIN_OBSERVATIONS,
-                'message_kn' => "ವಿಶ್ವಾಸಾರ್ಹ ಮುನ್ಸೂಚನೆಗೆ ಕನಿಷ್ಠ " . self::MIN_OBSERVATIONS . " ದಿನಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ (ಕೇವಲ {$observationsCount} ದಿನಗಳ ದರ ಲಭ್ಯವಿದೆ).",
-                'message_en' => "Insufficient historical data for a reliable estimate. Minimum " . self::MIN_OBSERVATIONS . " observations required (found {$observationsCount}).",
+                'min_required' => $minObservations,
+                'message_kn' => "ವಿಶ್ವಾಸಾರ್ಹ ಮುನ್ಸೂಚನೆಗೆ ಕನಿಷ್ಠ {$minObservations} ದಿನಗಳ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಗತ್ಯವಿದೆ (ಕೇವಲ {$observationsCount} ದಿನಗಳ ದರ ಲಭ್ಯವಿದೆ).",
+                'message_en' => "Insufficient historical data for a reliable estimate. Minimum {$minObservations} observations required (found {$observationsCount}).",
                 'horizons' => [],
                 'current_price' => (float) ($currentModalPrice ?? 0),
             ];
@@ -141,11 +143,26 @@ class ForecastingEngineService
         $modelBasePrice = end($sourcePrices) ?: 0.0;
         $currentPrice = ($currentModalPrice !== null && $currentModalPrice > 0) ? $currentModalPrice : $modelBasePrice;
 
-        // Model Selection
+        // Model Selection (respects Admin > System Settings override)
         $model = $this->resolveModelForCrop($cropId);
 
+        // Resolve active projection horizons dynamically from SystemSetting
+        $activeHorizons = self::HORIZONS;
+        $configuredHorizons = \App\Models\SystemSetting::get('forecast_horizons');
+        if (!empty($configuredHorizons)) {
+            $parsedHorizons = is_array($configuredHorizons) ? $configuredHorizons : json_decode($configuredHorizons, true);
+            if (!empty($parsedHorizons) && is_array($parsedHorizons)) {
+                $filtered = array_values(array_filter(array_map('intval', $parsedHorizons)));
+                if (!empty($filtered)) {
+                    $activeHorizons = $filtered;
+                }
+            }
+        }
+
+        $confidenceThreshold = (int) \App\Models\SystemSetting::get('forecast_confidence_threshold', 70);
+
         $horizonsOutput = [];
-        foreach (self::HORIZONS as $hDays) {
+        foreach ($activeHorizons as $hDays) {
             $targetDate = Carbon::today()->addDays($hDays)->toDateString();
             $proj = $model->forecast($sourcePrices, $hDays);
 
@@ -175,6 +192,7 @@ class ForecastingEngineService
                 'lower_bound' => $lowerBound,
                 'upper_bound' => $upperBound,
                 'confidence_score' => $proj['confidence_score'] ?? 75,
+                'is_reliable' => ($proj['confidence_score'] ?? 75) >= $confidenceThreshold,
                 'percentage_change' => $pctChange,
                 'direction' => $direction,
                 'rmse' => $proj['rmse'] ?? 0,
@@ -271,7 +289,7 @@ class ForecastingEngineService
         return [
             'is_sufficient' => true,
             'observations_count' => $observationsCount,
-            'min_required' => self::MIN_OBSERVATIONS,
+            'min_required' => $minObservations,
             'model_name' => $model->getName(),
             'model_code' => $model->getCode(),
             'current_price' => $currentPrice,
@@ -462,6 +480,11 @@ class ForecastingEngineService
      */
     protected function resolveModelForCrop(int $cropId): ForecastModelInterface
     {
+        $forcedEngine = \App\Models\SystemSetting::get('forecasting_engine');
+        if ($forcedEngine === 'holts_linear_trend') {
+            return new HoltsLinearTrendModel(alpha: 0.35, beta: 0.15);
+        }
+
         // Check if multi-year seasonal indices exist
         $seasonalIndices = PriceMonthlyStatistic::where('crop_id', $cropId)
             ->whereNull('market_id')
@@ -470,7 +493,7 @@ class ForecastingEngineService
             ->toArray();
 
         // If strong seasonal data exists with variance across months, use seasonal decomposition
-        if (count($seasonalIndices) >= 6) {
+        if (count($seasonalIndices) >= 6 || $forcedEngine === 'seasonal_decomposition') {
             return new SeasonalDecompositionModel($seasonalIndices);
         }
 

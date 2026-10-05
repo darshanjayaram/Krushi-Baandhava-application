@@ -140,6 +140,7 @@ Route::prefix('admin')->group(function () {
         // Data Sources & Providers
         Route::post('/datasources/sync-all', [DataSourceController::class, 'syncAll'])->name('admin.datasources.sync-all');
         Route::post('/datasources/update-schedule-timings', [DataSourceController::class, 'updateScheduleTimings'])->name('admin.datasources.update-schedule-timings');
+        Route::post('/datasources/toggle-krama-failover', [DataSourceController::class, 'toggleKramaFailover'])->name('admin.datasources.toggle-krama-failover');
         Route::post('/datasources/{datasource}/toggle-status', [DataSourceController::class, 'toggleStatus'])->name('admin.datasources.toggle-status');
         Route::post('/datasources/{datasource}/toggle-cron', [DataSourceController::class, 'toggleCron'])->name('admin.datasources.toggle-cron');
         Route::match(['GET', 'POST'], '/datasources/{datasource}/test-connection', [DataSourceController::class, 'testConnection'])->name('admin.datasources.test-connection');

@@ -848,7 +848,7 @@
         btn.classList.add('opacity-70', 'cursor-not-allowed');
         btn.innerHTML = `<svg class="animate-spin -ml-0.5 mr-1 h-3 w-3 text-cyan-400 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Updating...</span>`;
 
-        fetch("{{ route('admin.scheduler.toggle-task') }}", {
+        fetch("{{ \Illuminate\Support\Facades\Route::has('admin.scheduler.toggle-task') ? route('admin.scheduler.toggle-task') : url('/admin/scheduler/toggle-task') }}", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

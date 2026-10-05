@@ -17,7 +17,7 @@ class HomeController extends Controller
      * Show the mobile-first farmer home screen with live APMC rates,
      * category filtering, district context, and WhatsApp sharing.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|\Illuminate\Http\JsonResponse
     {
         $districtId = $request->query('district') ?? $request->cookie('selected_district_id') ?? session('selected_district_id');
         $selectedCategory = $request->query('category', 'all');
@@ -37,7 +37,9 @@ class HomeController extends Controller
         }
 
         if (!$activeDistrict) {
-            $activeDistrict = $allDistricts->firstWhere('name', 'Shivamogga')
+            $defaultDistrictName = \App\Models\SystemSetting::get('default_district', 'Shivamogga');
+            $activeDistrict = $allDistricts->firstWhere('name', $defaultDistrictName)
+                ?? $allDistricts->firstWhere('name', 'Shivamogga')
                 ?? $allDistricts->first();
         }
 
@@ -133,7 +135,7 @@ class HomeController extends Controller
 
         // Paginate results so mobile pagination and hasPages() work seamlessly
         $page = \Illuminate\Pagination\Paginator::resolveCurrentPage('page') ?: 1;
-        $perPage = 20;
+        $perPage = max(6, (int) \App\Models\SystemSetting::get('pagination_limit', 20));
         $latestPrices = new \Illuminate\Pagination\LengthAwarePaginator(
             $sortedPrices->forPage($page, $perPage)->values(),
             $sortedPrices->count(),
@@ -276,6 +278,22 @@ class HomeController extends Controller
         $activeLocalAreaKn = $request->cookie('selected_local_area_kn') ?? session('selected_local_area_kn');
         if ($activeLocalArea && $activeLocalAreaKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $activeLocalAreaKn) && !preg_match('/bengaluru|bangalore/i', $activeLocalArea)) {
             $activeLocalAreaKn = $activeLocalArea;
+        }
+
+        if ($request->ajax() || $request->query('async') === '1' || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            $activeLocale = app()->getLocale();
+            return response()->json([
+                'ok' => true,
+                'html' => view('farmer.partials.today_rates_content', compact(
+                    'latestPrices',
+                    'distinctCropPrices',
+                    'activeLocale'
+                ))->render(),
+                'page' => $latestPrices->currentPage(),
+                'last_page' => $latestPrices->lastPage(),
+                'total' => $latestPrices->total(),
+                'has_more' => $latestPrices->hasMorePages(),
+            ]);
         }
 
         return view('farmer.home', compact(

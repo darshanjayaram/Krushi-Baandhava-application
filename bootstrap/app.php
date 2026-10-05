@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeadersMiddleware::class);
         $middleware->web(append: [
             \App\Http\Middleware\SetLocaleMiddleware::class,
+            \App\Http\Middleware\CheckMaintenanceModeMiddleware::class,
         ]);
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,

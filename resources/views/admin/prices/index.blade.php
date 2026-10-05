@@ -517,13 +517,20 @@
                             </template>
                         </div>
 
-                        <!-- Captcha Input -->
+                        <!-- Captcha Input (Case-sensitive) -->
                         <div>
                             <input type="text" 
                                    x-model="agmarknetCaptchaCode" 
                                    maxlength="8" 
-                                   placeholder="Type the 6 characters from image above..." 
-                                   class="w-full bg-slate-900 border border-slate-700 text-center tracking-widest text-sm font-mono font-black text-amber-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 uppercase placeholder:normal-case placeholder:text-slate-500 placeholder:text-xs placeholder:tracking-normal">
+                                   placeholder="Type the 6 characters exactly (case-sensitive)..." 
+                                   autocomplete="off"
+                                   autocorrect="off"
+                                   autocapitalize="off"
+                                   spellcheck="false"
+                                   class="w-full bg-slate-900 border border-slate-700 text-center tracking-widest text-sm font-mono font-black text-amber-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 placeholder:normal-case placeholder:text-slate-500 placeholder:text-xs placeholder:tracking-normal">
+                            <p class="text-[10px] text-slate-400 text-center mt-1">
+                                Aa Case-Sensitive: Match uppercase & lowercase letters exactly as shown in the image above.
+                            </p>
                         </div>
 
                         <p class="text-[11px] text-purple-300/80 leading-relaxed">
@@ -1449,10 +1456,15 @@ function pricesManager() {
                 return;
             }
 
-            // MODE === 'range': Chunked Slices Ingestion
-            const slices = this.splitRangeIntoSlices(this.fromDate, this.toDate, 25);
+            // MODE === 'range': Ingestion
+            // If syncing with Official AGMARKNET (or if visual CAPTCHA was entered), send entire range in 1 batch
+            // because official government CAPTCHA tokens are single-use and expire after 1 request.
+            const isAgmarknet = (this.selectedSource == 4 || this.selectedSource == 'agmarknet_official' || (this.agmarknetCaptchaCode && this.agmarknetCaptchaCode.length > 0));
+            const slices = isAgmarknet
+                ? [{ from: this.fromDate, to: this.toDate }]
+                : this.splitRangeIntoSlices(this.fromDate, this.toDate, 25);
             this.totalSlices = slices.length;
-            this.addLiveLog(`🗓️ Initializing backfill for ${cropLabel} from ${this.fromDate} to ${this.toDate} (${slices.length} batch slices)`, 'info');
+            this.addLiveLog(`🗓️ Initializing backfill for ${cropLabel} from ${this.fromDate} to ${this.toDate} (${slices.length} batch ${slices.length > 1 ? 'slices' : 'request'})`, 'info');
 
             for (let i = 0; i < slices.length; i++) {
                 if (this.abortSyncRequested) {
@@ -1533,9 +1545,15 @@ function pricesManager() {
                         : '';
                     const insertedCount = data.summary?.inserted || 0;
                     const dupCount = data.summary?.duplicate || 0;
+                    const rejCount = data.summary?.rejected || 0;
                     
-                    const logType = insertedCount > 0 ? 'success' : 'default';
-                    this.addLiveLog(`✓ Batch ${i + 1}/${slices.length} finished: +${insertedCount} new, ${dupCount} duplicate${mNames}`, logType);
+                    let batchMsg = `✓ Batch ${i + 1}/${slices.length} finished: +${insertedCount} new, ${dupCount} duplicate`;
+                    if (rejCount > 0) {
+                        batchMsg += `, ${rejCount} quarantined for aliasing`;
+                    }
+                    batchMsg += mNames;
+                    const logType = insertedCount > 0 ? 'success' : (rejCount > 0 ? 'warning' : 'default');
+                    this.addLiveLog(batchMsg, logType);
 
                     // Update completed percentage
                     this.syncProgressPercent = Math.round(((i + 1) / slices.length) * 100);

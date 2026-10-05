@@ -156,6 +156,7 @@ class MarketPrice extends Model
         // Kannada translation map for standardized grades
         $gradeKnMap = [
             'average' => 'ಸರಾಸರಿ',
+            'local' => 'ಲೋಕಲ್',
             'faq' => 'ಎಫ್‌ಎಕ್ಯೂ',
             'non faq' => 'ನಾನ್-ಎಫ್‌ಎಕ್ಯೂ',
             'medium' => 'ಮಧ್ಯಮ',

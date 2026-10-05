@@ -105,6 +105,11 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
                 $cursor->subDay();
             }
 
+            if (empty($allRecords)) {
+                Log::info("KramaMarketDataProvider: KRAMA returned 0 records across range. Triggering AGMARKNET failover.");
+                return $this->fallbackToAgmarknet($filters, $fromDate);
+            }
+
             return $allRecords;
         }
 
@@ -113,7 +118,15 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
             ? Carbon::parse($filters['date'])->format('d/m/Y')
             : (isset($filters['to_date']) ? Carbon::parse($filters['to_date'])->format('d/m/Y') : Carbon::today()->format('d/m/Y'));
 
-        return $this->fetchSingleDate($dateStr, $mainRepUrl, $commadityUrl, $timeout, $filters);
+        $records = $this->fetchSingleDate($dateStr, $mainRepUrl, $commadityUrl, $timeout, $filters);
+
+        // Failover Strategy: If KRAMA returned 0 records or had an issue, fallback to Official AGMARKNET
+        if (empty($records)) {
+            Log::info("KramaMarketDataProvider: KRAMA returned 0 records for {$dateStr}. Falling back to Official AGMARKNET.");
+            $records = $this->fallbackToAgmarknet($filters, $dateStr);
+        }
+
+        return $records;
     }
 
     /**
@@ -376,20 +389,62 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
     }
 
     /**
-     * Normalize raw KRAMA record to canonical format.
+     * Failover: Fetch live APMC auction records from Official AGMARKNET when KRAMA is down or returns empty.
+     */
+    protected function fallbackToAgmarknet(array $filters, ?string $targetDate = null): array
+    {
+        if (!\App\Models\SystemSetting::get('krama_agmarknet_failover_enabled', true)) {
+            \Illuminate\Support\Facades\Log::info("KramaMarketDataProvider: Automatic failover to AGMARKNET is turned OFF in Admin settings. Skipping failover.");
+            return [];
+        }
+
+        try {
+            $agmarknetSource = \App\Models\DataSource::where('code', 'agmarknet_official')
+                ->where('is_active', true)
+                ->first();
+
+            if (!$agmarknetSource) {
+                return [];
+            }
+
+            Log::info("KramaMarketDataProvider: Triggering automatic backup sync to Official AGMARKNET for {$targetDate}.");
+            $provider = \App\Services\DataSources\DataSourceRegistry::make($agmarknetSource);
+            $fallbackFilters = $filters;
+
+            if ($targetDate && empty($fallbackFilters['date']) && empty($fallbackFilters['from_date'])) {
+                $cleanedDate = str_replace('/', '-', $targetDate);
+                $fallbackFilters['date'] = Carbon::parse($cleanedDate)->format('Y-m-d');
+                $fallbackFilters['from_date'] = $fallbackFilters['date'];
+                $fallbackFilters['to_date'] = $fallbackFilters['date'];
+            }
+
+            $records = iterator_to_array($provider->fetch($fallbackFilters));
+            if (!empty($records)) {
+                Log::info("KramaMarketDataProvider: Failover successful: " . count($records) . " records retrieved from Official AGMARKNET backup.");
+                return $records;
+            }
+        } catch (\Throwable $e) {
+            Log::warning("KramaMarketDataProvider: AGMARKNET failover failed: " . $e->getMessage());
+        }
+
+        return [];
+    }
+
+    /**
+     * Normalize raw KRAMA (or failover AGMARKNET) record to canonical format.
      */
     public function normalize(array $record): ?array
     {
-        $rawCrop = $this->applyTransformation($record['crop'] ?? null, 'trim');
-        $rawMarket = $this->applyTransformation($record['market'] ?? null, 'trim');
+        $rawCrop = $this->applyTransformation($record['crop'] ?? ($record['Commodity'] ?? ($record['cmdt_name'] ?? null)), 'trim');
+        $rawMarket = $this->applyTransformation($record['market'] ?? ($record['Market'] ?? ($record['market_name'] ?? null)), 'trim');
 
         if (empty($rawCrop) || empty($rawMarket)) {
             return null;
         }
 
-        $min = (float) ($record['min'] ?? 0);
-        $max = (float) ($record['max'] ?? 0);
-        $modal = (float) ($record['modal'] ?? 0);
+        $min = (float) ($record['min'] ?? ($record['Min_Price'] ?? ($record['min_price'] ?? 0)));
+        $max = (float) ($record['max'] ?? ($record['Max_Price'] ?? ($record['max_price'] ?? 0)));
+        $modal = (float) ($record['modal'] ?? ($record['Modal_Price'] ?? ($record['modal_price'] ?? 0)));
 
         if ($modal <= 0 && $min <= 0 && $max <= 0) {
             return null;
@@ -399,20 +454,33 @@ class KramaMarketDataProvider extends BaseMarketDataProvider
             $modal = ($min + $max) / 2;
         }
 
-        $variety = $this->applyTransformation($record['variety'] ?? 'Local', 'trim');
-        $grade = $this->applyTransformation($record['grade'] ?? 'Average', 'trim');
+        $variety = $this->applyTransformation($record['variety'] ?? ($record['Variety'] ?? 'Local'), 'trim');
+        $grade = $this->applyTransformation($record['grade'] ?? ($record['Grade'] ?? 'Local'), 'trim');
+
+        $rawDate = $record['date'] ?? ($record['Arrival_Date'] ?? ($record['price_date'] ?? Carbon::today()->format('Y-m-d')));
+        try {
+            if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', trim($rawDate), $m)) {
+                $priceDate = sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+            } else {
+                $priceDate = Carbon::parse($rawDate)->format('Y-m-d');
+            }
+        } catch (\Throwable) {
+            $priceDate = Carbon::today()->format('Y-m-d');
+        }
+
+        $arrivals = (float) ($record['arrivals'] ?? ($record['Arrival_Quantity'] ?? 0.0));
 
         return [
             'source_crop' => $rawCrop,
             'source_variety' => $variety ?: 'Local',
-            'source_grade' => $grade ?: 'Average',
+            'source_grade' => $grade ?: 'Local',
             'source_market' => $rawMarket,
-            'source_district' => null, // Resolved via Market mapping
-            'price_date' => $record['date'] ?? Carbon::today()->format('Y-m-d'),
+            'source_district' => $record['District'] ?? null,
+            'price_date' => $priceDate,
             'min_price' => round($min, 2),
             'max_price' => round($max, 2),
             'modal_price' => round($modal, 2),
-            'arrival_quantity' => (float) ($record['arrivals'] ?? 0.0),
+            'arrival_quantity' => $arrivals,
             'unit' => 'Quintal',
             'raw_payload' => $record,
         ];

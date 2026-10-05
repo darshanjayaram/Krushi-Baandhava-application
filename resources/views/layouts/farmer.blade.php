@@ -1198,9 +1198,9 @@
     {{-- Progressive Web App Push Notifications --}}
     <script>
         window.KRUSHI_PWA_CONFIG = {
-            vapidKeyUrl: "{{ route('api.v1.pwa.vapid-key') }}",
-            subscribeUrl: "{{ route('api.v1.pwa.subscribe') }}",
-            unsubscribeUrl: "{{ route('api.v1.pwa.unsubscribe') }}"
+            vapidKeyUrl: "{{ \Illuminate\Support\Facades\Route::has('api.v1.pwa.vapid-key') ? route('api.v1.pwa.vapid-key') : url('/api/v1/pwa/vapid-key') }}",
+            subscribeUrl: "{{ \Illuminate\Support\Facades\Route::has('api.v1.pwa.subscribe') ? route('api.v1.pwa.subscribe') : url('/api/v1/pwa/subscribe') }}",
+            unsubscribeUrl: "{{ \Illuminate\Support\Facades\Route::has('api.v1.pwa.unsubscribe') ? route('api.v1.pwa.unsubscribe') : url('/api/v1/pwa/unsubscribe') }}"
         };
     </script>
     <script src="{{ asset('js/pwa-push.js') }}?v={{ file_exists(public_path('js/pwa-push.js')) ? filemtime(public_path('js/pwa-push.js')) : '2' }}" defer></script>

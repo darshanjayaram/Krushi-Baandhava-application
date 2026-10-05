@@ -21,15 +21,19 @@ class SetLocaleMiddleware
     {
         // Resolve locale from URL query param, route param, session, cookie, or fallback to 'kn'
         $sessionLocale = $request->hasSession() ? $request->session()->get('locale') : null;
-        $routeLocale = $request->route('lang');
+        $defaultLang = \App\Models\SystemSetting::get('default_language', 'kn');
+        if (!in_array($defaultLang, self::SUPPORTED_LOCALES, true)) {
+            $defaultLang = 'kn';
+        }
+
         $locale = $request->query('lang')
             ?? $routeLocale
             ?? $sessionLocale
             ?? $request->cookie('locale')
-            ?? 'kn';
+            ?? $defaultLang;
 
         if (!in_array($locale, self::SUPPORTED_LOCALES, true)) {
-            $locale = 'kn';
+            $locale = $defaultLang;
         }
 
         App::setLocale($locale);
@@ -46,7 +50,7 @@ class SetLocaleMiddleware
             : $locale;
 
         if (!in_array($finalLocale, self::SUPPORTED_LOCALES, true)) {
-            $finalLocale = 'kn';
+            $finalLocale = $defaultLang;
         }
 
         App::setLocale($finalLocale);

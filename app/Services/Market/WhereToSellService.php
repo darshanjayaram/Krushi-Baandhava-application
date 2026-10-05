@@ -421,8 +421,10 @@ class WhereToSellService
             }
         }
 
-        // 4. Fallback: Default to Shivamogga or first active Karnataka district
-        $defaultDistrict = District::where('is_active', true)->whereNotNull('latitude')->first();
+        // 4. Fallback: Default to configured default district or first active Karnataka district
+        $defaultDistrictName = \App\Models\SystemSetting::get('default_district', 'Shivamogga');
+        $defaultDistrict = District::where('is_active', true)->where('name', $defaultDistrictName)->first()
+            ?? District::where('is_active', true)->whereNotNull('latitude')->first();
         $fallbackLat = (float) ($defaultDistrict?->latitude ?? 13.9299);
         $fallbackLng = (float) ($defaultDistrict?->longitude ?? 75.5681);
         $fallbackName = $defaultDistrict?->name ?? 'Shivamogga';

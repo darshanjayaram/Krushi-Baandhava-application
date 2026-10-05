@@ -440,10 +440,69 @@
                                 <div class="font-bold text-white text-sm">{{ $source->name }}</div>
                                 <div class="text-xs text-slate-400 font-mono mt-0.5">{{ $source->code }} · {{ $source->auth_type }}</div>
                                 @if($source->code === 'krama_karnataka')
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/80 mt-1 shadow-xs">
-                                        <span>🥇</span>
-                                        <span>Primary Live Karnataka Source (Daily APMC Feed)</span>
-                                    </span>
+                                    <div class="flex items-center gap-2 flex-wrap mt-1">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/80 shadow-xs">
+                                            <span>🥇</span>
+                                            <span>Primary Live Karnataka Source (Daily APMC Feed)</span>
+                                        </span>
+                                    </div>
+
+                                    <!-- Automatic Failover Toggle Switch to AGMARKNET -->
+                                    <div class="mt-2.5 p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3 max-w-sm"
+                                         x-data="{ 
+                                             failoverEnabled: {{ \App\Models\SystemSetting::get('krama_agmarknet_failover_enabled', true) ? 'true' : 'false' }}, 
+                                             loading: false,
+                                             async toggleFailover() {
+                                                 this.loading = true;
+                                                 try {
+                                                     const res = await fetch('{{ route('admin.datasources.toggle-krama-failover') }}', {
+                                                         method: 'POST',
+                                                         headers: {
+                                                             'Content-Type': 'application/json',
+                                                             'Accept': 'application/json',
+                                                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                                         },
+                                                         body: JSON.stringify({ enabled: !this.failoverEnabled })
+                                                     });
+                                                     const data = await res.json();
+                                                     if (data.ok) {
+                                                         this.failoverEnabled = data.enabled;
+                                                         if (typeof showToast === 'function') {
+                                                             showToast(data.message, 'success');
+                                                         }
+                                                     }
+                                                 } catch (e) {
+                                                     alert('Failed to toggle AGMARKNET failover.');
+                                                 } finally {
+                                                     this.loading = false;
+                                                 }
+                                             }
+                                         }">
+                                        <div class="min-w-0">
+                                            <div class="text-[11px] font-bold flex items-center gap-1.5" :class="failoverEnabled ? 'text-emerald-300' : 'text-slate-400'">
+                                                <span>🔄</span>
+                                                <span>Auto AGMARKNET Failover:</span>
+                                                <span class="font-black uppercase tracking-wider text-[10px] px-1.5 py-0.2 rounded"
+                                                      :class="failoverEnabled ? 'bg-emerald-900/80 text-emerald-200 border border-emerald-700' : 'bg-slate-800 text-slate-400 border border-slate-700'"
+                                                      x-text="failoverEnabled ? 'ON' : 'OFF'"></span>
+                                            </div>
+                                            <p class="text-[10px] text-slate-400 mt-0.5 leading-tight">
+                                                Auto-switches to AGMARKNET if KRAMA returns 0 records or is down
+                                            </p>
+                                        </div>
+
+                                        <button type="button" 
+                                                @click="toggleFailover()"
+                                                :disabled="loading"
+                                                class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50"
+                                                :class="failoverEnabled ? 'bg-emerald-500' : 'bg-slate-700'"
+                                                title="Turn ON/OFF automatic switch from KRAMA to AGMARKNET">
+                                            <span class="sr-only">Toggle AGMARKNET Failover</span>
+                                            <span aria-hidden="true" 
+                                                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                                  :class="failoverEnabled ? 'translate-x-5' : 'translate-x-0'"></span>
+                                        </button>
+                                    </div>
                                 @elseif($source->code === 'agmarknet_official')
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black bg-purple-950 text-purple-300 border border-purple-700/80 mt-1 shadow-xs">
                                         <span>📜</span>
@@ -1244,13 +1303,20 @@
                         </template>
                     </div>
 
-                    <!-- Captcha Input -->
+                    <!-- Captcha Input (Case-sensitive) -->
                     <div>
                         <input type="text" 
                                x-model="agmarknetCaptchaCode" 
                                maxlength="8" 
-                               placeholder="Type the 6 characters from image above..." 
-                               class="w-full bg-slate-900 border border-slate-700 text-center tracking-widest text-base font-mono font-black text-amber-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 uppercase placeholder:normal-case placeholder:text-slate-500 placeholder:text-xs placeholder:tracking-normal">
+                               placeholder="Type the 6 characters exactly (case-sensitive)..." 
+                               autocomplete="off"
+                               autocorrect="off"
+                               autocapitalize="off"
+                               spellcheck="false"
+                               class="w-full bg-slate-900 border border-slate-700 text-center tracking-widest text-base font-mono font-black text-amber-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 placeholder:normal-case placeholder:text-slate-500 placeholder:text-xs placeholder:tracking-normal">
+                        <p class="text-[10px] text-slate-400 text-center mt-1">
+                            Aa Case-Sensitive: Match uppercase & lowercase letters exactly as shown in the image above.
+                        </p>
                     </div>
                 </div>
 

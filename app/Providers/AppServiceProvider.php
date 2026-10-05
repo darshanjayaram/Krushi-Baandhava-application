@@ -63,7 +63,8 @@ class AppServiceProvider extends ServiceProvider
                 $activeDistrict = $allDistricts->firstWhere('id', $districtId);
             }
             if (!$activeDistrict) {
-                $activeDistrict = $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
+                $defaultDistrictName = \App\Models\SystemSetting::get('default_district', 'Shivamogga');
+                $activeDistrict = $allDistricts->firstWhere('name', $defaultDistrictName) ?? $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
             }
 
             $activeLocalArea = $request->cookie('selected_local_area') ?? session('selected_local_area');

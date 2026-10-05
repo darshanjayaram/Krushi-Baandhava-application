@@ -174,10 +174,14 @@ class HistoricalAnalyticsService
     {
         $cropIds = $cropId ? [$cropId] : Crop::where('is_active', true)->pluck('id')->toArray();
 
+        $seasonalityYears = max(1, (int) \App\Models\SystemSetting::get('seasonality_years', 5));
+        $cutoffYear = (int) Carbon::now()->year - $seasonalityYears;
+
         foreach ($cropIds as $cId) {
-            // Compute annual baseline average across all recorded months for this crop
+            // Compute annual baseline average across recorded months within configured seasonality window
             $annualAvg = (float) PriceMonthlyStatistic::where('crop_id', $cId)
                 ->whereNull('market_id')
+                ->where('year', '>=', $cutoffYear)
                 ->avg('avg_modal_price');
 
             if ($annualAvg <= 0) {
@@ -411,15 +415,19 @@ class HistoricalAnalyticsService
             12 => 'Dec',
         ];
 
-        // 1. Fetch multi-year monthly aggregates grouped by (Year, Month)
+        $seasonalityYears = max(1, (int) \App\Models\SystemSetting::get('seasonality_years', 5));
+        $cutoffDate = Carbon::today()->subYears($seasonalityYears)->startOfYear()->toDateString();
+
+        // 1. Fetch multi-year monthly aggregates grouped by (Year, Month) within configured seasonality window
         // Grouping by both Year and Month allows Year-by-Year ratio-to-mean decomposition,
-        // eliminating multi-year currency inflation skew across 5-6 years of historical records.
+        // eliminating multi-year currency inflation skew across historical records.
         $query = DB::table('market_prices')
             ->join('markets', 'market_prices.market_id', '=', 'markets.id')
             ->join('districts', 'markets.district_id', '=', 'districts.id')
             ->join('states', 'districts.state_id', '=', 'states.id')
             ->where('states.code', 'KA')
             ->where('market_prices.crop_id', $cropId)
+            ->where('market_prices.price_date', '>=', $cutoffDate)
             ->selectRaw('
                 YEAR(price_date) as year_num,
                 MONTH(price_date) as month_num,
@@ -452,6 +460,7 @@ class HistoricalAnalyticsService
                 ->join('states', 'districts.state_id', '=', 'states.id')
                 ->where('states.code', 'KA')
                 ->where('market_prices.crop_id', $cropId)
+                ->where('market_prices.price_date', '>=', $cutoffDate)
                 ->when($marketId !== null, fn($q) => $q->where('market_prices.market_id', $marketId))
                 ->selectRaw('
                     YEAR(price_date) as year_num,
@@ -907,6 +916,7 @@ class HistoricalAnalyticsService
             'is_sufficient' => count($bestMonths) > 0,
             'has_seasonal_data' => count($bestMonths) > 0,
             'distinct_months' => $distinctMonthsCount,
+            'seasonality_years' => $seasonalityYears,
             'market_id' => $marketId,
             'market_name' => $marketObj?->name ?? ($marketId === null ? 'Karnataka State Average' : 'Market'),
             'market_name_kn' => $marketObj?->name_kn ?? ($marketId === null ? 'ಕರ್ನಾಟಕ ರಾಜ್ಯ ಸರಾಸರಿ' : 'ಮಾರುಕಟ್ಟೆ'),

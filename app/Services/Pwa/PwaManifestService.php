@@ -20,6 +20,7 @@ class PwaManifestService
         $themeColor = SystemSetting::get('pwa_theme_color', '#F5EFE6');
         $bgColor = SystemSetting::get('pwa_background_color', '#F5EFE6');
         $displayMode = SystemSetting::get('pwa_display_mode', 'standalone');
+        $startUrl = SystemSetting::get('pwa_start_url', './?source=pwa');
 
         // Dynamic base icons
         $icons = [];
@@ -197,7 +198,7 @@ class PwaManifestService
             'name' => $pwaName,
             'short_name' => $pwaShortName,
             'description' => $pwaDesc,
-            'start_url' => './?source=pwa',
+            'start_url' => $startUrl,
             'scope' => './',
             'display' => $displayMode,
             'background_color' => $bgColor,

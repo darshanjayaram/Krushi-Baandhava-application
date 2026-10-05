@@ -130,54 +130,334 @@ class AgmarknetHistoricalDataProvider extends BaseMarketDataProvider
         $captchaKey = $filters['captcha_key'] ?? null;
         $captchaVal = $filters['captcha_value'] ?? ($filters['captcha_code'] ?? null);
 
-        // If captcha was provided, verify and obtain token if possible
-        if (!empty($captchaKey) && !empty($captchaVal)) {
-            try {
-                $verifyRes = $this->verifyCaptcha($captchaKey, $captchaVal);
-                if ($verifyRes['success'] && !empty($verifyRes['token'])) {
-                    $headers['Authorization'] = "Bearer " . $verifyRes['token'];
+        // Resolve Agmarknet commodity_id if local crop_id or commodity was supplied
+        $commodityId = $filters['commodity_id'] ?? null;
+        if (!$commodityId) {
+            $cropName = null;
+            if (!empty($filters['crop_id'])) {
+                $mapping = \App\Models\CropSourceMapping::where('data_source_id', $this->dataSource->id)
+                    ->where('crop_id', $filters['crop_id'])
+                    ->whereRaw('source_crop_name REGEXP "^[0-9]+$"')
+                    ->first();
+                if ($mapping && is_numeric($mapping->source_crop_name)) {
+                    $commodityId = (int) $mapping->source_crop_name;
+                } else {
+                    $crop = \App\Models\Crop::find($filters['crop_id']);
+                    $cropName = $crop?->name;
                 }
-            } catch (\Throwable $e) {
-                Log::warning("AgmarknetHistoricalDataProvider: Captcha verification exception: " . $e->getMessage());
+            } elseif (!empty($filters['commodity'])) {
+                $cropName = (string) $filters['commodity'];
+            } elseif (!empty($filters['commodity_name'])) {
+                $cropName = (string) $filters['commodity_name'];
+            }
+
+            if (!$commodityId && $cropName) {
+                $officialMap = [
+                    'Arecanut' => 118,
+                    'Coconut' => 116,
+                    'Copra' => 111,
+                    'Tender Coconut' => 161,
+                    'Coffee' => 41,
+                    'Black Pepper' => 34,
+                    'Ginger' => 87,
+                    'Paddy' => 2,
+                    'Ragi' => 30,
+                    'Maize' => 4,
+                    'Onion' => 23,
+                    'Tomato' => 65,
+                    'Jowar' => 5,
+                    'Green Chilli' => 73,
+                    'Banana' => 19,
+                    'Sunflower' => 14,
+                    'Cotton' => 15,
+                    'Rice' => 3,
+                    'Garlic' => 25,
+                    'Dry Chillies' => 113,
+                    'Cashewnut' => 33,
+                    'Groundnut' => 10,
+                ];
+                $commodityId = $officialMap[$cropName] ?? null;
             }
         }
 
-        $payload = array_merge([
-            'state_id' => $filters['state_id'] ?? 16, // Karnataka
-            'commodity_id' => $filters['commodity_id'] ?? null,
-            'from_date' => $filters['from_date'] ?? ($filters['date'] ?? Carbon::now()->subYears(3)->format('Y-m-d')),
-            'to_date' => $filters['to_date'] ?? ($filters['date'] ?? Carbon::now()->format('Y-m-d')),
-        ], array_filter([
-            'captcha_key' => $captchaKey,
-            'captcha_value' => $captchaVal,
-        ]));
+        // Clean and normalize from_date and to_date
+        $rawFrom = $filters['from_date'] ?? ($filters['date'] ?? null);
+        $rawTo = $filters['to_date'] ?? ($filters['date'] ?? null);
 
-        // Only attempt direct official Agmarknet report API if a captcha or api key is present
-        if (!empty($captchaKey) || !empty($this->apiKey) || !empty($headers['Authorization'])) {
+        $fromDate = $this->parseFilterDate($rawFrom) ?: Carbon::now()->subYears(3)->format('Y-m-d');
+        $toDate = $this->parseFilterDate($rawTo) ?: Carbon::now()->format('Y-m-d');
+
+        // 1. PRIMARY STRATEGY: If commodity is resolved, use official Date-Wise Specific Commodity endpoint
+        // This endpoint returns ALL Karnataka APMC mandis and dates across the requested months without requiring CAPTCHA!
+        $karnatakaStateId = 16; // Agmarknet official ID for Karnataka State
+
+        if ($commodityId) {
+            $dateWiseRecords = $this->fetchDateWiseSpecificCommodity(
+                (int) $commodityId,
+                $fromDate,
+                $toDate,
+                $karnatakaStateId
+            );
+
+            if (!empty($dateWiseRecords)) {
+                Log::info("AgmarknetHistoricalDataProvider: Fetched " . count($dateWiseRecords) . " records for Commodity {$commodityId} ({$fromDate} to {$toDate}) via official date-wise API.");
+                return $dateWiseRecords;
+            }
+        }
+
+        // 1.1 If single date and all commodities (no specific crop selected), use official Daily Report State endpoint
+        if (!$commodityId && $fromDate === $toDate) {
+            $dailyRecords = $this->fetchDailyReportAllCommodities($fromDate, $karnatakaStateId);
+            if (!empty($dailyRecords)) {
+                Log::info("AgmarknetHistoricalDataProvider: Fetched " . count($dailyRecords) . " records for date {$fromDate} across all commodities via official daily report API.");
+                return $dailyRecords;
+            }
+        }
+
+        $payload = array_filter([
+            'state_id' => $karnatakaStateId, // Strictly Karnataka
+            'commodity_id' => $commodityId,
+            'from_date' => $fromDate,
+            'to_date' => $toDate,
+            'captcha_key' => $captchaKey,
+            'captcha' => $captchaVal,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        // 2. SECONDARY STRATEGY: Official Agmarknet report API if a captcha or api key is present
+        if (!empty($captchaKey) && !empty($captchaVal)) {
             try {
-                $response = Http::timeout($this->dataSource->timeout_seconds ?? 30)
+                $response = Http::timeout($this->dataSource->timeout_seconds ?? 45)
                     ->withOptions(['verify' => $verifySsl])
                     ->withHeaders($headers)
                     ->post("{$baseUrl}/daily-price-arrival/report", $payload);
 
+                $data = $response->json();
+
                 if ($response->successful()) {
-                    $data = $response->json();
-                    $records = $data['data']['records'] ?? ($data['data'] ?? []);
-                    if (!empty($records) && is_array($records)) {
+                    $records = $this->extractRecordsFromResponse($data);
+                    if (!empty($records)) {
                         return $records;
+                    }
+                    if (($data['message'] ?? '') === 'No data available') {
+                        Log::info("AgmarknetHistoricalDataProvider: Official Agmarknet reports no data available for {$fromDate} to {$toDate}.");
+                        return [];
                     }
                 }
 
-                Log::warning("AgmarknetHistoricalDataProvider: Report query failed - " . substr($response->body(), 0, 150));
+                if ($response->status() === 400 && !empty($data['detail'])) {
+                    Log::warning("AgmarknetHistoricalDataProvider: Official API validation error: " . $data['detail']);
+                    throw new \RuntimeException($data['detail']);
+                }
+
+                Log::warning("AgmarknetHistoricalDataProvider: Report query response: " . substr($response->body(), 0, 150));
             } catch (\Throwable $e) {
                 Log::error("AgmarknetHistoricalDataProvider: Fetch error - " . $e->getMessage());
+                if ($e instanceof \RuntimeException) {
+                    throw $e;
+                }
             }
         } else {
-            Log::info("AgmarknetHistoricalDataProvider: Captcha not supplied in headless mode. Using data.gov.in fallback feed.");
+            Log::info("AgmarknetHistoricalDataProvider: Captcha not supplied in headless mode. Using fallback feed.");
         }
 
         // Intelligent Fallback: Pull from official data.gov.in Mandi Prices provider (API-key authenticated)
         return $this->fallbackFetch($filters);
+    }
+
+    /**
+     * Fetch date-wise prices for a specific commodity from official Agmarknet API (no CAPTCHA required).
+     */
+    protected function fetchDateWiseSpecificCommodity(int $commodityId, string $fromDate, string $toDate, int $stateId = 16): array
+    {
+        $startDate = Carbon::parse($fromDate)->startOfDay();
+        $endDate = Carbon::parse($toDate)->endOfDay();
+        if ($startDate->gt($endDate)) {
+            $temp = $startDate;
+            $startDate = $endDate->copy()->startOfDay();
+            $endDate = $temp->copy()->endOfDay();
+        }
+
+        // Map commodityId to commodity name
+        $idToNameMap = [
+            118 => 'Arecanut(Betelnut/Supari)',
+            116 => 'Coconut',
+            111 => 'Copra',
+            161 => 'Tender Coconut',
+            41  => 'Coffee',
+            34  => 'Black Pepper',
+            87  => 'Ginger(Green)',
+            2   => 'Paddy(Dhan)(Common)',
+            30  => 'Ragi (Finger Millet)',
+            4   => 'Maize',
+            23  => 'Onion',
+            65  => 'Tomato',
+            5   => 'Jowar(Sorghum)',
+            73  => 'Green Chilli',
+            19  => 'Banana',
+            14  => 'Sunflower',
+            15  => 'Cotton',
+            3   => 'Rice',
+            25  => 'Garlic',
+            113 => 'Dry Chillies',
+            33  => 'Cashewnuts',
+            10  => 'Groundnut',
+        ];
+        $commodityName = $idToNameMap[$commodityId] ?? 'Arecanut(Betelnut/Supari)';
+
+        $cursor = $startDate->copy()->startOfMonth();
+        $endMonth = $endDate->copy()->startOfMonth();
+
+        $allRecords = [];
+
+        while ($cursor->lte($endMonth)) {
+            $year = $cursor->year;
+            $month = $cursor->format('m');
+
+            try {
+                $response = Http::timeout(35)
+                    ->withOptions(['verify' => false])
+                    ->withHeaders([
+                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept' => 'application/json',
+                    ])
+                    ->get('https://api.agmarknet.gov.in/v1/prices-and-arrivals/date-wise/specific-commodity', [
+                        'year' => $year,
+                        'month' => $month,
+                        'stateId' => $stateId,
+                        'commodityId' => $commodityId,
+                        'includeExcel' => false,
+                    ]);
+
+                if ($response->successful()) {
+                    $json = $response->json();
+                    $markets = $json['markets'] ?? [];
+                    foreach ($markets as $mkt) {
+                        $marketName = $mkt['marketName'] ?? '';
+                        foreach ($mkt['dates'] ?? [] as $dateEntry) {
+                            $arrivalDateStr = $dateEntry['arrivalDate'] ?? '';
+                            if (empty($arrivalDateStr)) {
+                                continue;
+                            }
+
+                            $cleanDateStr = preg_replace('/\/+/', '/', trim($arrivalDateStr));
+                            $parsedDate = null;
+                            if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $cleanDateStr, $m)) {
+                                $parsedDate = Carbon::createFromDate((int) $m[3], (int) $m[2], (int) $m[1])->startOfDay();
+                            } else {
+                                try {
+                                    $parsedDate = Carbon::parse($cleanDateStr)->startOfDay();
+                                } catch (\Throwable) {
+                                    $parsedDate = null;
+                                }
+                            }
+
+                            if ($parsedDate && ($parsedDate->lt($startDate) || $parsedDate->gt($endDate))) {
+                                continue;
+                            }
+
+                            foreach ($dateEntry['data'] ?? [] as $row) {
+                                $allRecords[] = [
+                                    'Commodity' => $commodityName,
+                                    'Market' => $marketName,
+                                    'Variety' => $row['variety'] ?? 'Local',
+                                    'Grade' => $row['grade'] ?? ($row['Grade'] ?? 'Local'),
+                                    'Min_Price' => $row['minimumPrice'] ?? 0,
+                                    'Max_Price' => $row['maximumPrice'] ?? 0,
+                                    'Modal_Price' => $row['modalPrice'] ?? 0,
+                                    'Arrival_Date' => $arrivalDateStr,
+                                    'Arrival_Quantity' => $row['arrivals'] ?? 0,
+                                ];
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("AgmarknetHistoricalDataProvider: Month {$year}-{$month} fetch error: " . $e->getMessage());
+            }
+
+            $cursor->addMonth();
+        }
+
+        return $allRecords;
+    }
+
+    /**
+     * Fetch daily report across all commodities for a single date (no CAPTCHA required).
+     */
+    protected function fetchDailyReportAllCommodities(string $targetDate, int $stateId = 16): array
+    {
+        try {
+            $formattedDate = Carbon::parse($targetDate)->format('Y-m-d');
+            $response = Http::timeout(35)
+                ->withOptions(['verify' => false])
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept' => 'application/json',
+                ])
+                ->get('https://api.agmarknet.gov.in/v1/prices-and-arrivals/commodity-market/daily-report-state', [
+                    'date' => $formattedDate,
+                    'state' => $stateId,
+                    'includeExcel' => false,
+                ]);
+
+            if ($response->successful()) {
+                $json = $response->json();
+                $groups = $json['commodityGroups'] ?? [];
+                $records = [];
+                $displayDate = Carbon::parse($targetDate)->format('d/m/Y');
+
+                foreach ($groups as $group) {
+                    $commodities = $group['commodities'] ?? [$group];
+                    foreach ($commodities as $commodity) {
+                        $commodityName = $commodity['commodityName'] ?? '';
+                        foreach ($commodity['markets'] ?? [] as $mkt) {
+                            $marketName = $mkt['marketCenter'] ?? '';
+                            foreach ($mkt['data'] ?? [] as $row) {
+                                $records[] = [
+                                    'Commodity' => $commodityName,
+                                    'Market' => $marketName,
+                                    'Variety' => $row['variety'] ?? 'Local',
+                                    'Grade' => $row['grade'] ?? ($row['Grade'] ?? 'Local'),
+                                    'Min_Price' => $row['minimumPrice'] ?? 0,
+                                    'Max_Price' => $row['maximumPrice'] ?? 0,
+                                    'Modal_Price' => $row['modalPrice'] ?? 0,
+                                    'Arrival_Date' => $displayDate,
+                                    'Arrival_Quantity' => $row['arrivals'] ?? 0,
+                                ];
+                            }
+                        }
+                    }
+                }
+
+                return $records;
+            }
+        } catch (\Throwable $e) {
+            Log::warning("AgmarknetHistoricalDataProvider: Daily report fetch error for {$targetDate}: " . $e->getMessage());
+        }
+
+        return [];
+    }
+
+    /**
+     * Robust parser for DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD date filter strings.
+     */
+    protected function parseFilterDate(?string $dateStr): ?string
+    {
+        if (!$dateStr) {
+            return null;
+        }
+        $clean = trim($dateStr);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $clean)) {
+            return $clean;
+        }
+        if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $clean, $m)) {
+            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+        }
+        try {
+            return Carbon::parse($clean)->format('Y-m-d');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -230,6 +510,12 @@ class AgmarknetHistoricalDataProvider extends BaseMarketDataProvider
             return null;
         }
 
+        // Strict state boundary: Discard any records from other states
+        $state = $this->applyTransformation($record['State'] ?? ($record['state_name'] ?? ($record['state'] ?? null)), 'trim');
+        if (!empty($state) && stripos($state, 'Karnataka') === false && stripos($state, 'KA') === false) {
+            return null;
+        }
+
         $minPrice = (float) $this->applyTransformation($record['Min_Price'] ?? ($record['min_price'] ?? ($record['min'] ?? 0)), 'to_number');
         $maxPrice = (float) $this->applyTransformation($record['Max_Price'] ?? ($record['max_price'] ?? ($record['max'] ?? 0)), 'to_number');
         $modalPrice = (float) $this->applyTransformation($record['Modal_Price'] ?? ($record['modal_price'] ?? ($record['modal'] ?? 0)), 'to_number');
@@ -261,7 +547,7 @@ class AgmarknetHistoricalDataProvider extends BaseMarketDataProvider
         return [
             'source_crop' => $crop,
             'source_variety' => $this->applyTransformation($record['Variety'] ?? ($record['variety_name'] ?? ($record['variety'] ?? 'Local')), 'trim') ?: 'Local',
-            'source_grade' => $this->applyTransformation($record['Grade'] ?? ($record['grade_name'] ?? ($record['grade'] ?? 'Average')), 'trim') ?: 'Average',
+            'source_grade' => $this->applyTransformation($record['Grade'] ?? ($record['grade_name'] ?? ($record['grade'] ?? 'Local')), 'trim') ?: 'Local',
             'source_market' => $market,
             'source_district' => $this->applyTransformation($record['District'] ?? ($record['district_name'] ?? ($record['district'] ?? null)), 'trim'),
             'price_date' => $date,
@@ -411,5 +697,56 @@ class AgmarknetHistoricalDataProvider extends BaseMarketDataProvider
             $records[] = $row;
         }
         return $records;
+    }
+
+    /**
+     * Unpack records from Agmarknet API response envelopes.
+     * Supports nested envelopes like { "data": [ ... ], "pagination": [ ... ] }
+     * and { "status": true, "data": { "data": [ ... ], "pagination": [ ... ] } }.
+     */
+    protected function extractRecordsFromResponse(mixed $data): array
+    {
+        if (!is_array($data)) {
+            return [];
+        }
+
+        // 1. Direct nested subkey $data['data']['data']
+        if (isset($data['data']['data']) && is_array($data['data']['data'])) {
+            return array_values($data['data']['data']);
+        }
+
+        // 2. Direct nested subkey $data['data']['records']
+        if (isset($data['data']['records']) && is_array($data['data']['records'])) {
+            return array_values($data['data']['records']);
+        }
+
+        // 3. Check $data['data']
+        if (isset($data['data']) && is_array($data['data'])) {
+            if (array_is_list($data['data'])) {
+                // If the first element is another wrapper
+                if (isset($data['data'][0]['data']) && is_array($data['data'][0]['data'])) {
+                    return array_values($data['data'][0]['data']);
+                }
+                return $data['data'];
+            }
+            if (isset($data['data']['data']) && is_array($data['data']['data'])) {
+                return array_values($data['data']['data']);
+            }
+        }
+
+        // 4. Check $data['records']
+        if (isset($data['records']) && is_array($data['records'])) {
+            return array_values($data['records']);
+        }
+
+        // 5. If $data itself is a list
+        if (array_is_list($data)) {
+            if (isset($data[0]['data']) && is_array($data[0]['data'])) {
+                return array_values($data[0]['data']);
+            }
+            return $data;
+        }
+
+        return [];
     }
 }

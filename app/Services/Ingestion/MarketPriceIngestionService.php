@@ -157,6 +157,19 @@ class MarketPriceIngestionService
         try {
             $provider = DataSourceRegistry::make($dataSource);
             $rawRecords = iterator_to_array($provider->fetch($filters));
+
+            // Defensively unpack if any provider returns an envelope containing nested records
+            $flattened = [];
+            foreach ($rawRecords as $item) {
+                if (is_array($item) && isset($item['data']) && is_array($item['data']) && (isset($item['pagination']) || isset($item['data'][0]['cmdt_name']) || isset($item['data'][0]['Commodity']))) {
+                    foreach ($item['data'] as $subItem) {
+                        $flattened[] = $subItem;
+                    }
+                } else {
+                    $flattened[] = $item;
+                }
+            }
+            $rawRecords = $flattened;
             $counts['received'] = count($rawRecords);
 
             foreach ($rawRecords as $record) {
@@ -268,9 +281,26 @@ class MarketPriceIngestionService
 
                 // 3. Resolve Canonical Crop
                 $crop = $this->resolveCrop($dataSource->id, $normalized['source_crop'], $normalized['source_variety'] ?? null);
-                if (!$crop && $this->shouldAutoProvisionMasterData()) {
-                    $crop = $this->autoProvisionCrop($dataSource->id, $normalized['source_crop'], $normalized['source_variety'] ?? null);
+
+                // 3.1 Strict Configured Sync Crops Guard (Whitelist Enforcement):
+                // If this data source has configured sync crops (whitelist), enforce strictly.
+                // Any unconfigured commodity is skipped immediately: never auto-provisioned and never added to crop stats.
+                if ($enabledCropIds !== null) {
+                    if (!$crop || !in_array((int)$crop->id, $enabledCropIds, true)) {
+                        $rawModel->update([
+                            'processing_status' => 'skipped',
+                            'processed_at' => Carbon::now(),
+                            'error_message' => "Skipped: '{$normalized['source_crop']}' is not in configured sync crops for {$dataSource->name}.",
+                        ]);
+                        $counts['skipped']++;
+                        continue;
+                    }
+                } else {
+                    if (!$crop && $this->shouldAutoProvisionMasterData()) {
+                        $crop = $this->autoProvisionCrop($dataSource->id, $normalized['source_crop'], $normalized['source_variety'] ?? null);
+                    }
                 }
+
                 $cropEntryKey = $crop ? $crop->name : $rawCropName;
 
                 if (!isset($cropStats[$cropEntryKey])) {
@@ -301,18 +331,6 @@ class MarketPriceIngestionService
                     $counts['rejected']++;
                     $cropStats[$cropEntryKey]['rejected']++;
                     $cropStats[$cropEntryKey]['rejection_reasons'][] = $err;
-                    continue;
-                }
-
-                // 3.1 Enforce Provider-Specific Crop Whitelist (Admin Configured Sync Crops)
-                if ($enabledCropIds !== null && !in_array((int)$crop->id, $enabledCropIds, true)) {
-                    $rawModel->update([
-                        'processing_status' => 'skipped',
-                        'processed_at' => Carbon::now(),
-                        'error_message' => "Skipped: '{$crop->name}' is disabled in Crop Sync Settings for {$dataSource->name}.",
-                    ]);
-                    $counts['skipped']++;
-                    $cropStats[$cropEntryKey]['skipped']++;
                     continue;
                 }
 
@@ -604,6 +622,76 @@ class MarketPriceIngestionService
                 if ($subVariety) {
                     return $subVariety;
                 }
+            }
+        }
+
+        // 4.1 Check known commodity-specific alias dictionaries
+        $knownAliases = [
+            // Arecanut (crop_id = 1)
+            1 => [
+                'cqca' => 'koka',
+                'coca' => 'koka',
+                'koka' => 'koka',
+                'hale chali' => 'chali',
+                'hosa chali' => 'chali',
+                'halechali' => 'chali',
+                'hosachali' => 'chali',
+                'new variety' => 'chali',
+                'old variety' => 'chali',
+                'chippu' => 'sippegotu',
+                'arecanut-husk' => 'sippegotu',
+                'tattibettee' => 'bette',
+                'thattibette' => 'bette',
+                'tatti bette' => 'bette',
+                'other' => 'api',
+                'red' => 'kempugotu',
+                'raw' => 'chali',
+                'churu' => 'koka',
+                'factory' => 'koka',
+            ],
+            // Paddy / Rice (crop_id = 2)
+            2 => [
+                'i.r. 64' => 'ir-64',
+                'ir. 64' => 'ir-64',
+                'ir 64' => 'ir-64',
+                'sona masuri (old)' => 'sona-masuri',
+                'sona masuri new' => 'sona-masuri',
+                'sona mahsuri' => 'sona-masuri',
+                'paddy rnr new' => 'rnr-15048',
+                'paddy rnr old' => 'rnr-15048',
+                'kaveri sona' => 'sona-masuri',
+                'paddy coarse' => 'common',
+                'paddy fine' => 'fine',
+            ],
+            // Cotton (crop_id = 15)
+            15 => [
+                'narma bt cotton' => 'bt-cotton',
+                'dch-32(unginned)' => 'dch-32',
+                'suyodhar  (ginned)' => 'suyodhar',
+                'cotton (ginned)' => 'common',
+            ],
+        ];
+
+        $lowerClean = strtolower($clean);
+        if (isset($knownAliases[$cropId][$lowerClean])) {
+            $targetVarSlugOrName = $knownAliases[$cropId][$lowerClean];
+            $aliasVar = CropVariety::where('crop_id', $cropId)
+                ->where(function ($q) use ($targetVarSlugOrName) {
+                    $q->where('slug', Str::slug($targetVarSlugOrName))
+                        ->orWhere('name', 'like', "%{$targetVarSlugOrName}%");
+                })
+                ->first();
+            if ($aliasVar) {
+                return $aliasVar;
+            }
+        }
+
+        // 4.2 Sub-word contains matching: If any existing variety name (length >= 3) is contained in $clean
+        $allVarieties = CropVariety::where('crop_id', $cropId)->get();
+        foreach ($allVarieties as $v) {
+            $vName = strtolower($v->name);
+            if (strlen($vName) >= 3 && (str_contains($lowerClean, $vName) || str_contains($vName, $lowerClean))) {
+                return $v;
             }
         }
 
@@ -1058,6 +1146,14 @@ class MarketPriceIngestionService
     {
         $raw = trim($sourceCropName);
         if ($raw === '') {
+            return null;
+        }
+
+        // Guard: If this data source has an active configured crop sync whitelist, never auto-provision new crops
+        $hasActiveWhitelist = \App\Models\DataSourceCropSync::where('data_source_id', $dataSourceId)
+            ->where('is_enabled', true)
+            ->exists();
+        if ($hasActiveWhitelist) {
             return null;
         }
 

@@ -37,7 +37,8 @@ class WeatherController extends Controller
         }
 
         if (!$activeDistrict) {
-            $activeDistrict = $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
+            $defaultDistrictName = \App\Models\SystemSetting::get('default_district', 'Shivamogga');
+            $activeDistrict = $allDistricts->firstWhere('name', $defaultDistrictName) ?? $allDistricts->firstWhere('name', 'Shivamogga') ?? $allDistricts->first();
         }
 
         if ($activeDistrict) {

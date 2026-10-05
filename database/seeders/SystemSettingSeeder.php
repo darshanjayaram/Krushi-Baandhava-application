@@ -87,10 +87,16 @@ class SystemSettingSeeder extends Seeder
         ];
 
         foreach ($settings as $setting) {
-            SystemSetting::firstOrCreate(
-                ['key' => $setting['key']],
-                $setting
-            );
+            $existing = SystemSetting::where('key', $setting['key'])->first();
+            if ($existing) {
+                $existing->update([
+                    'group' => $setting['group'],
+                    'type' => $setting['type'],
+                    'description' => $setting['description'],
+                ]);
+            } else {
+                SystemSetting::create($setting);
+            }
         }
     }
 }

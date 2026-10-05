@@ -22,15 +22,50 @@ class UnresolvedMappingController extends Controller
      */
     public function index(): View
     {
-        // Fetch rejected records with unmapped commodity aliases
-        $cropErrors = MarketPriceRaw::where('processing_status', 'rejected')
-            ->where('error_message', 'like', 'Unmapped commodity alias:%')
+        // Fetch all rejected records to detect unresolved commodity and market aliases
+        $rejectedRecords = MarketPriceRaw::with('dataSource')
+            ->where('processing_status', 'rejected')
             ->get();
 
         $unresolvedCrops = [];
-        foreach ($cropErrors as $rec) {
-            if (preg_match("/Unmapped commodity alias: '([^']+)'/", $rec->error_message, $matches)) {
+        $unresolvedMarkets = [];
+
+        foreach ($rejectedRecords as $rec) {
+            $rawCrop = null;
+            $rawMarket = null;
+            $rawDistrict = null;
+
+            // 1. Try extracting from error_message
+            if (preg_match("/Unmapped commodity alias: '([^']+)'/", $rec->error_message ?? '', $matches)) {
                 $rawCrop = $matches[1];
+            }
+            if (preg_match("/Unmapped market alias: '([^']+)'/", $rec->error_message ?? '', $matches)) {
+                $rawMarket = $matches[1];
+            }
+
+            // 2. Fallback to extracting from payload if error_message didn't have explicit alias
+            if ((!$rawCrop || !$rawMarket) && is_array($rec->payload)) {
+                $p = $rec->payload;
+                if (isset($p['data'][0]) && is_array($p['data'][0])) {
+                    $item = $p['data'][0];
+                } else {
+                    $item = $p;
+                }
+
+                if (!$rawCrop) {
+                    $rawCrop = $item['Commodity'] ?? ($item['cmdt_name'] ?? ($item['commodity_name'] ?? ($item['crop'] ?? ($item['commodity'] ?? null))));
+                }
+                if (!$rawMarket) {
+                    $rawMarket = $item['Market'] ?? ($item['market_name'] ?? ($item['market'] ?? null));
+                }
+                if (!$rawDistrict) {
+                    $rawDistrict = $item['District'] ?? ($item['district_name'] ?? ($item['district'] ?? null));
+                }
+            }
+
+            // Add to unresolved crops list if present and not 'Unknown'
+            if (!empty($rawCrop) && strtolower(trim($rawCrop)) !== 'unknown') {
+                $rawCrop = trim($rawCrop);
                 $dsId = $rec->data_source_id;
                 $key = "{$dsId}_{$rawCrop}";
 
@@ -45,17 +80,10 @@ class UnresolvedMappingController extends Controller
                 }
                 $unresolvedCrops[$key]['count']++;
             }
-        }
 
-        // Fetch rejected records with unmapped market aliases
-        $marketErrors = MarketPriceRaw::where('processing_status', 'rejected')
-            ->where('error_message', 'like', 'Unmapped market alias:%')
-            ->get();
-
-        $unresolvedMarkets = [];
-        foreach ($marketErrors as $rec) {
-            if (preg_match("/Unmapped market alias: '([^']+)'/", $rec->error_message, $matches)) {
-                $rawMarket = $matches[1];
+            // Add to unresolved markets list if present and not 'Unknown'
+            if (!empty($rawMarket) && strtolower(trim($rawMarket)) !== 'unknown') {
+                $rawMarket = trim($rawMarket);
                 $dsId = $rec->data_source_id;
                 $key = "{$dsId}_{$rawMarket}";
 
@@ -64,7 +92,7 @@ class UnresolvedMappingController extends Controller
                         'data_source_id' => $dsId,
                         'data_source_name' => $rec->dataSource?->name ?? 'Unknown',
                         'raw_market_name' => $rawMarket,
-                        'raw_district_name' => $rec->payload['District'] ?? $rec->payload['district'] ?? null,
+                        'raw_district_name' => $rawDistrict,
                         'count' => 0,
                         'last_seen' => $rec->received_at,
                     ];

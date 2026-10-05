@@ -1,7 +1,41 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="space-y-6" x-data="{ currentTab: '{{ $activeTab }}', searchQuery: '' }">
+<div class="space-y-6" x-data="{
+    currentTab: '{{ $activeTab }}',
+    searchQuery: '',
+    runningAction: null,
+    actionToast: null,
+    async runSystemAction(url, actionKey, confirmMsg = null) {
+        if (confirmMsg && !confirm(confirmMsg)) return;
+        if (this.runningAction) return;
+        this.runningAction = actionKey;
+        this.actionToast = null;
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ tab: this.currentTab })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                this.actionToast = { type: 'success', message: data.message };
+            } else {
+                this.actionToast = { type: 'error', message: data.message || 'Operation failed.' };
+            }
+        } catch (err) {
+            this.actionToast = { type: 'error', message: 'Execution error: ' + err.message };
+        } finally {
+            this.runningAction = null;
+            setTimeout(() => { if (this.actionToast) this.actionToast = null; }, 6000);
+        }
+    }
+}">
 
     <!-- Header & Quick Search -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
@@ -40,6 +74,24 @@
             </div>
         </div>
 
+        <!-- Async Action Notification Toast -->
+        <div x-show="actionToast" 
+             x-cloak 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-2"
+             class="p-4 rounded-2xl flex items-center justify-between gap-3 text-xs font-bold border shadow-lg"
+             :class="actionToast?.type === 'success' ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200' : 'bg-rose-950/90 border-rose-500/40 text-rose-200'">
+            <div class="flex items-center gap-2.5">
+                <span x-text="actionToast?.type === 'success' ? '✅' : '⚠️'" class="text-base"></span>
+                <span x-text="actionToast?.message"></span>
+            </div>
+            <button type="button" @click="actionToast = null" class="text-slate-400 hover:text-white font-mono text-sm cursor-pointer">&times;</button>
+        </div>
+
         <!-- 3-Column Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             <!-- Card 1: Application Caches -->
@@ -55,17 +107,22 @@
                         Clears view cache, compiled routes, config cache, and application memory stores.
                     </p>
                 </div>
-                <form action="{{ route('admin.settings.clear-cache') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="tab" :value="currentTab">
-                    <button type="submit" 
-                            class="w-full py-2.5 px-4 bg-slate-800/90 hover:bg-slate-700/90 text-white font-bold text-xs rounded-xl border border-slate-700/80 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.99]">
-                        <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span>Clear All Caches</span>
+                <div>
+                    <button type="button" 
+                            @click="runSystemAction('{{ route('admin.settings.clear-cache') }}', 'clear_cache')"
+                            :disabled="runningAction !== null"
+                            class="w-full py-2.5 px-4 bg-slate-800/90 hover:bg-slate-700/90 disabled:opacity-50 text-white font-bold text-xs rounded-xl border border-slate-700/80 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.99]">
+                        <template x-if="runningAction === 'clear_cache'">
+                            <span class="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></span>
+                        </template>
+                        <template x-if="runningAction !== 'clear_cache'">
+                            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </template>
+                        <span x-text="runningAction === 'clear_cache' ? 'Clearing Caches...' : 'Clear All Caches'"></span>
                     </button>
-                </form>
+                </div>
             </div>
 
             <!-- Card 2: Production Speed Optimization -->
@@ -81,17 +138,22 @@
                         Pre-compiles routes, configuration, and views into cached files for fastest page loads.
                     </p>
                 </div>
-                <form action="{{ route('admin.settings.optimize') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="tab" :value="currentTab">
-                    <button type="submit" 
-                            class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
-                        <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span>Optimize for Production</span>
+                <div>
+                    <button type="button" 
+                            @click="runSystemAction('{{ route('admin.settings.optimize') }}', 'optimize')"
+                            :disabled="runningAction !== null"
+                            class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+                        <template x-if="runningAction === 'optimize'">
+                            <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        </template>
+                        <template x-if="runningAction !== 'optimize'">
+                            <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </template>
+                        <span x-text="runningAction === 'optimize' ? 'Compiling for Production...' : 'Optimize for Production'"></span>
                     </button>
-                </form>
+                </div>
             </div>
 
             <!-- Card 3: Database Schema & Migrations -->
@@ -109,19 +171,24 @@
                         Executes pending database migrations and seeds newly introduced tables/plans safely.
                     </p>
                 </div>
-                <form action="{{ route('admin.settings.update-database') }}" method="POST" onsubmit="return confirm('Execute pending database migrations and update master seeds?');">
-                    @csrf
-                    <input type="hidden" name="tab" :value="currentTab">
-                    <button type="submit" 
-                            class="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
-                        <svg class="w-4 h-4 text-slate-950 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
-                            <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
-                            <path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"></path>
-                            <path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"></path>
-                        </svg>
-                        <span>Update Database</span>
+                <div>
+                    <button type="button" 
+                            @click="runSystemAction('{{ route('admin.settings.update-database') }}', 'update_database', 'Execute pending database migrations and update master seeds?')"
+                            :disabled="runningAction !== null"
+                            class="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+                        <template x-if="runningAction === 'update_database'">
+                            <span class="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                        </template>
+                        <template x-if="runningAction !== 'update_database'">
+                            <svg class="w-4 h-4 text-slate-950 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                                <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
+                                <path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"></path>
+                                <path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"></path>
+                            </svg>
+                        </template>
+                        <span x-text="runningAction === 'update_database' ? 'Migrating Database...' : 'Update Database'"></span>
                     </button>
-                </form>
+                </div>
             </div>
         </div>
     </div>
@@ -879,7 +946,7 @@
                             @continue
                         @endif
                         <div class="space-y-2 p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition flex flex-col justify-between"
-                             x-show="searchQuery === '' || '{{ strtolower($setting->key) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($setting->description) }}'.includes(searchQuery.toLowerCase())">
+                             x-show="searchQuery === '' || '{{ strtolower($setting->key ?? '') }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($setting->description ?? '') }}'.includes(searchQuery.toLowerCase())">
                             
                             <div>
                                 <div class="flex items-center justify-between mb-1">
@@ -978,6 +1045,43 @@
                                         <option value="seasonal_decomposition" {{ $setting->value === 'seasonal_decomposition' ? 'selected' : '' }}>Seasonal Decomposition & Moving Average</option>
                                         <option value="moving_average_weighted" {{ $setting->value === 'moving_average_weighted' ? 'selected' : '' }}>Weighted Rolling Volatility Model</option>
                                     </select>
+
+                                @elseif($setting->key === 'forecast_minimum_observations')
+                                    <div class="space-y-1.5">
+                                        <div class="relative">
+                                            <input type="number" min="5" max="365" name="settings[{{ $setting->key }}]" value="{{ $setting->value }}"
+                                                   class="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
+                                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] text-emerald-400 font-mono font-bold pointer-events-none">
+                                                days of data
+                                            </span>
+                                        </div>
+                                        <p class="text-[10px] text-slate-500 leading-relaxed">Default: 30 days. Historical daily mandi records needed to generate projections. If records are below this threshold, a data-insufficiency banner is displayed.</p>
+                                    </div>
+
+                                @elseif($setting->key === 'forecast_confidence_threshold')
+                                    <div class="space-y-1.5">
+                                        <div class="relative">
+                                            <input type="number" min="10" max="100" name="settings[{{ $setting->key }}]" value="{{ $setting->value }}"
+                                                   class="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
+                                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] text-emerald-400 font-mono font-bold pointer-events-none">
+                                                % min score
+                                            </span>
+                                        </div>
+                                        <p class="text-[10px] text-slate-500 leading-relaxed">Default: 70%. Confidence threshold required to label projections as 'Likely / ಹೆಚ್ಚು ಸಾಧ್ಯತೆ' on farmer cards. Projections below this score show cautionary advice.</p>
+                                    </div>
+
+                                @elseif($setting->key === 'seasonality_years')
+                                    <div class="space-y-1.5">
+                                        <div class="relative">
+                                            <input type="number" min="1" max="15" name="settings[{{ $setting->key }}]" value="{{ $setting->value }}"
+                                                   class="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
+                                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] text-emerald-400 font-mono font-bold pointer-events-none">
+                                                historical years
+                                            </span>
+                                        </div>
+                                        <p class="text-[10px] text-slate-500 leading-relaxed">Default: 5 years. Used by 'Best Months to Sell' (Krushi Harvest Calendar) to evaluate annual cyclical peak price months across historical years.</p>
+                                    </div>
+
 
                                 <!-- ============================================ -->
                                 <!-- 4. DATA SYNC FEEDS CONTROLS (Point 3)        -->
