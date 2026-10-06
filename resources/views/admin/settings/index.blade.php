@@ -203,6 +203,7 @@
                 'maps' => ['name' => 'Interactive Maps & Route Tiles', 'icon' => '🗺️'],
                 'data_sources' => ['name' => 'Data Sync Feeds', 'icon' => '🔄'],
                 'forecasting' => ['name' => 'Price Forecasting', 'icon' => '📈'],
+                'best_months_to_sell' => ['name' => 'Best Months to Sell', 'icon' => '🗓️'],
                 'performance' => ['name' => 'Performance & Cache', 'icon' => '⚡'],
                 'maintenance' => ['name' => 'Maintenance & Tools', 'icon' => '🛠️'],
                 'localization' => ['name' => 'Regional & Language', 'icon' => '📍'],
@@ -617,6 +618,50 @@
                         <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800">
                             <span class="text-[10px] uppercase font-bold text-slate-400">Last Batch Run</span>
                             <div class="text-xs font-medium text-slate-300 mt-2 truncate">{{ $lastForecastRun ? $lastForecastRun->created_at->diffForHumans() : 'Ready' }}</div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            @if($groupName === 'best_months_to_sell')
+                <!-- ============================================================== -->
+                <!-- BEST MONTHS TO SELL (KRUSHI HARVEST CALENDAR) CONTROL DECK    -->
+                <!-- ============================================================== -->
+                <div class="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 shadow-xl space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <span>🗓️</span>
+                                <span>Best Months to Sell — Krushi Harvest Calendar Control Deck</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Multi-year seasonal price indices, peak cyclical selling windows, and annual harvest calendar analytics.</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Harvest Calendar Active</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Metrics Deck -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                        <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800">
+                            <span class="text-[10px] uppercase font-bold text-slate-400">Calendar Horizon</span>
+                            <div class="text-lg font-black text-white mt-1">12 Months (Jan–Dec)</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800">
+                            <span class="text-[10px] uppercase font-bold text-slate-400">Tracked Commodities</span>
+                            <div class="text-lg font-black text-emerald-400 mt-1">{{ $totalCrops }} Crops</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800">
+                            <span class="text-[10px] uppercase font-bold text-slate-400">Statistical Method</span>
+                            <div class="text-xs font-mono font-bold text-white mt-2 truncate">Ratio-to-Mean (Multiplicative)</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800">
+                            <span class="text-[10px] uppercase font-bold text-slate-400">Outlier Smoothing</span>
+                            <div class="text-xs font-mono font-bold text-emerald-400 mt-2 truncate">Medial Winsorization</div>
                         </div>
                     </div>
                 </div>

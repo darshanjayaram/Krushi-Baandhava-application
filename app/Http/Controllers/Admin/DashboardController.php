@@ -35,8 +35,9 @@ class DashboardController extends Controller
         $today = Carbon::today()->toDateString();
         $latestPriceDate = MarketPrice::max('price_date') ?? $today;
 
-        // Scheduler / cPanel Cron Health Detection
+        // Scheduler / cPanel Cron Health Detection (Dual Check: Memory Cache + Persistent System Setting DB + DataSource)
         $rawHeartbeat = Cache::get('scheduler_last_heartbeat') 
+            ?? SystemSetting::get('scheduler_last_heartbeat')
             ?? DataSource::max('last_heartbeat_at');
         $lastHeartbeat = $rawHeartbeat ? Carbon::parse($rawHeartbeat) : null;
         $isCronActive = $lastHeartbeat && $lastHeartbeat->diffInMinutes(now()) <= 15;
@@ -47,8 +48,8 @@ class DashboardController extends Controller
             'last_heartbeat_human' => $lastHeartbeat ? $lastHeartbeat->diffForHumans() : 'Never',
             'last_heartbeat_formatted' => $lastHeartbeat ? $lastHeartbeat->format('d M Y, h:i A') : 'No heartbeat recorded yet',
             'minutes_ago' => $lastHeartbeat ? (int) $lastHeartbeat->diffInMinutes(now()) : null,
-            'cpanel_command' => "* * * * * cd " . base_path() . " && php artisan schedule:run >> /dev/null 2>&1",
-            'cpanel_binary_command' => "* * * * * /usr/local/bin/php " . base_path('artisan') . " schedule:run >/dev/null 2>&1",
+            'cpanel_command' => "* * * * * cd " . base_path() . " && php artisan schedule:run >> " . storage_path('logs/cron.log') . " 2>&1",
+            'cpanel_binary_command' => "* * * * * /usr/local/bin/php " . base_path('artisan') . " schedule:run >> " . storage_path('logs/cron.log') . " 2>&1",
             'base_path' => base_path(),
             'php_binary' => PHP_BINARY,
             'morning_time' => SystemSetting::get('cron_market_morning_time', '06:00'),
@@ -283,7 +284,11 @@ class DashboardController extends Controller
     {
         try {
             Artisan::call('schedule:run');
-            Cache::forever('scheduler_last_heartbeat', now());
+            $now = now();
+            Cache::forever('scheduler_last_heartbeat', $now);
+            try {
+                SystemSetting::set('scheduler_last_heartbeat', $now->toDateTimeString(), 'string', 'system', 'Timestamp of last scheduler execution');
+            } catch (\Throwable $e) {}
 
             return redirect()->back()->with('success', 'Scheduler tick completed successfully! Heartbeat recorded at ' . now()->format('h:i:s A') . '.');
         } catch (\Throwable $e) {

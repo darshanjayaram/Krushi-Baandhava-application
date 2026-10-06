@@ -47,6 +47,7 @@ class DataSourceController extends Controller
         ];
 
         $rawHeartbeat = \Illuminate\Support\Facades\Cache::get('scheduler_last_heartbeat') 
+            ?? SystemSetting::get('scheduler_last_heartbeat')
             ?? DataSource::max('last_heartbeat_at');
         $lastHeartbeat = $rawHeartbeat ? Carbon::parse($rawHeartbeat) : null;
         $isCronActive = $lastHeartbeat && $lastHeartbeat->diffInMinutes(now()) <= 15;
@@ -55,8 +56,8 @@ class DataSourceController extends Controller
             'php_binary' => PHP_BINARY,
             'base_path' => base_path(),
             'artisan_path' => base_path('artisan'),
-            'cpanel_command' => "* * * * * /usr/local/bin/php " . base_path('artisan') . " schedule:run >/dev/null 2>&1",
-            'standard_command' => "* * * * * cd " . base_path() . " && php artisan schedule:run >> /dev/null 2>&1",
+            'cpanel_command' => "* * * * * /usr/local/bin/php " . base_path('artisan') . " schedule:run >> " . storage_path('logs/cron.log') . " 2>&1",
+            'standard_command' => "* * * * * cd " . base_path() . " && php artisan schedule:run >> " . storage_path('logs/cron.log') . " 2>&1",
             'last_heartbeat' => $lastHeartbeat,
             'is_active' => $isCronActive,
             'morning_time' => SystemSetting::get('cron_market_morning_time', '06:00'),

@@ -18,7 +18,19 @@ Artisan::command('inspire', function () {
 |--------------------------------------------------------------------------
 */
 Schedule::call(function () {
-    \Illuminate\Support\Facades\Cache::forever('scheduler_last_heartbeat', now());
+    $now = now();
+    \Illuminate\Support\Facades\Cache::forever('scheduler_last_heartbeat', $now);
+    try {
+        \App\Models\SystemSetting::set(
+            'scheduler_last_heartbeat',
+            $now->toDateTimeString(),
+            'string',
+            'system',
+            'Timestamp of last scheduler execution'
+        );
+    } catch (\Throwable $e) {
+        // Silently continue if database connection is temporarily busy
+    }
 })->everyMinute();
 
 // Admin-configured dynamic cron schedule (Admin > Data Sources > Configure Cron Timings)

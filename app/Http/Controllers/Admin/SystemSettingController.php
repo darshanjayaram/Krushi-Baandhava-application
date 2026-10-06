@@ -33,10 +33,66 @@ class SystemSettingController extends Controller
             'maps',
             'data_sources',
             'forecasting',
+            'best_months_to_sell',
             'performance',
             'maintenance',
             'localization',
         ];
+
+        // Auto-heal and normalize domain groups for deployment environments
+        SystemSetting::where('key', 'seasonality_years')
+            ->where('group', '!=', 'best_months_to_sell')
+            ->update([
+                'group' => 'best_months_to_sell',
+                'type' => 'integer',
+                'description' => 'Number of historical years evaluated to compute monthly seasonal price indices and peak harvest selling months.'
+            ]);
+
+        SystemSetting::firstOrCreate(
+            ['key' => 'seasonality_years'],
+            [
+                'value' => '5',
+                'type' => 'integer',
+                'group' => 'best_months_to_sell',
+                'description' => 'Number of historical years evaluated to compute monthly seasonal price indices and peak harvest selling months.'
+            ]
+        );
+
+        SystemSetting::where('key', 'forecast_minimum_observations')
+            ->where('group', '!=', 'forecasting')
+            ->update([
+                'group' => 'forecasting',
+                'type' => 'integer',
+                'description' => 'Minimum historical price observations required before producing a forecast.'
+            ]);
+
+        SystemSetting::firstOrCreate(
+            ['key' => 'forecast_minimum_observations'],
+            [
+                'value' => '30',
+                'type' => 'integer',
+                'group' => 'forecasting',
+                'description' => 'Minimum historical price observations required before producing a forecast.'
+            ]
+        );
+
+        SystemSetting::where('key', 'forecast_confidence_threshold')
+            ->where('group', '!=', 'forecasting')
+            ->update([
+                'group' => 'forecasting',
+                'type' => 'integer',
+                'description' => 'Minimum confidence percentage required to display forecast on farmer mobile screen.'
+            ]);
+
+        SystemSetting::firstOrCreate(
+            ['key' => 'forecast_confidence_threshold'],
+            [
+                'value' => '70',
+                'type' => 'integer',
+                'group' => 'forecasting',
+                'description' => 'Minimum confidence percentage required to display forecast on farmer mobile screen.'
+            ]
+        );
 
         $allSettings = SystemSetting::whereIn('group', $managedGroups)
             ->whereNotIn('key', ['crop_price_staleness_days', 'category_price_staleness_days'])
@@ -199,8 +255,19 @@ class SystemSettingController extends Controller
      */
     public function clearCache(Request $request): RedirectResponse|JsonResponse
     {
+        $existingHeartbeat = Cache::get('scheduler_last_heartbeat') 
+            ?? SystemSetting::get('scheduler_last_heartbeat');
+
         Artisan::call('optimize:clear');
         Cache::flush();
+
+        // Self-Healing Guard: Restore scheduler heartbeat so clearing cache does not cause the dashboard to show "Cron Stopped"
+        if ($existingHeartbeat) {
+            Cache::forever('scheduler_last_heartbeat', $existingHeartbeat);
+            try {
+                SystemSetting::set('scheduler_last_heartbeat', (string) $existingHeartbeat, 'string', 'system', 'Timestamp of last scheduler execution');
+            } catch (\Throwable $e) {}
+        }
 
         AuditLog::log('system.clear_cache', 'System', null, [], ['status' => 'cleared']);
 

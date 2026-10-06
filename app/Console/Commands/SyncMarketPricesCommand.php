@@ -81,7 +81,11 @@ class SyncMarketPricesCommand extends Command
             }
         }
 
-        \Illuminate\Support\Facades\Cache::forever('scheduler_last_heartbeat', now());
+        $now = now();
+        \Illuminate\Support\Facades\Cache::forever('scheduler_last_heartbeat', $now);
+        try {
+            \App\Models\SystemSetting::set('scheduler_last_heartbeat', $now->toDateTimeString(), 'string', 'system', 'Timestamp of last scheduler execution');
+        } catch (\Throwable $e) {}
 
         $sources = $query->get();
 
