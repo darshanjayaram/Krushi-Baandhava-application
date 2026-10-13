@@ -409,34 +409,37 @@
     </div>
 
     <!-- Quick Operations Action Bar -->
-    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Actions:</span>
-            <form action="{{ route('admin.prices.sync') }}" method="POST" class="inline">
-                @csrf
-                <button type="submit" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-1.5 transition">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-wrap">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">Quick Actions:</span>
+            <div class="flex items-center gap-2 flex-wrap">
+                <form action="{{ route('admin.prices.sync') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="px-3.5 py-2 sm:py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer">
+                        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Sync Prices Now</span>
+                    </button>
+                </form>
+                <a href="{{ route('admin.data-quality.index') }}" class="px-3.5 py-2 sm:py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 flex items-center gap-1.5 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    Sync Prices Now
-                </button>
-            </form>
-            <a href="{{ route('admin.data-quality.index') }}" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 flex items-center gap-1.5 transition">
-                <svg class="w-4 h-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Inspect Rejected Records ({{ $stats['raw_rejected_count'] }})
-            </a>
-            <a href="{{ route('admin.unresolved-mappings.index') }}" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 flex items-center gap-1.5 transition">
-                <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                Alias Resolvers
-            </a>
+                    <span>Inspect Rejected Records ({{ $stats['raw_rejected_count'] }})</span>
+                </a>
+                <a href="{{ route('admin.unresolved-mappings.index') }}" class="px-3.5 py-2 sm:py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 flex items-center gap-1.5 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    <span>Alias Resolvers</span>
+                </a>
+            </div>
         </div>
-        <div>
+        <div class="shrink-0 pt-1 md:pt-0 border-t md:border-t-0 border-slate-800/80">
             <a href="{{ route('admin.feature-flags.index') }}" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition">
-                Manage Feature Flags &rarr;
+                <span>Manage Feature Flags</span>
+                <span>&rarr;</span>
             </a>
         </div>
     </div>

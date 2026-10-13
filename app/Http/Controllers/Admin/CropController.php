@@ -293,17 +293,29 @@ class CropController extends Controller
     }
 
     /**
-     * Toggle the active status of a crop.
+     * Toggle the active status of a crop (supports async AJAX and standard POST).
      */
-    public function toggleStatus(Crop $crop): RedirectResponse
+    public function toggleStatus(Request $request, Crop $crop): RedirectResponse|JsonResponse
     {
         $crop->is_active = !$crop->is_active;
         $crop->save();
 
         AuditLog::log('crop.status_toggle', 'Crop', $crop->id, null, ['is_active' => $crop->is_active]);
 
-        $statusLabel = $crop->is_active ? 'activated' : 'deactivated';
-        return back()->with('success', "Crop '{$crop->name}' was {$statusLabel}.");
+        $statusLabel = $crop->is_active ? 'Active' : 'Paused';
+        $message = "Crop '{$crop->name}' is now {$statusLabel}.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'crop_id' => $crop->id,
+                'is_active' => (bool) $crop->is_active,
+                'status_label' => $statusLabel,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
     /**
@@ -793,6 +805,77 @@ class CropController extends Controller
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'ok' => true,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->route('admin.crops.index')->with('success', $msg);
+    }
+
+    /**
+     * Batch update multiple crops (active/paused status, major commodity toggle, category reassignment).
+     */
+    public function batchUpdate(Request $request): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'crop_ids' => ['required', 'array', 'min:1'],
+            'crop_ids.*' => ['required', 'integer', 'exists:crops,id'],
+            'action' => ['required', 'string', 'in:activate,pause,mark_major,unmark_major,change_category'],
+            'category_id' => ['required_if:action,change_category', 'nullable', 'integer', 'exists:crop_categories,id'],
+        ]);
+
+        $cropIds = array_map('intval', $validated['crop_ids']);
+        $action = $validated['action'];
+        $updatedCount = 0;
+        $logDetails = [];
+
+        switch ($action) {
+            case 'activate':
+                $updatedCount = Crop::whereIn('id', $cropIds)->update(['is_active' => true]);
+                $msg = "Successfully activated {$updatedCount} commodities.";
+                $logDetails = ['is_active' => true];
+                break;
+
+            case 'pause':
+                $updatedCount = Crop::whereIn('id', $cropIds)->update(['is_active' => false]);
+                $msg = "Successfully paused {$updatedCount} commodities.";
+                $logDetails = ['is_active' => false];
+                break;
+
+            case 'mark_major':
+                $updatedCount = Crop::whereIn('id', $cropIds)->update(['is_major' => true]);
+                $msg = "Marked {$updatedCount} commodities as Major Karnataka Commodities.";
+                $logDetails = ['is_major' => true];
+                break;
+
+            case 'unmark_major':
+                $updatedCount = Crop::whereIn('id', $cropIds)->update(['is_major' => false]);
+                $msg = "Removed Major status from {$updatedCount} commodities.";
+                $logDetails = ['is_major' => false];
+                break;
+
+            case 'change_category':
+                $catId = (int) $validated['category_id'];
+                $updatedCount = Crop::whereIn('id', $cropIds)->update(['category_id' => $catId]);
+                $category = CropCategory::find($catId);
+                $categoryName = $category?->name ?? 'Category #' . $catId;
+                $msg = "Moved {$updatedCount} commodities to category '{$categoryName}'.";
+                $logDetails = ['category_id' => $catId];
+                break;
+        }
+
+        AuditLog::log('crop.batch_update', 'Crop', null, [
+            'crop_ids' => $cropIds,
+            'action' => $action,
+            'count' => $updatedCount,
+        ], $logDetails);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'action' => $action,
+                'updated_count' => $updatedCount,
+                'crop_ids' => $cropIds,
                 'message' => $msg,
             ]);
         }

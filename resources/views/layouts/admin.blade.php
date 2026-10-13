@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-slate-900 antialiased">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-slate-900 dark antialiased">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
@@ -25,6 +25,9 @@
     @endphp
     <link rel="icon" type="{{ $adminLogoMime }}" href="{{ $adminLogoUrl }}">
     <link rel="shortcut icon" href="{{ $adminLogoUrl }}">
+
+    <!-- Flatpickr Core Stylesheet (Self-hosted for guaranteed local loading & zero CSP conflicts) -->
+    <link rel="stylesheet" href="{{ asset('vendor/flatpickr/flatpickr.min.css') }}">
 
     <style>
         body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
@@ -137,6 +140,262 @@
         .thin-scrollbar {
             scrollbar-width: thin;
             scrollbar-color: #059669 #020617;
+        }
+
+        /* ============================================================== */
+        /* HIGH-FIDELITY DARK NATIVE DATE & TIME INPUTS                    */
+        /* ============================================================== */
+        input[type="date"], input[type="time"], input[type="datetime-local"], .flatpickr-input {
+            color-scheme: dark !important;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Sleek calendar & clock picker icons */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator,
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8) brightness(1.2);
+            cursor: pointer;
+            padding: 3px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            opacity: 0.85;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover,
+        input[type="time"]::-webkit-calendar-picker-indicator:hover,
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+            filter: invert(1) brightness(1.5);
+            background: rgba(16, 185, 129, 0.2);
+            opacity: 1;
+        }
+
+        /* ============================================================== */
+        /* CUSTOM DARK FLATPICKR DATE & TIME PICKER UX                    */
+        /* ============================================================== */
+        /* CRITICAL: Flatpickr must NEVER participate in body flex layout */
+        .flatpickr-calendar {
+            display: none !important;
+            position: absolute !important;
+            visibility: hidden !important;
+            background: #0f172a !important; /* slate-900 */
+            border: 1px solid #334155 !important; /* slate-700 */
+            border-radius: 1.25rem !important; /* 20px rounded */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+            z-index: 99999 !important;
+            color: #f8fafc !important;
+            margin-top: 4px !important;
+        }
+
+        .flatpickr-calendar.hasTime.noCalendar {
+            width: auto !important;
+            min-width: 170px !important;
+            max-width: 220px !important;
+            border-radius: 1rem !important;
+            padding: 4px 6px !important;
+            overflow: visible !important;
+        }
+
+        .flatpickr-calendar.open,
+        .flatpickr-calendar.inline {
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        .flatpickr-calendar.arrowTop:before, .flatpickr-calendar.arrowTop:after {
+            border-bottom-color: #020617 !important;
+        }
+        .flatpickr-calendar.arrowBottom:before, .flatpickr-calendar.arrowBottom:after {
+            border-top-color: #020617 !important;
+        }
+
+        .flatpickr-months {
+            background: #020617 !important; /* slate-950 */
+            border-bottom: 1px solid #1e293b !important;
+            padding: 8px 4px !important;
+            border-radius: 1.25rem 1.25rem 0 0 !important;
+        }
+
+        .flatpickr-months .flatpickr-month {
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            height: 36px !important;
+        }
+
+        .flatpickr-current-month {
+            font-size: 13px !important;
+            padding-top: 4px !important;
+        }
+
+        .flatpickr-current-month .cur-month {
+            font-weight: 800 !important;
+            color: #ffffff !important;
+        }
+
+        .flatpickr-current-month input.cur-year {
+            font-weight: 800 !important;
+            color: #10b981 !important; /* emerald-500 */
+        }
+
+        .flatpickr-current-month .numInputWrapper span.arrowUp:after {
+            border-bottom-color: #10b981 !important;
+        }
+        .flatpickr-current-month .numInputWrapper span.arrowDown:after {
+            border-top-color: #10b981 !important;
+        }
+
+        .flatpickr-months .flatpickr-prev-month, 
+        .flatpickr-months .flatpickr-next-month {
+            color: #94a3b8 !important;
+            fill: #94a3b8 !important;
+            padding: 8px 12px !important;
+            border-radius: 0.75rem !important;
+            transition: all 0.2s ease !important;
+        }
+        .flatpickr-months .flatpickr-prev-month:hover, 
+        .flatpickr-months .flatpickr-next-month:hover {
+            color: #10b981 !important;
+            fill: #10b981 !important;
+            background: rgba(16, 185, 129, 0.1) !important;
+        }
+
+        span.flatpickr-weekday {
+            color: #64748b !important; /* slate-500 */
+            font-weight: 700 !important;
+            font-size: 11px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            background: #0f172a !important;
+            padding-top: 6px !important;
+        }
+
+        .flatpickr-day {
+            color: #cbd5e1 !important;
+            border-radius: 0.625rem !important; /* 10px rounded */
+            font-weight: 600 !important;
+            font-size: 12px !important;
+            height: 34px !important;
+            line-height: 34px !important;
+            margin: 2px 0 !important;
+            transition: all 0.15s ease !important;
+            border-color: transparent !important;
+        }
+
+        .flatpickr-day:hover {
+            background: #1e293b !important; /* slate-800 */
+            color: #ffffff !important;
+            border-color: #334155 !important;
+        }
+
+        .flatpickr-day.today {
+            border: 1px solid #10b981 !important;
+            color: #34d399 !important;
+            background: rgba(16, 185, 129, 0.12) !important;
+        }
+
+        .flatpickr-day.selected, 
+        .flatpickr-day.startRange, 
+        .flatpickr-day.endRange {
+            background: #059669 !important; /* emerald-600 */
+            color: #ffffff !important;
+            border-color: #059669 !important;
+            font-weight: 800 !important;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.45) !important;
+        }
+
+        .flatpickr-day.inRange {
+            background: rgba(5, 150, 105, 0.25) !important;
+            border-color: transparent !important;
+            color: #a7f3d0 !important;
+        }
+
+        .flatpickr-day.flatpickr-disabled, 
+        .flatpickr-day.flatpickr-disabled:hover {
+            color: #334155 !important;
+        }
+
+        /* Time Picker Styling for explicit Flatpickr instances */
+        .flatpickr-time {
+            background: #020617 !important; /* slate-950 */
+            border-top: 1px solid #1e293b !important;
+            border-radius: 0 0 1.25rem 1.25rem !important;
+            padding: 8px 6px !important;
+            line-height: 38px !important;
+            height: 52px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .flatpickr-calendar.noCalendar .flatpickr-time {
+            border-top: none !important;
+            border-radius: 1rem !important;
+        }
+
+        .flatpickr-time input {
+            color: #ffffff !important;
+            font-family: ui-monospace, monospace !important;
+            font-weight: 800 !important;
+            font-size: 15px !important;
+            background: #0f172a !important;
+            border: 1px solid #334155 !important;
+            border-radius: 0.5rem !important;
+            padding: 2px 4px !important;
+            height: 36px !important;
+            transition: border-color 0.15s ease !important;
+        }
+
+        .flatpickr-time input:hover, .flatpickr-time input:focus {
+            background: #1e293b !important;
+            border-color: #10b981 !important;
+        }
+
+        .flatpickr-time .flatpickr-time-separator {
+            color: #64748b !important;
+            font-weight: 800 !important;
+            font-size: 16px !important;
+        }
+
+        .flatpickr-time .flatpickr-am-pm {
+            background: #0f172a !important;
+            color: #34d399 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 0.5rem !important;
+            font-weight: 800 !important;
+            font-size: 12px !important;
+            height: 36px !important;
+            transition: all 0.15s ease !important;
+        }
+        .flatpickr-time .flatpickr-am-pm:hover {
+            background: #059669 !important;
+            color: #ffffff !important;
+            border-color: #059669 !important;
+        }
+
+        /* Adorn alt-inputs with calendar / clock cursor */
+        .flatpickr-input[readonly] {
+            cursor: pointer !important;
+        }
+
+        /* Mobile full-width positioning & centered touch modal (only for date calendars, not time) */
+        @media (max-width: 640px) {
+            .flatpickr-calendar:not(.noCalendar) {
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                max-width: 94vw !important;
+                width: 330px !important;
+                margin: 0 !important;
+                box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 0 9999px rgba(0, 0, 0, 0.6) !important;
+            }
+            .flatpickr-calendar:not(.noCalendar).arrowTop:before,
+            .flatpickr-calendar:not(.noCalendar).arrowTop:after,
+            .flatpickr-calendar:not(.noCalendar).arrowBottom:before,
+            .flatpickr-calendar:not(.noCalendar).arrowBottom:after {
+                display: none !important;
+            }
         }
     </style>
 
@@ -420,7 +679,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
-                <h1 class="text-sm sm:text-lg font-bold text-white tracking-tight truncate max-w-[180px] xs:max-w-[260px] sm:max-w-none">{{ $header ?? 'Dashboard' }}</h1>
+                <h1 class="text-sm sm:text-lg font-bold text-white tracking-tight truncate max-w-[180px] xs:max-w-[260px] sm:max-w-none">{{ $header ?? (trim($__env->yieldContent('title')) ?: 'Dashboard') }}</h1>
             </div>
 
             <!-- User Profile Dropdown Menu -->
@@ -593,6 +852,323 @@
             <span class="text-[10px] mt-1 leading-none font-medium">More</span>
         </button>
     </nav>
+
+    <!-- Flatpickr Core Script (Self-hosted for guaranteed local execution & zero CSP conflicts) -->
+    <script src="{{ asset('vendor/flatpickr/flatpickr.min.js') }}"></script>
+    <script>
+    (function () {
+        function initAdminPickers(root) {
+            if (typeof flatpickr === 'undefined') return;
+            var container = root || document;
+
+            // 1. Single & Range Date Pickers (Uses custom Flatpickr dark calendar on both desktop and mobile)
+            container.querySelectorAll('input[type="date"], [data-picker="date"], .admin-datepicker').forEach(function (el) {
+                if (el._flatpickr) return;
+
+                var initialVal = el.value || '';
+                var isExplicitRange = el.hasAttribute('data-picker-range') || el.classList.contains('admin-daterange');
+
+                el.classList.add('cursor-pointer');
+                el.setAttribute('autocomplete', 'off');
+
+                flatpickr(el, {
+                    mode: isExplicitRange ? 'range' : 'single',
+                    defaultDate: initialVal || null,
+                    dateFormat: 'Y-m-d',
+                    altInput: false,
+                    disableMobile: true, // Guarantees custom Flatpickr dark calendar opens across Android, iOS & Desktop
+                    allowInput: false,
+                    animate: true,
+                    monthSelectorType: 'static',
+                    nextArrow: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>',
+                    prevArrow: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>',
+                    onReady: function (selectedDates, dateStr, instance) {
+                        if (instance.calendarContainer) {
+                            ['click', 'mousedown', 'pointerdown', 'touchstart', 'touchend'].forEach(function (evtName) {
+                                instance.calendarContainer.addEventListener(evtName, function (e) {
+                                    e.stopPropagation();
+                                });
+                            });
+                        }
+                    },
+                    onOpen: function (selectedDates, dateStr, instance) {
+                        if (instance.input && instance.input.value) {
+                            try {
+                                var cur = instance.input.value;
+                                if (!selectedDates.length || instance.formatDate(selectedDates[0], 'Y-m-d') !== cur) {
+                                    instance.setDate(cur, false);
+                                }
+                            } catch (e) {}
+                        }
+                    },
+                    onChange: function (selectedDates, dateStr, instance) {
+                        instance.input.value = dateStr;
+                        instance.input.dispatchEvent(new Event('input', { bubbles: true }));
+                        instance.input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            });
+
+            // 2. Explicit Time Pickers (Only explicit opt-ins via [data-picker="time"] or .admin-timepicker, NEVER hijack standard input[type="time"])
+            container.querySelectorAll('[data-picker="time"], .admin-timepicker').forEach(function (el) {
+                if (el._flatpickr) return;
+
+                var initialVal = el.value || '';
+                el.classList.add('cursor-pointer');
+                el.setAttribute('autocomplete', 'off');
+
+                flatpickr(el, {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: 'H:i',
+                    defaultDate: initialVal || null,
+                    time_24hr: true,
+                    disableMobile: false,
+                    altInput: false,
+                    animate: true,
+                    onReady: function (selectedDates, dateStr, instance) {
+                        if (instance.calendarContainer) {
+                            ['click', 'mousedown', 'pointerdown'].forEach(function (evtName) {
+                                instance.calendarContainer.addEventListener(evtName, function (e) {
+                                    e.stopPropagation();
+                                });
+                            });
+                        }
+                    },
+                    onChange: function (selectedDates, dateStr, instance) {
+                        instance.input.value = dateStr;
+                        instance.input.dispatchEvent(new Event('input', { bubbles: true }));
+                        instance.input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            });
+
+            // 3. Datetime Pickers
+            container.querySelectorAll('[data-picker="datetime"], .admin-datetimepicker').forEach(function (el) {
+                if (el._flatpickr) return;
+
+                var initialVal = el.value || '';
+                el.classList.add('cursor-pointer');
+                el.setAttribute('autocomplete', 'off');
+
+                flatpickr(el, {
+                    enableTime: true,
+                    dateFormat: 'Y-m-d H:i:s',
+                    defaultDate: initialVal || null,
+                    time_24hr: true,
+                    disableMobile: true,
+                    altInput: false,
+                    animate: true,
+                    nextArrow: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>',
+                    prevArrow: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>',
+                    onReady: function (selectedDates, dateStr, instance) {
+                        if (instance.calendarContainer) {
+                            ['click', 'mousedown', 'pointerdown', 'touchstart', 'touchend'].forEach(function (evtName) {
+                                instance.calendarContainer.addEventListener(evtName, function (e) {
+                                    e.stopPropagation();
+                                });
+                            });
+                        }
+                    },
+                    onChange: function (selectedDates, dateStr, instance) {
+                        instance.input.value = dateStr;
+                        instance.input.dispatchEvent(new Event('input', { bubbles: true }));
+                        instance.input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            });
+        }
+
+        window.initAdminPickers = initAdminPickers;
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () { initAdminPickers(); });
+        } else {
+            initAdminPickers();
+        }
+
+        document.addEventListener('alpine:initialized', function () { initAdminPickers(); });
+        window.addEventListener('reinit-pickers', function () { initAdminPickers(); });
+
+        // Touch & Click Enhancement: Ensure tapping/clicking on Flatpickr inputs opens the calendar immediately
+        document.addEventListener('click', function (e) {
+            var el = e.target;
+            if (el && el._flatpickr && !el._flatpickr.isOpen) {
+                el._flatpickr.open();
+            } else if (el && el.tagName === 'INPUT' && (el.type === 'time' || el.type === 'date' || el.type === 'datetime-local')) {
+                if (!el._flatpickr && typeof el.showPicker === 'function') {
+                    try {
+                        el.showPicker();
+                    } catch (err) {}
+                }
+            }
+        });
+
+        document.addEventListener('focusin', function (e) {
+            if (e.target && e.target.matches && e.target.matches('input[type="date"], [data-picker="date"], [data-picker="time"], [data-picker="datetime"], .admin-datepicker, .admin-timepicker, .admin-datetimepicker') && !e.target._flatpickr) {
+                initAdminPickers(e.target.closest('form, div, modal') || document);
+            }
+        });
+    })();
+    </script>
+
+    {{-- Universal Asynchronous Admin Table Pagination --}}
+    <script>
+    (function () {
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('nav[role="navigation"] a[href]');
+            if (!link) return;
+
+            // Find closest table container
+            let container = link.closest('[data-async-table="true"]') || link.closest('[id$="-table-card"]');
+            
+            if (!container) {
+                let candidate = link.parentElement;
+                while (candidate && candidate !== document.body && candidate !== document.documentElement && candidate.tagName !== 'MAIN') {
+                    if (candidate.querySelector('table') && candidate.querySelector('nav[role="navigation"]')) {
+                        container = candidate;
+                        break;
+                    }
+                    candidate = candidate.parentElement;
+                }
+            }
+
+            if (!container) return;
+
+            const url = link.getAttribute('href');
+            if (!url || url.startsWith('#') || url.startsWith('javascript:')) return;
+
+            e.preventDefault();
+            loadAsyncTable(container, url, true);
+        });
+
+        window.addEventListener('popstate', function (e) {
+            if (e.state && e.state.asyncUrl) {
+                let container = null;
+                if (e.state.containerId) {
+                    container = document.getElementById(e.state.containerId);
+                }
+                if (!container) {
+                    container = document.querySelector('[data-async-table="true"]');
+                }
+                if (container) {
+                    loadAsyncTable(container, e.state.asyncUrl, false);
+                } else {
+                    window.location.reload();
+                }
+            }
+        });
+
+        async function loadAsyncTable(container, url, pushState) {
+            if (container._isLoadingAsync) return;
+            container._isLoadingAsync = true;
+
+            // Visual loading indication
+            container.style.transition = 'opacity 0.2s ease';
+            container.style.opacity = '0.4';
+            container.style.pointerEvents = 'none';
+
+            let loader = document.getElementById('admin-async-progress-bar');
+            if (!loader) {
+                loader = document.createElement('div');
+                loader.id = 'admin-async-progress-bar';
+                loader.className = 'fixed top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 z-99999 animate-pulse shadow-xs shadow-emerald-500/50';
+                document.body.appendChild(loader);
+            }
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml'
+                    }
+                });
+
+                if (!response.ok) {
+                    window.location.href = url;
+                    return;
+                }
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const newDoc = parser.parseFromString(html, 'text/html');
+
+                let newContainer = null;
+                if (container.id) {
+                    newContainer = newDoc.getElementById(container.id);
+                }
+                if (!newContainer && container.hasAttribute('data-async-table')) {
+                    const currentList = Array.from(document.querySelectorAll('[data-async-table="true"]'));
+                    const idx = currentList.indexOf(container);
+                    const newList = newDoc.querySelectorAll('[data-async-table="true"]');
+                    if (idx !== -1 && newList[idx]) {
+                        newContainer = newList[idx];
+                    }
+                }
+                if (!newContainer) {
+                    const newNav = newDoc.querySelector('nav[role="navigation"]');
+                    if (newNav) {
+                        let cur = newNav.parentElement;
+                        while (cur && cur !== newDoc.body && cur !== newDoc.documentElement && cur.tagName !== 'MAIN') {
+                            if (cur.querySelector('table')) {
+                                newContainer = cur;
+                                break;
+                            }
+                            cur = cur.parentElement;
+                        }
+                    }
+                }
+
+                // Strict safety check: Never replace html, body, or main
+                if (!newContainer || 
+                    newContainer === newDoc.documentElement || 
+                    newContainer === newDoc.body || 
+                    newContainer.tagName === 'MAIN') {
+                    window.location.href = url;
+                    return;
+                }
+
+                // Update container HTML
+                container.innerHTML = newContainer.innerHTML;
+
+                // Update address bar
+                if (pushState) {
+                    window.history.pushState({ asyncUrl: url, containerId: container.id || null }, '', url);
+                }
+
+                // Re-init Alpine components if present
+                if (window.Alpine && typeof window.Alpine.initTree === 'function') {
+                    try {
+                        window.Alpine.initTree(container);
+                    } catch (e) {}
+                }
+
+                // Re-init Flatpickr if present
+                if (typeof window.initAdminPickers === 'function') {
+                    try {
+                        window.initAdminPickers(container);
+                    } catch (e) {}
+                }
+
+                // Smooth scroll to table if out of view
+                const rect = container.getBoundingClientRect();
+                if (rect.top < 0 || rect.top > 350) {
+                    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (err) {
+                console.error('Async pagination error, navigating directly:', err);
+                window.location.href = url;
+            } finally {
+                container._isLoadingAsync = false;
+                container.style.opacity = '';
+                container.style.transition = '';
+                container.style.pointerEvents = '';
+                const activeLoader = document.getElementById('admin-async-progress-bar');
+                if (activeLoader) activeLoader.remove();
+            }
+        }
+    })();
+    </script>
 
     @livewireScripts
 </body>

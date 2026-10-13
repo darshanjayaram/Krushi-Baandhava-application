@@ -5,6 +5,23 @@
 @section('content')
 <div x-data="cropsManagement()" class="space-y-6">
 
+    <!-- Toast Notification Overlay -->
+    <div x-show="toast.show" 
+         x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:translate-x-4"
+         x-transition:enter-end="opacity-100 translate-y-0 sm:translate-x-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed top-5 right-5 z-50 max-w-sm p-4 rounded-2xl shadow-2xl border backdrop-blur-md flex items-center gap-3 text-xs"
+         :class="toast.type === 'success' ? 'bg-slate-900/95 border-emerald-500/80 text-emerald-200 shadow-emerald-950/40' : 'bg-slate-900/95 border-rose-500/80 text-rose-200 shadow-rose-950/40'"
+         style="display: none;">
+        <span class="text-base" x-text="toast.type === 'success' ? '✅' : '⚠️'"></span>
+        <span class="font-bold flex-1 leading-relaxed" x-text="toast.message"></span>
+        <button type="button" @click="toast.show = false" class="text-slate-400 hover:text-white font-bold text-sm cursor-pointer">✕</button>
+    </div>
+
     <!-- Header & Action Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -17,12 +34,45 @@
 
         <div class="flex items-center gap-2 flex-wrap">
             <template x-if="selectedIds.length > 0">
-                <button type="button" 
-                        @click="openBatchModal()"
-                        class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl transition shadow-sm cursor-pointer animate-pulse">
-                    <span>🗑️</span>
-                    <span>Delete Selected (<span x-text="selectedIds.length"></span>)</span>
-                </button>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <!-- Quick Activate -->
+                    <button type="button" 
+                            @click="executeBatchAction('activate')"
+                            :disabled="isUpdatingBatch"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
+                            title="Activate all selected commodities">
+                        <template x-if="isUpdatingBatch && batchActionTarget === 'activate'">
+                            <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        </template>
+                        <template x-if="!(isUpdatingBatch && batchActionTarget === 'activate')">
+                            <span>▶️</span>
+                        </template>
+                        <span>Activate (<span x-text="inactiveSelectedCount"></span>)</span>
+                    </button>
+
+                    <!-- Quick Pause -->
+                    <button type="button" 
+                            @click="executeBatchAction('pause')"
+                            :disabled="isUpdatingBatch"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
+                            title="Pause all selected commodities">
+                        <template x-if="isUpdatingBatch && batchActionTarget === 'pause'">
+                            <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        </template>
+                        <template x-if="!(isUpdatingBatch && batchActionTarget === 'pause')">
+                            <span>⏸️</span>
+                        </template>
+                        <span>Pause (<span x-text="activeSelectedCount"></span>)</span>
+                    </button>
+
+                    <!-- Delete Selected -->
+                    <button type="button" 
+                            @click="openBatchModal()"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl transition shadow-sm cursor-pointer">
+                        <span>🗑️</span>
+                        <span>Delete (<span x-text="selectedIds.length"></span>)</span>
+                    </button>
+                </div>
             </template>
 
             <a href="{{ route('admin.crops.create', ['category_id' => $categoryId]) }}" 
@@ -136,23 +186,33 @@
 
         <!-- Quick Selection Controls -->
         <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 flex-wrap gap-2 text-xs">
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-slate-400 font-semibold text-[11px]">Quick Selection:</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-slate-400 font-semibold text-[11px] mr-1">Quick Select:</span>
                 <button type="button" 
                         @click="selectAllOnPage()" 
                         class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 text-[11px] font-bold cursor-pointer transition">
-                    Select All Visible ({{ $crops->count() }})
+                    All Visible ({{ $crops->count() }})
+                </button>
+                <button type="button" 
+                        @click="selectOnlyActive()" 
+                        class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/80 text-[11px] font-bold cursor-pointer transition">
+                    ▶️ Active Only
                 </button>
                 <button type="button" 
                         @click="selectOnlyInactive()" 
                         class="px-2.5 py-1 rounded-lg bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-800/80 text-[11px] font-bold cursor-pointer transition">
-                    🎯 Select All Inactive on Page ({{ $crops->where('is_active', false)->count() }})
+                    ⏸️ Paused Only
+                </button>
+                <button type="button" 
+                        @click="selectOnlyMajor()" 
+                        class="px-2.5 py-1 rounded-lg bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-800/80 text-[11px] font-bold cursor-pointer transition">
+                    ★ Major Only
                 </button>
                 <template x-if="selectedIds.length > 0">
                     <button type="button" 
                             @click="deselectAll()" 
                             class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700/60 text-[11px] font-bold cursor-pointer transition">
-                        Deselect All
+                        ✕ Clear Selection
                     </button>
                 </template>
             </div>
@@ -219,14 +279,14 @@
                 <tbody class="divide-y divide-slate-800/60 font-medium">
                     @forelse($crops as $crop)
                         <tr class="transition hover:bg-slate-800/35"
-                            :class="isSelected({{ $crop->id }}) ? 'bg-rose-950/20 hover:bg-rose-950/30' : ''">
+                            :class="isSelected({{ $crop->id }}) ? 'bg-emerald-950/20 hover:bg-emerald-950/30' : ''">
                             
                             <!-- Checkbox -->
                             <td class="py-3.5 pl-5 pr-2 text-center">
                                 <input type="checkbox" 
                                        :value="{{ $crop->id }}" 
                                        x-model="selectedIds"
-                                       class="rounded bg-slate-950 border-slate-700 text-rose-500 focus:ring-rose-500 cursor-pointer">
+                                       class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer">
                             </td>
 
                             <!-- Crop Name -->
@@ -241,11 +301,11 @@
                                     <div>
                                         <div class="font-bold text-white text-sm flex items-center gap-1.5">
                                             <span>{{ $crop->name }}</span>
-                                            @if($crop->is_major)
+                                            <template x-if="cropsMajor[{{ $crop->id }}]">
                                                 <span class="px-1.5 py-0.2 rounded text-[10px] font-black uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-800/60" title="Major Karnataka Commodity">
                                                     ★ Major
                                                 </span>
-                                            @endif
+                                            </template>
                                         </div>
                                         @if($crop->name_kn)
                                             <div class="text-[11px] text-emerald-400 font-kannada font-bold mt-0.5">{{ $crop->name_kn }}</div>
@@ -318,16 +378,22 @@
                                 </a>
                             </td>
 
-                            <!-- Status -->
+                            <!-- Status (Async Instant Toggle) -->
                             <td class="py-3.5 px-4 text-center">
-                                <form method="POST" action="{{ route('admin.crops.toggle', $crop) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer {{ $crop->is_active ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/60 hover:bg-emerald-900' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700' }}">
-                                        <span class="w-1.5 h-1.5 rounded-full {{ $crop->is_active ? 'bg-emerald-400' : 'bg-slate-500' }}"></span>
-                                        {{ $crop->is_active ? 'Active' : 'Paused' }}
-                                    </button>
-                                </form>
+                                <button type="button" 
+                                        @click="toggleSingleCrop({{ $crop->id }})" 
+                                        :disabled="togglingCrops.includes({{ $crop->id }})"
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer disabled:opacity-50"
+                                        :class="cropsStatus[{{ $crop->id }}] ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/60 hover:bg-emerald-900' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'"
+                                        :title="cropsStatus[{{ $crop->id }}] ? 'Click to Pause this commodity' : 'Click to Activate this commodity'">
+                                    <template x-if="togglingCrops.includes({{ $crop->id }})">
+                                        <span class="w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"></span>
+                                    </template>
+                                    <template x-if="!togglingCrops.includes({{ $crop->id }})">
+                                        <span class="w-1.5 h-1.5 rounded-full" :class="cropsStatus[{{ $crop->id }}] ? 'bg-emerald-400' : 'bg-slate-500'"></span>
+                                    </template>
+                                    <span x-text="cropsStatus[{{ $crop->id }}] ? 'Active' : 'Paused'"></span>
+                                </button>
                             </td>
 
                             <!-- Actions -->
@@ -377,37 +443,124 @@
 
     <!-- Floating Bulk Action Toolbar (Appears when >= 1 crops selected) -->
     <div x-show="selectedIds.length > 0"
+         x-cloak
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 translate-y-6"
          x-transition:enter-end="opacity-100 translate-y-0"
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 translate-y-6"
-         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 border border-slate-700/80 shadow-2xl backdrop-blur-md rounded-2xl px-5 py-3.5 flex items-center gap-4 text-xs flex-wrap justify-between max-w-xl w-[92%]"
+         class="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 border border-slate-700/80 shadow-2xl backdrop-blur-md rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 flex items-center gap-3.5 text-xs flex-wrap justify-between max-w-4xl w-[94%]"
          style="display: none;">
         
         <div class="flex items-center gap-3">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
             <div>
                 <span class="font-bold text-white"><span x-text="selectedIds.length"></span> commodities selected</span>
                 <div class="text-[11px] text-slate-400 mt-0.5">
-                    <span x-text="inactiveSelectedCount + ' inactive'"></span> • 
-                    <span x-text="activeSelectedCount + ' active'"></span>
+                    <span class="text-emerald-400 font-bold" x-text="activeSelectedCount + ' Active'"></span> • 
+                    <span class="text-amber-400 font-bold" x-text="inactiveSelectedCount + ' Paused'"></span>
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            <!-- 1. Bulk Activate Button (Async) -->
             <button type="button" 
-                    @click="deselectAll()" 
-                    class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer">
-                Clear
+                    @click="executeBatchAction('activate')" 
+                    :disabled="isUpdatingBatch"
+                    class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-sm cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    title="Activate selected commodities">
+                <template x-if="isUpdatingBatch && batchActionTarget === 'activate'">
+                    <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                </template>
+                <template x-if="!(isUpdatingBatch && batchActionTarget === 'activate')">
+                    <span>▶️</span>
+                </template>
+                <span>Activate (<span x-text="inactiveSelectedCount"></span>)</span>
             </button>
+
+            <!-- 2. Bulk Pause Button (Async) -->
+            <button type="button" 
+                    @click="executeBatchAction('pause')" 
+                    :disabled="isUpdatingBatch"
+                    class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shadow-sm cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    title="Pause selected commodities">
+                <template x-if="isUpdatingBatch && batchActionTarget === 'pause'">
+                    <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                </template>
+                <template x-if="!(isUpdatingBatch && batchActionTarget === 'pause')">
+                    <span>⏸️</span>
+                </template>
+                <span>Pause (<span x-text="activeSelectedCount"></span>)</span>
+            </button>
+
+            <!-- 3. Bulk Major Highlight -->
+            <div x-data="{ openMajorMenu: false }" class="relative">
+                <button type="button" 
+                        @click="openMajorMenu = !openMajorMenu" 
+                        :disabled="isUpdatingBatch"
+                        class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 font-bold text-xs transition cursor-pointer flex items-center gap-1">
+                    <span>★ Major</span>
+                    <span class="text-[10px]">▾</span>
+                </button>
+                <div x-show="openMajorMenu" 
+                     @click.away="openMajorMenu = false" 
+                     x-cloak
+                     class="absolute bottom-full mb-2 right-0 w-48 bg-slate-900 border border-slate-800 rounded-xl p-1 shadow-2xl z-50 text-xs">
+                    <button type="button" 
+                            @click="openMajorMenu = false; executeBatchAction('mark_major')"
+                            class="w-full text-left px-3 py-1.5 rounded-lg hover:bg-slate-800 text-amber-300 font-bold transition flex items-center gap-2 cursor-pointer">
+                        <span>★ Mark as Major</span>
+                    </button>
+                    <button type="button" 
+                            @click="openMajorMenu = false; executeBatchAction('unmark_major')"
+                            class="w-full text-left px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white font-medium transition flex items-center gap-2 cursor-pointer">
+                        <span>☆ Remove Major</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. Bulk Category Reassignment -->
+            <div x-data="{ openCatMenu: false }" class="relative">
+                <button type="button" 
+                        @click="openCatMenu = !openCatMenu" 
+                        :disabled="isUpdatingBatch"
+                        class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition cursor-pointer flex items-center gap-1">
+                    <span>📁 Move</span>
+                    <span class="text-[10px]">▾</span>
+                </button>
+                <div x-show="openCatMenu" 
+                     @click.away="openCatMenu = false" 
+                     x-cloak
+                     class="absolute bottom-full mb-2 right-0 w-52 bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-2xl z-50 text-xs space-y-1 max-h-56 overflow-y-auto">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block px-1 pb-1 border-b border-slate-800">Move to Category:</span>
+                    @foreach($categories as $cat)
+                        <button type="button" 
+                                @click="openCatMenu = false; executeBatchAction('change_category', {{ $cat->id }})"
+                                class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-200 hover:text-white font-medium transition truncate flex items-center justify-between cursor-pointer">
+                            <span class="truncate">{{ $cat->name }}</span>
+                            <span class="text-[10px] text-slate-500 font-mono">→</span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- 5. Delete Button -->
             <button type="button" 
                     @click="openBatchModal()" 
-                    class="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-sm cursor-pointer flex items-center gap-1.5">
+                    :disabled="isUpdatingBatch"
+                    class="px-3 py-1.5 rounded-xl bg-rose-600/90 hover:bg-rose-500 text-white font-bold text-xs transition shadow-sm cursor-pointer flex items-center gap-1">
                 <span>🗑️</span>
-                <span>Delete Selected</span>
+                <span>Delete</span>
+            </button>
+
+            <!-- 6. Clear Selection -->
+            <button type="button" 
+                    @click="deselectAll()" 
+                    class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-bold text-xs transition cursor-pointer"
+                    title="Clear selection">
+                ✕
             </button>
         </div>
     </div>
@@ -565,12 +718,39 @@ function cropsManagement() {
     return {
         selectedIds: [],
         pageCropIds: @json($crops->pluck('id')->values()),
-        pageInactiveCropIds: @json($crops->where('is_active', false)->pluck('id')->values()),
-        pageActiveCropIds: @json($crops->where('is_active', true)->pluck('id')->values()),
+        cropsStatus: {
+            @foreach($crops as $c)
+                {{ $c->id }}: {{ $c->is_active ? 'true' : 'false' }},
+            @endforeach
+        },
+        cropsMajor: {
+            @foreach($crops as $c)
+                {{ $c->id }}: {{ $c->is_major ? 'true' : 'false' }},
+            @endforeach
+        },
+        togglingCrops: [],
+        isUpdatingBatch: false,
+        batchActionTarget: '',
         batchModalOpen: false,
         singleModalOpen: false,
         targetCrop: null,
         isDeleting: false,
+        toast: {
+            show: false,
+            message: '',
+            type: 'success',
+            timeout: null,
+        },
+
+        showToast(message, type = 'success') {
+            this.toast.message = message;
+            this.toast.type = type;
+            this.toast.show = true;
+            if (this.toast.timeout) clearTimeout(this.toast.timeout);
+            this.toast.timeout = setTimeout(() => {
+                this.toast.show = false;
+            }, 3500);
+        },
 
         toggleSelectAll() {
             if (this.selectedIds.length === this.pageCropIds.length) {
@@ -581,7 +761,15 @@ function cropsManagement() {
         },
 
         selectOnlyInactive() {
-            this.selectedIds = [...this.pageInactiveCropIds];
+            this.selectedIds = this.pageCropIds.filter(id => !this.cropsStatus[id]);
+        },
+
+        selectOnlyActive() {
+            this.selectedIds = this.pageCropIds.filter(id => this.cropsStatus[id]);
+        },
+
+        selectOnlyMajor() {
+            this.selectedIds = this.pageCropIds.filter(id => this.cropsMajor[id]);
         },
 
         selectAllOnPage() {
@@ -597,11 +785,93 @@ function cropsManagement() {
         },
 
         get inactiveSelectedCount() {
-            return this.selectedIds.filter(id => this.pageInactiveCropIds.includes(id)).length;
+            return this.selectedIds.filter(id => !this.cropsStatus[id]).length;
         },
 
         get activeSelectedCount() {
-            return this.selectedIds.filter(id => this.pageActiveCropIds.includes(id)).length;
+            return this.selectedIds.filter(id => this.cropsStatus[id]).length;
+        },
+
+        // Async single crop status toggle
+        async toggleSingleCrop(cropId) {
+            if (this.togglingCrops.includes(cropId)) return;
+            this.togglingCrops.push(cropId);
+
+            try {
+                const response = await fetch(`{{ url('admin/crops') }}/${cropId}/toggle`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    this.cropsStatus[cropId] = data.is_active;
+                    this.showToast(data.message, 'success');
+                } else {
+                    this.showToast(data.message || 'Failed to update status', 'error');
+                }
+            } catch (err) {
+                this.showToast('Network error updating crop status', 'error');
+            } finally {
+                this.togglingCrops = this.togglingCrops.filter(id => id !== cropId);
+            }
+        },
+
+        // Async batch update actions (activate, pause, mark_major, unmark_major, change_category)
+        async executeBatchAction(action, categoryId = null) {
+            if (this.selectedIds.length === 0 || this.isUpdatingBatch) return;
+
+            this.isUpdatingBatch = true;
+            this.batchActionTarget = action;
+
+            try {
+                const payload = {
+                    crop_ids: this.selectedIds,
+                    action: action,
+                };
+                if (categoryId) {
+                    payload.category_id = categoryId;
+                }
+
+                const response = await fetch(`{{ route('admin.crops.batch-update') }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await response.json();
+                if (data.ok) {
+                    if (action === 'activate') {
+                        this.selectedIds.forEach(id => { this.cropsStatus[id] = true; });
+                    } else if (action === 'pause') {
+                        this.selectedIds.forEach(id => { this.cropsStatus[id] = false; });
+                    } else if (action === 'mark_major') {
+                        this.selectedIds.forEach(id => { this.cropsMajor[id] = true; });
+                    } else if (action === 'unmark_major') {
+                        this.selectedIds.forEach(id => { this.cropsMajor[id] = false; });
+                    } else if (action === 'change_category') {
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
+                    this.showToast(data.message, 'success');
+                } else {
+                    this.showToast(data.message || 'Batch update failed', 'error');
+                }
+            } catch (err) {
+                this.showToast('Network error during batch update', 'error');
+            } finally {
+                this.isUpdatingBatch = false;
+                this.batchActionTarget = '';
+            }
         },
 
         openBatchModal() {

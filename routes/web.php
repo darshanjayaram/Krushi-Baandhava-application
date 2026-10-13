@@ -133,6 +133,7 @@ Route::prefix('admin')->group(function () {
         Route::delete('/crops/{crop}/variety-aliases/{mapping}', [CropController::class, 'removeVarietyAlias'])->name('admin.crops.variety-aliases.remove');
         Route::post('/crops-media/upload', [CropController::class, 'uploadMedia'])->name('admin.crops.media.upload');
         Route::post('/crops-media/batch-delete', [CropController::class, 'batchDeleteMedia'])->name('admin.crops.media.batch-delete');
+        Route::post('/crops/batch-update', [CropController::class, 'batchUpdate'])->name('admin.crops.batch-update');
         Route::post('/crops/batch-delete', [CropController::class, 'batchDestroy'])->name('admin.crops.batch-delete');
         Route::resource('crops', CropController::class)->names('admin.crops');
         Route::resource('varieties', CropVarietyController::class)->only(['store', 'update', 'destroy'])->names('admin.varieties');

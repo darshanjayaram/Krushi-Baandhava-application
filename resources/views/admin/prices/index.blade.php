@@ -25,7 +25,7 @@
             <a href="{{ route('admin.sync-logs.index') }}" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shadow-sm">
                 <span>📜 Logs</span>
             </a>
-            <button @click="resetSyncModal(); syncModalOpen = true" type="button" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
+            <button @click="resetSyncModal(); syncModalOpen = true; $nextTick(() => { if (window.initAdminPickers) window.initAdminPickers(); })" type="button" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
                 <span>⚡ Run Sync</span>
             </button>
         </div>
@@ -56,19 +56,19 @@
     </div>
 
     <!-- Archive & Volume Breakdown Drawer (Collapsible) -->
-    <div x-show="archiveDrawerOpen" x-transition.opacity class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div x-show="archiveDrawerOpen" x-transition.opacity class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
             <div>
                 <h3 class="text-sm font-black text-white flex items-center gap-2">
                     <span>📅</span> Historical Data Archive & Storage Footprint
                 </h3>
-                <p class="text-xs text-slate-400">Monthly breakdown of recorded trades, active markets, and estimated database disk usage.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Monthly breakdown of recorded trades, active markets, and estimated database disk usage.</p>
             </div>
-            <div class="flex items-center gap-3">
-                <span class="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/60">
+            <div class="flex items-center justify-between sm:justify-end gap-2.5 w-full sm:w-auto">
+                <span class="text-[11px] sm:text-xs font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/60">
                     Est. Total Size: ~{{ round(($totalPrices * 300) / (1024 * 1024), 1) }} MB
                 </span>
-                <button type="button" @click="archiveDrawerOpen = false" class="text-slate-400 hover:text-white text-base cursor-pointer">✕</button>
+                <button type="button" @click="archiveDrawerOpen = false" class="text-slate-400 hover:text-white text-base cursor-pointer p-1">✕</button>
             </div>
         </div>
 
@@ -203,11 +203,11 @@
 
             <!-- Second Row: Feed Source, Single Date & Filter Action Buttons -->
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
                     <!-- Data Source Filter -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0 w-full sm:w-auto">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">Feed Source:</span>
-                        <select name="data_source_id" class="text-xs font-medium px-3 py-1.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+                        <select name="data_source_id" class="w-full sm:w-60 md:w-64 max-w-full truncate text-xs font-medium px-3 py-2 sm:py-1.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
                             <option value="">All Sources</option>
                             @foreach($dataSources as $ds)
                                 <option value="{{ $ds->id }}" {{ $dataSourceId == $ds->id ? 'selected' : '' }}>
@@ -218,25 +218,27 @@
                     </div>
 
                     <!-- Exact Date Filter -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0 w-full sm:w-auto">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">Exact Date:</span>
-                        <input type="date" name="date" value="{{ $date }}"
-                            class="text-xs font-medium px-3 py-1.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
-                        @if($date)
-                            <button type="button" onclick="this.form.date.value=''; this.form.submit();" class="text-slate-400 hover:text-white text-xs font-bold transition" title="Clear Date">
-                                ✕
-                            </button>
-                        @endif
+                        <div class="relative w-full sm:w-auto">
+                            <input type="date" name="date" value="{{ $date }}"
+                                class="w-full sm:w-auto text-xs font-medium px-3 py-2 sm:py-1.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+                            @if($date)
+                                <button type="button" onclick="this.form.date.value=''; this.form.submit();" class="absolute right-2.5 top-2 text-slate-400 hover:text-white text-xs font-bold transition" title="Clear Date">
+                                    ✕
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 w-full lg:w-auto justify-end pt-1 lg:pt-0">
                     @if($search || $cropId || $marketId || $districtId || $dataSourceId || $date || $year || $month)
-                        <a href="{{ route('admin.prices.index') }}" class="px-3.5 py-1.5 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700/60 rounded-xl transition">
+                        <a href="{{ route('admin.prices.index') }}" class="w-1/2 sm:w-auto text-center px-3.5 py-2 sm:py-1.5 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700/60 rounded-xl transition">
                             ✕ Reset Filters
                         </a>
                     @endif
-                    <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
+                    <button type="submit" class="w-full sm:w-auto text-center px-4 py-2 sm:py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
                         Filter Records
                     </button>
                 </div>
@@ -261,7 +263,7 @@
     @endif
 
     <!-- Data Table Card -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+    <div id="admin-prices-table-card" data-async-table="true" class="bg-slate-900 border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
         <!-- Mobile Table Swipe Hint -->
         <div class="sm:hidden flex items-center justify-between px-3.5 py-2 bg-slate-950/70 border-b border-slate-800 text-[11px] text-slate-400">
             <span class="flex items-center gap-1.5 font-medium"><span>👈</span> <span>Swipe table horizontally</span> <span>👉</span></span>
@@ -346,7 +348,7 @@
                                 <div class="text-3xl mb-2">🌾</div>
                                 <div class="text-base font-bold text-white">No market price records found</div>
                                 <p class="text-xs text-slate-400 mt-1">Try changing filters or run an on-demand sync from external feeds.</p>
-                                <button @click="resetSyncModal(); syncModalOpen = true" type="button" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
+                                <button @click="resetSyncModal(); syncModalOpen = true; $nextTick(() => { if (window.initAdminPickers) window.initAdminPickers(); })" type="button" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
                                     <span>⚡</span> Run Ingestion Sync
                                 </button>
                             </td>
@@ -366,14 +368,14 @@
     <!-- Upgraded Ingestion Sync & Historical Backfill Modal -->
     <div x-show="syncModalOpen"
          style="display: none;"
-         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
-         @keydown.escape.window="syncModalOpen = false">
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-2.5 sm:p-4"
+         @keydown.escape.window="syncConsoleState === 'syncing' ? null : syncModalOpen = false">
         
         <!-- Dark Dimming Backdrop -->
         <div x-show="syncModalOpen"
              x-transition.opacity
              class="fixed inset-0 bg-black/80"
-             @click="syncModalOpen = false"></div>
+             @click="syncConsoleState === 'syncing' ? null : syncModalOpen = false"></div>
 
         <!-- Modal Box -->
         <div x-show="syncModalOpen"
@@ -383,13 +385,12 @@
              x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
-             class="relative z-10 bg-slate-900 rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl border border-slate-700 text-white my-auto max-h-[90vh] overflow-y-auto"
-             @click.away="syncConsoleState === 'syncing' ? null : syncModalOpen = false">
+             class="relative z-10 bg-slate-900 rounded-2xl max-w-xl w-full p-3.5 sm:p-6 shadow-2xl border border-slate-700 text-white my-auto max-h-[92vh] overflow-y-auto scrollbar-thin">
             
             <!-- Dynamic Header -->
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div>
-                    <h3 class="text-base font-black text-white flex items-center gap-2">
+            <div class="flex items-start justify-between pb-3 border-b border-slate-800 gap-3">
+                <div class="min-w-0 pr-1">
+                    <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
                         <span x-show="syncConsoleState === 'config'">⚡ Ingestion Sync & Historical Backfill</span>
                         <span x-show="syncConsoleState === 'syncing'" class="inline-flex items-center gap-2 text-emerald-400">
                             <svg class="animate-spin h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24">
@@ -401,7 +402,7 @@
                         <span x-show="syncConsoleState === 'completed'" class="text-emerald-400">✅ Ingestion Run Completed</span>
                         <span x-show="syncConsoleState === 'error'" class="text-rose-400">❌ Ingestion Run Failed</span>
                     </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">
+                    <p class="text-[11px] sm:text-xs text-slate-400 mt-1 leading-relaxed">
                         <span x-show="syncConsoleState === 'config'">Sync live daily prices or backfill historical Karnataka APMC records.</span>
                         <span x-show="syncConsoleState === 'syncing'">Connecting to upstream feeds, normalizing varieties, deduplicating with SHA-256...</span>
                         <span x-show="syncConsoleState === 'completed'">Telemetry summary, canonical write metrics, and entity resolution status.</span>
@@ -410,24 +411,26 @@
                 </div>
                 <button :disabled="syncConsoleState === 'syncing'" 
                         @click="syncModalOpen = false" 
-                        class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">✕</button>
+                        class="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-base sm:text-lg font-bold cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition">✕</button>
             </div>
 
             <!-- STATE 1: CONFIG -->
             <div x-show="syncConsoleState === 'config'">
                 <!-- Mode Switcher Tabs -->
-                <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-800 mt-4">
+                <div class="grid grid-cols-2 rounded-xl bg-slate-950 p-1 border border-slate-800 mt-3 sm:mt-4 gap-1">
                     <button type="button" 
                             @click="syncMode = 'single'"
-                            class="flex-1 py-1.5 text-xs font-bold rounded-lg transition"
+                            class="py-2 px-2 text-center text-[11px] sm:text-xs font-bold rounded-lg transition leading-tight flex items-center justify-center gap-1 cursor-pointer"
                             :class="syncMode === 'single' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'">
-                        Single Trading Date
+                        <span>Single Date</span>
+                        <span class="hidden sm:inline">Feed</span>
                     </button>
                     <button type="button" 
-                            @click="syncMode = 'range'"
-                            class="flex-1 py-1.5 text-xs font-bold rounded-lg transition"
+                            @click="syncMode = 'range'; $nextTick(() => { if (window.initAdminPickers) window.initAdminPickers(); })"
+                            class="py-2 px-2 text-center text-[11px] sm:text-xs font-bold rounded-lg transition leading-tight flex items-center justify-center gap-1 cursor-pointer"
                             :class="syncMode === 'range' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'">
-                        Date Range (Historical Backfill)
+                        <span>Date Range</span>
+                        <span class="text-[10px] sm:text-xs opacity-90">(Backfill)</span>
                     </button>
                 </div>
 
@@ -457,14 +460,14 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Target Date</label>
-                        <input type="date" name="target_date" x-model="targetDate" class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <label for="sync_target_date" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 cursor-pointer">Target Date</label>
+                        <input type="date" id="sync_target_date" name="target_date" data-picker="date" x-model="targetDate" value="{{ date('Y-m-d') }}" class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer">
                     </div>
 
                     <!-- Single Sync Force Option -->
-                    <div class="flex items-center gap-2 pt-1">
-                        <input type="checkbox" name="force" id="force_sync_single" value="1" x-model="forceSync" class="rounded bg-slate-950 border-slate-800 text-amber-500 focus:ring-amber-500">
-                        <label for="force_sync_single" class="text-xs text-amber-300 font-medium">
+                    <div class="flex items-start gap-2 pt-1">
+                        <input type="checkbox" name="force" id="force_sync_single" value="1" x-model="forceSync" class="mt-0.5 rounded bg-slate-950 border-slate-800 text-amber-500 focus:ring-amber-500">
+                        <label for="force_sync_single" class="text-xs text-amber-300 font-medium leading-relaxed cursor-pointer">
                             ⚡ <strong>Force Re-sync & Overwrite:</strong> Re-process and update records even if already ingested
                         </label>
                     </div>
@@ -473,11 +476,11 @@
                         💡 Pulls auction records for the selected date. Automatically skips duplicates via SHA-256 checksums unless Force Re-sync is checked.
                     </div>
 
-                    <div class="flex items-center justify-end gap-2 pt-2">
-                        <button type="button" @click="syncModalOpen = false" class="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer">
+                    <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-2 border-t border-slate-800/80">
+                        <button type="button" @click="syncModalOpen = false" class="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer text-center">
                             Cancel
                         </button>
-                        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
+                        <button type="submit" class="w-full sm:w-auto px-5 py-2.5 sm:py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer text-center">
                             Start Single Sync
                         </button>
                     </div>
@@ -496,8 +499,8 @@
                     </div>
 
                     <!-- Official AGMARKNET CAPTCHA Box (Visible when Official Agmarknet is chosen) -->
-                    <div x-show="isAgmarknetSourceSelected()" class="bg-slate-950 border border-purple-500/40 rounded-2xl p-4 space-y-3">
-                        <div class="flex items-center justify-between">
+                    <div x-show="isAgmarknetSourceSelected()" class="bg-slate-950 border border-purple-500/40 rounded-2xl p-3 sm:p-4 space-y-3">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
                             <span class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
                                 <span>🛡️</span> Security Verification (Official AGMARKNET API)
                             </span>
@@ -513,7 +516,7 @@
                                 <span class="text-slate-500 text-xs font-medium animate-pulse">Generating security CAPTCHA...</span>
                             </template>
                             <template x-if="!agmarknetCaptchaLoading && agmarknetCaptchaImage">
-                                <img :src="agmarknetCaptchaImage" alt="AGMARKNET Security CAPTCHA" class="h-12 object-contain select-none">
+                                <img :src="agmarknetCaptchaImage" alt="AGMARKNET Security CAPTCHA" class="h-12 object-contain select-none max-w-full">
                             </template>
                         </div>
 
@@ -552,57 +555,75 @@
                     </div>
 
                     <!-- Date Range Calendar Pickers -->
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">From Date</label>
-                            <input type="date" name="from_date" x-model="fromDate" required class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <label for="sync_from_date" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 cursor-pointer">From Date</label>
+                            <input type="date" id="sync_from_date" name="from_date" data-picker="date" x-model="fromDate" @change="checkActivePreset()" @input="checkActivePreset()" value="{{ date('Y-m-d', strtotime('-90 days')) }}" required class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">To Date</label>
-                            <input type="date" name="to_date" x-model="toDate" required class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <label for="sync_to_date" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 cursor-pointer">To Date</label>
+                            <input type="date" id="sync_to_date" name="to_date" data-picker="date" x-model="toDate" @change="checkActivePreset()" @input="checkActivePreset()" value="{{ date('Y-m-d') }}" required class="w-full text-xs font-medium px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer">
                         </div>
                     </div>
 
                     <!-- 1-Click Quick Presets -->
                     <div>
-                        <div class="flex items-center justify-between mb-1.5">
+                        <div class="flex items-center justify-between mb-1.5 flex-wrap gap-1">
                             <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Range Presets (Up to 6 Years)</label>
                             <span class="text-[10px] text-emerald-400 font-medium">Full Multi-Year Support</span>
                         </div>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button" @click="setPreset(30)" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
-                                30 Days
+                        <div class="grid grid-cols-3 sm:flex sm:items-center gap-1.5 sm:flex-wrap">
+                            <button type="button" @click="setPreset(30)" 
+                                    :class="activePresetDays === 30 ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/50 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
+                                    class="px-2 py-2 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold border transition cursor-pointer text-center flex items-center justify-center gap-1">
+                                <span x-show="activePresetDays === 30" class="text-xs">✓</span>
+                                <span>30 Days</span>
                             </button>
-                            <button type="button" @click="setPreset(90)" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
-                                90 Days
+                            <button type="button" @click="setPreset(90)" 
+                                    :class="activePresetDays === 90 ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/50 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
+                                    class="px-2 py-2 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold border transition cursor-pointer text-center flex items-center justify-center gap-1">
+                                <span x-show="activePresetDays === 90" class="text-xs">✓</span>
+                                <span>90 Days</span>
                             </button>
-                            <button type="button" @click="setPreset(365)" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
-                                1 Year (365d)
+                            <button type="button" @click="setPreset(365)" 
+                                    :class="activePresetDays === 365 ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/50 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
+                                    class="px-2 py-2 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold border transition cursor-pointer text-center flex items-center justify-center gap-1">
+                                <span x-show="activePresetDays === 365" class="text-xs">✓</span>
+                                <span>1 Year</span>
                             </button>
-                            <button type="button" @click="setPreset(1095)" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
-                                3 Years
+                            <button type="button" @click="setPreset(1095)" 
+                                    :class="activePresetDays === 1095 ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/50 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
+                                    class="px-2 py-2 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold border transition cursor-pointer text-center flex items-center justify-center gap-1">
+                                <span x-show="activePresetDays === 1095" class="text-xs">✓</span>
+                                <span>3 Years</span>
                             </button>
-                            <button type="button" @click="setPreset(1825)" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
-                                5 Years
+                            <button type="button" @click="setPreset(1825)" 
+                                    :class="activePresetDays === 1825 ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/50 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
+                                    class="px-2 py-2 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold border transition cursor-pointer text-center flex items-center justify-center gap-1">
+                                <span x-show="activePresetDays === 1825" class="text-xs">✓</span>
+                                <span>5 Years</span>
                             </button>
-                            <button type="button" @click="setPreset(2190)" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 shadow-sm transition cursor-pointer">
-                                ★ 6 Years (2,190d)
+                            <button type="button" @click="setPreset(2190)" 
+                                    :class="activePresetDays === 2190 ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/50 font-black' : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-800/80'"
+                                    class="px-2 py-2 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold border transition cursor-pointer text-center flex items-center justify-center gap-1">
+                                <span x-show="activePresetDays === 2190" class="text-xs">✓</span>
+                                <span>★ 6 Years</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Analytics Pre-Calculation Option -->
-                    <div class="flex items-center gap-2 pt-1">
-                        <input type="checkbox" name="update_analytics" id="update_analytics" value="1" x-model="updateAnalytics" class="rounded bg-slate-950 border-slate-800 text-emerald-500 focus:ring-emerald-500">
-                        <label for="update_analytics" class="text-xs text-slate-300 font-medium">
+                    <div class="flex items-start gap-2 pt-1">
+                        <input type="checkbox" name="update_analytics" id="update_analytics" value="1" x-model="updateAnalytics" class="mt-0.5 rounded bg-slate-950 border-slate-800 text-emerald-500 focus:ring-emerald-500">
+                        <label for="update_analytics" class="text-xs text-slate-300 font-medium leading-relaxed cursor-pointer">
                             Automatically update Monthly Statistics & 4-Horizon Price Forecasts
                         </label>
                     </div>
 
                     <!-- Force Re-sync Option -->
-                    <div class="flex items-center gap-2 pt-1">
-                        <input type="checkbox" name="force" id="force_sync_range" value="1" x-model="forceSync" class="rounded bg-slate-950 border-slate-800 text-amber-500 focus:ring-amber-500">
-                        <label for="force_sync_range" class="text-xs text-amber-300 font-medium">
+                    <div class="flex items-start gap-2 pt-1">
+                        <input type="checkbox" name="force" id="force_sync_range" value="1" x-model="forceSync" class="mt-0.5 rounded bg-slate-950 border-slate-800 text-amber-500 focus:ring-amber-500">
+                        <label for="force_sync_range" class="text-xs text-amber-300 font-medium leading-relaxed cursor-pointer">
                             ⚡ <strong>Force Re-sync & Overwrite:</strong> Bypass SHA-256 deduplication and re-process existing records (updates prices & recalculates analytics)
                         </label>
                     </div>
@@ -611,11 +632,11 @@
                         🚀 <strong>Multi-Year Historical Backfill (Up to 6 Years):</strong> Pulls multi-year auction trade archives directly from Official AGMARKNET / KRAMA feeds. Automatically computes 5-year rolling seasonal baselines, accurately maps peak selling months, and powers 4-horizon price forecasts.
                     </div>
 
-                    <div class="flex items-center justify-end gap-2 pt-2">
-                        <button type="button" @click="syncModalOpen = false" class="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer">
+                    <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-2 border-t border-slate-800/80">
+                        <button type="button" @click="syncModalOpen = false" class="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer text-center">
                             Cancel
                         </button>
-                        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer">
+                        <button type="submit" class="w-full sm:w-auto px-5 py-2.5 sm:py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer text-center">
                             🚀 Start Backfill Sync
                         </button>
                     </div>
@@ -623,10 +644,10 @@
             </div>
 
             <!-- STATE 2: SYNCING (LIVE REAL-TIME STREAMING CONSOLE) -->
-            <div x-show="syncConsoleState === 'syncing'" class="py-5 space-y-4">
+            <div x-show="syncConsoleState === 'syncing'" class="py-4 sm:py-5 space-y-3.5 sm:space-y-4">
                 <!-- Elapsed Time Badge & Mode -->
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                    <div class="flex items-center gap-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-950/80 border border-emerald-800/80 rounded-full text-xs font-bold text-emerald-400">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                             <span x-text="syncMode === 'range' ? 'Historical Range Backfill' : 'Single Date Feed Ingestion'"></span>
@@ -637,19 +658,19 @@
                             </span>
                         </template>
                     </div>
-                    <span class="text-xs font-mono font-bold text-slate-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                    <span class="self-start sm:self-auto text-xs font-mono font-bold text-slate-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
                         ⏱️ <span x-text="syncElapsedSeconds">0.0</span>s elapsed
                     </span>
                 </div>
 
                 <!-- Animated Glowing Progress Bar -->
-                <div class="space-y-1.5 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/80">
-                    <div class="flex items-center justify-between text-xs font-bold">
-                        <span class="text-slate-200 truncate max-w-sm flex items-center gap-1.5">
-                            <span class="animate-spin text-emerald-400" x-show="syncProgressPercent < 100">⟳</span>
-                            <span x-text="syncProgressStage">Connecting to Mandi Feeds...</span>
+                <div class="space-y-1.5 bg-slate-950/60 p-3 sm:p-3.5 rounded-2xl border border-slate-800/80">
+                    <div class="flex items-center justify-between text-xs font-bold gap-2">
+                        <span class="text-slate-200 truncate flex-1 flex items-center gap-1.5 text-[11px] sm:text-xs">
+                            <span class="animate-spin text-emerald-400 shrink-0" x-show="syncProgressPercent < 100">⟳</span>
+                            <span class="truncate" x-text="syncProgressStage">Connecting to Mandi Feeds...</span>
                         </span>
-                        <span class="text-emerald-400 font-mono text-sm font-black" x-text="syncProgressPercent + '%'">0%</span>
+                        <span class="text-emerald-400 font-mono text-xs sm:text-sm font-black shrink-0" x-text="syncProgressPercent + '%'">0%</span>
                     </div>
                     <div class="w-full bg-slate-900 border border-slate-800 rounded-full h-3 p-0.5 overflow-hidden">
                         <div class="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
@@ -658,22 +679,22 @@
                 </div>
 
                 <!-- Live Cumulative Counters (Ticks up in real-time) -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2.5 text-center">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Feeds Ingested</div>
-                        <div class="text-lg font-black text-blue-400 mt-0.5" x-text="(syncSummary.received || 0).toLocaleString()">0</div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2 sm:p-2.5 text-center">
+                        <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Feeds Ingested</div>
+                        <div class="text-base sm:text-lg font-black text-blue-400 mt-0.5" x-text="(syncSummary.received || 0).toLocaleString()">0</div>
                     </div>
-                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2.5 text-center">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">New Inserted</div>
-                        <div class="text-lg font-black text-emerald-400 mt-0.5" x-text="(syncSummary.inserted || 0).toLocaleString()">0</div>
+                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2 sm:p-2.5 text-center">
+                        <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-400">New Inserted</div>
+                        <div class="text-base sm:text-lg font-black text-emerald-400 mt-0.5" x-text="(syncSummary.inserted || 0).toLocaleString()">0</div>
                     </div>
-                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2.5 text-center">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Updated</div>
-                        <div class="text-lg font-black text-cyan-400 mt-0.5" x-text="(syncSummary.updated || 0).toLocaleString()">0</div>
+                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2 sm:p-2.5 text-center">
+                        <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-cyan-400">Updated</div>
+                        <div class="text-base sm:text-lg font-black text-cyan-400 mt-0.5" x-text="(syncSummary.updated || 0).toLocaleString()">0</div>
                     </div>
-                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2.5 text-center">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Deduplicated</div>
-                        <div class="text-lg font-black text-slate-300 mt-0.5" x-text="(syncSummary.duplicate || 0).toLocaleString()">0</div>
+                    <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2 sm:p-2.5 text-center">
+                        <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Deduplicated</div>
+                        <div class="text-base sm:text-lg font-black text-slate-300 mt-0.5" x-text="(syncSummary.duplicate || 0).toLocaleString()">0</div>
                     </div>
                 </div>
 
@@ -681,15 +702,15 @@
                 <div class="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-inner">
                     <div class="px-3.5 py-2 bg-slate-900/90 border-b border-slate-800/80 flex items-center justify-between text-xs font-bold">
                         <div class="flex items-center gap-2 text-slate-300">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                            <span>Live Ingestion Activity Stream</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                            <span class="text-[11px] sm:text-xs">Live Ingestion Stream</span>
                         </div>
-                        <span class="text-[10px] text-slate-500 font-mono" x-text="syncLiveLogs.length + ' events logged'"></span>
+                        <span class="text-[10px] text-slate-500 font-mono" x-text="syncLiveLogs.length + ' logged'"></span>
                     </div>
-                    <div class="p-3 max-h-44 overflow-y-auto space-y-1.5 font-mono text-[11px] scrollbar-thin" id="syncLiveLogContainer">
+                    <div class="p-3 max-h-36 sm:max-h-44 overflow-y-auto space-y-1.5 font-mono text-[10px] sm:text-[11px] scrollbar-thin" id="syncLiveLogContainer">
                         <template x-for="(log, idx) in syncLiveLogs" :key="idx">
-                            <div class="flex items-start gap-2 leading-relaxed">
-                                <span class="text-slate-500 text-[10px] shrink-0 font-mono" x-text="'[' + log.time + ']'"></span>
+                            <div class="flex items-start gap-1.5 sm:gap-2 leading-relaxed">
+                                <span class="text-slate-500 text-[9px] sm:text-[10px] shrink-0 font-mono" x-text="'[' + log.time + ']'"></span>
                                 <span :class="log.type === 'success' ? 'text-emerald-300' : (log.type === 'error' ? 'text-rose-400' : (log.type === 'info' ? 'text-cyan-300' : 'text-slate-300'))" 
                                       x-text="log.text">
                                 </span>
@@ -701,12 +722,12 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                    <span class="italic">Slices are injected chunk-by-chunk to prevent timeouts and preserve memory.</span>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 pt-1 gap-2">
+                    <span class="italic text-[10px] sm:text-[11px]">Slices are injected chunk-by-chunk to prevent timeouts and preserve memory.</span>
                     <template x-if="syncMode === 'range' && !abortSyncRequested">
                         <button type="button" 
                                 @click="abortSyncRequested = true; addLiveLog('⚠️ Stop requested. Sync will finish gracefully after current batch.', 'info')" 
-                                class="text-slate-400 hover:text-rose-400 transition underline cursor-pointer font-medium">
+                                class="text-slate-400 hover:text-rose-400 transition underline cursor-pointer font-medium text-left sm:text-right">
                             Stop after current batch
                         </button>
                     </template>
@@ -714,78 +735,78 @@
             </div>
 
             <!-- STATE 3: COMPLETED (TELEMETRY DASHBOARD) -->
-            <div x-show="syncConsoleState === 'completed'" class="py-4 space-y-4">
+            <div x-show="syncConsoleState === 'completed'" class="py-3 sm:py-4 space-y-3.5 sm:space-y-4">
                 <!-- Header Status Badge -->
-                <div class="flex items-center justify-between">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-950 border border-emerald-800 rounded-full text-xs font-bold text-emerald-400">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-950 border border-emerald-800 rounded-full text-xs font-bold text-emerald-400 self-start sm:self-auto">
                         <span>🚀 Pipeline Executed Successfully</span>
                     </span>
-                    <span class="text-xs font-mono font-bold text-slate-400">
+                    <span class="text-xs font-mono font-bold text-slate-400 self-start sm:self-auto">
                         ⏱️ Completed in <span class="text-white" x-text="syncElapsedSeconds"></span>s
                     </span>
                 </div>
 
                 <!-- Telemetry 4-Card Grid -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Received</div>
-                        <div class="text-xl font-extrabold text-blue-400 mt-1" x-text="(syncSummary.received || 0).toLocaleString()">0</div>
-                        <div class="text-[10px] text-slate-500 mt-0.5">Raw Records</div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 sm:p-3 text-center">
+                        <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Received</div>
+                        <div class="text-lg sm:text-xl font-extrabold text-blue-400 mt-0.5 sm:mt-1" x-text="(syncSummary.received || 0).toLocaleString()">0</div>
+                        <div class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">Raw Records</div>
                     </div>
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Inserted</div>
-                        <div class="text-xl font-extrabold text-emerald-400 mt-1" x-text="(syncSummary.inserted || 0).toLocaleString()">0</div>
-                        <div class="text-[10px] text-slate-500 mt-0.5">New Canonical</div>
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 sm:p-3 text-center">
+                        <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-400">Inserted</div>
+                        <div class="text-lg sm:text-xl font-extrabold text-emerald-400 mt-0.5 sm:mt-1" x-text="(syncSummary.inserted || 0).toLocaleString()">0</div>
+                        <div class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">New Canonical</div>
                     </div>
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Updated</div>
-                        <div class="text-xl font-extrabold text-cyan-400 mt-1" x-text="(syncSummary.updated || 0).toLocaleString()">0</div>
-                        <div class="text-[10px] text-slate-500 mt-0.5">Refreshed</div>
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 sm:p-3 text-center">
+                        <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-cyan-400">Updated</div>
+                        <div class="text-lg sm:text-xl font-extrabold text-cyan-400 mt-0.5 sm:mt-1" x-text="(syncSummary.updated || 0).toLocaleString()">0</div>
+                        <div class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">Refreshed</div>
                     </div>
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Duplicates</div>
-                        <div class="text-xl font-extrabold text-slate-300 mt-1" x-text="(syncSummary.duplicate || 0).toLocaleString()">0</div>
-                        <div class="text-[10px] text-slate-500 mt-0.5">SHA-256 Skipped</div>
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 sm:p-3 text-center">
+                        <div class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Duplicates</div>
+                        <div class="text-lg sm:text-xl font-extrabold text-slate-300 mt-0.5 sm:mt-1" x-text="(syncSummary.duplicate || 0).toLocaleString()">0</div>
+                        <div class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">SHA-256 Skipped</div>
                     </div>
                 </div>
 
                 <!-- All Duplicates Notice (Already Synced & Protected) -->
-                <div x-show="(syncSummary.duplicate || 0) > 0 && (syncSummary.inserted || 0) === 0" class="bg-blue-950/40 border border-blue-800/80 rounded-xl p-3.5 space-y-2.5">
-                    <div class="flex items-center justify-between">
+                <div x-show="(syncSummary.duplicate || 0) > 0 && (syncSummary.inserted || 0) === 0" class="bg-blue-950/40 border border-blue-800/80 rounded-xl p-3 sm:p-3.5 space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                         <span class="text-xs font-bold text-blue-300 flex items-center gap-1.5">
                             <span>ℹ️</span>
-                            <span>All records for this period already exist in the database (<span x-text="syncSummary.duplicate"></span> duplicates skipped)</span>
+                            <span>All records exist (<span x-text="syncSummary.duplicate"></span> duplicates skipped)</span>
                         </span>
-                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 bg-blue-900/60 text-blue-200 rounded border border-blue-700/60 font-mono">
+                        <span class="self-start sm:self-auto text-[10px] font-bold uppercase px-2 py-0.5 bg-blue-900/60 text-blue-200 rounded border border-blue-700/60 font-mono">
                             Up to Date
                         </span>
                     </div>
                     <p class="text-xs text-blue-200/90 leading-relaxed">
-                        The system checked all <span class="font-bold text-white font-mono" x-text="syncSummary.duplicate"></span> records against existing database rows using SHA-256 cryptographic checksums. Because these exact auction records are already saved in your database, deduplication protected your database from duplicate rows.
+                        The system checked all <span class="font-bold text-white font-mono" x-text="syncSummary.duplicate"></span> records against existing database rows using SHA-256 cryptographic checksums. Deduplication protected your database from duplicate rows.
                     </p>
-                    <div class="pt-1 flex items-center justify-between">
-                        <span class="text-[11px] text-slate-400">Want to overwrite and recalculate analytics anyway?</span>
+                    <div class="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span class="text-[11px] text-slate-400">Want to overwrite anyway?</span>
                         <button type="button"
                                 @click="forceSync = true; runSync(syncMode)"
-                                class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-200 hover:text-white bg-amber-900/80 hover:bg-amber-800 px-3 py-1.5 rounded-lg border border-amber-700 transition cursor-pointer">
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-bold text-amber-200 hover:text-white bg-amber-900/80 hover:bg-amber-800 px-3 py-1.5 rounded-lg border border-amber-700 transition cursor-pointer">
                             <span>⚡ Force Re-sync & Overwrite</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Quarantined / Rejection Notice (if rejected > 0) -->
-                <div x-show="(syncSummary.rejected || 0) > 0" class="bg-amber-950/40 border border-amber-800/80 rounded-xl p-3.5 space-y-2.5">
-                    <div class="flex items-center justify-between">
+                <div x-show="(syncSummary.rejected || 0) > 0" class="bg-amber-950/40 border border-amber-800/80 rounded-xl p-3 sm:p-3.5 space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                         <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                             <span>⚠️</span>
                             <span><span x-text="syncSummary.rejected"></span> records quarantined for entity resolution</span>
                         </span>
-                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 bg-amber-900/60 text-amber-200 rounded border border-amber-700/60">
+                        <span class="self-start sm:self-auto text-[10px] font-bold uppercase px-2 py-0.5 bg-amber-900/60 text-amber-200 rounded border border-amber-700/60">
                             Isolated Safely
                         </span>
                     </div>
                     <p class="text-xs text-amber-200/90 leading-relaxed">
-                        These items could not be automatically mapped to Krushi Baandhava's core catalogue (e.g. non-tracked crops or new APMC spellings). They were saved to quarantine without polluting live prices.
+                        These items could not be automatically mapped to Krushi Baandhava's catalogue. They were saved to quarantine safely.
                     </p>
                     <!-- Distinct Unresolved Commodities List -->
                     <div x-show="uniqueRejections.length > 0" class="pt-1">
@@ -799,7 +820,7 @@
                     <div class="pt-1 flex items-center justify-end">
                         <a href="{{ route('admin.unresolved-mappings.index') }}" 
                            target="_blank"
-                           class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-200 hover:text-white bg-amber-900/80 hover:bg-amber-800 px-3 py-1.5 rounded-lg border border-amber-700 transition">
+                           class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-bold text-amber-200 hover:text-white bg-amber-900/80 hover:bg-amber-800 px-3 py-1.5 rounded-lg border border-amber-700 transition">
                             <span>Review & Map in Unresolved Mappings</span>
                             <span>↗</span>
                         </a>
@@ -807,7 +828,7 @@
                 </div>
 
                 <!-- Data Sources Involved -->
-                <div x-show="syncSources && syncSources.length > 0" class="text-xs text-slate-400 flex items-center gap-2 pt-1">
+                <div x-show="syncSources && syncSources.length > 0" class="text-xs text-slate-400 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 pt-1">
                     <span class="font-bold">Sources processed:</span>
                     <div class="flex flex-wrap gap-1">
                         <template x-for="(src, idx) in syncSources" :key="idx">
@@ -817,15 +838,15 @@
                 </div>
 
                 <!-- Modal Action Buttons -->
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-3 border-t border-slate-800">
                     <button type="button" 
                             @click="resetSyncModal()" 
-                            class="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer">
+                            class="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer text-center">
                         Run Another Sync
                     </button>
                     <button type="button" 
                             @click="syncModalOpen = false; window.location.reload()" 
-                            class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer flex items-center gap-1.5">
+                            class="w-full sm:w-auto px-5 py-2.5 sm:py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500 transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5 text-center">
                         <span>Done & Refresh Table</span>
                         <span>↻</span>
                     </button>
@@ -833,22 +854,22 @@
             </div>
 
             <!-- STATE 4: ERROR -->
-            <div x-show="syncConsoleState === 'error'" class="py-4 space-y-4">
-                <div class="bg-rose-950/50 border border-rose-800 rounded-xl p-4 space-y-2">
+            <div x-show="syncConsoleState === 'error'" class="py-3 sm:py-4 space-y-3.5 sm:space-y-4">
+                <div class="bg-rose-950/50 border border-rose-800 rounded-xl p-3.5 sm:p-4 space-y-2">
                     <div class="flex items-center gap-2 text-rose-300 text-sm font-bold">
                         <span>⚠️ Ingestion Execution Failed</span>
                     </div>
                     <p class="text-xs text-rose-200 leading-relaxed" x-text="syncErrorMessage"></p>
                 </div>
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-2 border-t border-slate-800">
                     <button type="button" 
                             @click="syncModalOpen = false" 
-                            class="px-4 py-2 text-xs font-bold text-slate-400 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer">
+                            class="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-bold text-slate-400 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer text-center">
                         Close
                     </button>
                     <button type="button" 
                             @click="resetSyncModal()" 
-                            class="px-5 py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-500 transition shadow-sm cursor-pointer">
+                            class="w-full sm:w-auto px-5 py-2.5 sm:py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-500 transition shadow-sm cursor-pointer text-center">
                         Try Again
                     </button>
                 </div>
@@ -859,7 +880,7 @@
     <!-- Data Retention & Safe Pruning Modal -->
     <div x-show="pruneModalOpen"
          style="display: none;"
-         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-2.5 sm:p-4"
          @keydown.escape.window="pruneModalOpen = false">
         
         <!-- Dark Dimming Backdrop -->
@@ -876,17 +897,16 @@
              x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
-             class="relative z-10 bg-slate-900 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-700 text-white my-auto max-h-[90vh] overflow-y-auto"
-             @click.away="pruneModalOpen = false">
+             class="relative z-10 bg-slate-900 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-700 text-white my-auto max-h-[92vh] overflow-y-auto scrollbar-thin">
             
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-800">
                 <div>
-                    <h3 class="text-base font-black text-rose-300 flex items-center gap-2">
+                    <h3 class="text-sm sm:text-base font-black text-rose-300 flex items-center gap-2">
                         <span>🗑️</span> Data Retention & Safe Pruning Manager
                     </h3>
-                    <p class="text-xs text-slate-400">Reclaim MySQL disk space by safely pruning old daily records.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Reclaim MySQL disk space by safely pruning old daily records.</p>
                 </div>
-                <button @click="pruneModalOpen = false" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">✕</button>
+                <button @click="pruneModalOpen = false" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer p-1 shrink-0">✕</button>
             </div>
 
             <form @submit.prevent="executeAsyncPrune()" class="mt-4 space-y-4">
@@ -903,17 +923,17 @@
 
                     <div class="space-y-2.5">
                         <!-- Strategy 1 (NEW & RECOMMENDED): Inactive / Disabled Crops Targeted Cleanup -->
-                        <label class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'inactive_crops' ? 'border-amber-500 bg-amber-950/25 shadow-sm' : ''">
-                            <input type="radio" name="strategy" value="inactive_crops" x-model="pruneStrategy" class="mt-0.5 text-amber-500 focus:ring-amber-500">
-                            <div class="flex-1">
-                                <div class="flex items-center justify-between gap-2 flex-wrap">
-                                    <div class="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                        <label class="flex items-start gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'inactive_crops' ? 'border-amber-500 bg-amber-950/25 shadow-sm' : ''">
+                            <input type="radio" name="strategy" value="inactive_crops" x-model="pruneStrategy" class="mt-1 text-amber-500 focus:ring-amber-500 shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
+                                    <div class="text-xs font-black text-amber-300 flex items-center gap-1.5 leading-snug">
                                         <span>🎯</span>
-                                        <span>Prune Records for Inactive Crops (Targeted Cleanup)</span>
+                                        <span>Prune Records for Inactive Crops</span>
                                     </div>
                                     <template x-if="prunePreviewData">
-                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800/80 font-bold"
-                                              x-text="(prunePreviewData.inactive_records_count || 0).toLocaleString() + ' records across ' + (prunePreviewData.inactive_crops_count || 0) + ' crops'">
+                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800/80 font-bold shrink-0 self-start sm:self-auto"
+                                              x-text="(prunePreviewData.inactive_records_count || 0).toLocaleString() + ' records (' + (prunePreviewData.inactive_crops_count || 0) + ' crops)'">
                                         </span>
                                     </template>
                                 </div>
@@ -923,7 +943,7 @@
                                 
                                 <div x-show="pruneStrategy === 'inactive_crops'" class="mt-3 space-y-2.5">
                                     <!-- Comparison Stats -->
-                                    <div class="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
                                         <div>
                                             <span class="text-[10px] text-slate-400 uppercase font-bold block">Protected Active Crops:</span>
                                             <span class="text-emerald-400 font-black text-xs" x-text="(prunePreviewData?.active_crops_count ?? '...') + ' Active (' + (prunePreviewData?.active_records_count?.toLocaleString() ?? '...') + ' rows)'"></span>
@@ -953,14 +973,14 @@
                         </label>
 
                         <!-- Strategy 2: Age Based -->
-                        <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'age' ? 'border-emerald-600 bg-emerald-950/20' : ''">
-                            <input type="radio" name="strategy" value="age" x-model="pruneStrategy" class="mt-0.5 text-emerald-500 focus:ring-emerald-500">
-                            <div>
+                        <label class="flex items-start gap-2.5 sm:gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'age' ? 'border-emerald-600 bg-emerald-950/20' : ''">
+                            <input type="radio" name="strategy" value="age" x-model="pruneStrategy" class="mt-1 text-emerald-500 focus:ring-emerald-500 shrink-0">
+                            <div class="flex-1 min-w-0">
                                 <div class="text-xs font-bold text-white">Prune Daily Records by Age (Rolling Window)</div>
                                 <p class="text-[11px] text-slate-400 mt-0.5">Keeps recent daily records and automatically cleans up older rows.</p>
-                                <div x-show="pruneStrategy === 'age'" class="mt-2 flex items-center gap-2">
+                                <div x-show="pruneStrategy === 'age'" class="mt-2 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
                                     <span class="text-xs text-slate-400 font-medium">Keep last:</span>
-                                    <select name="older_than_days" x-model="pruneDays" class="text-xs font-bold px-3 py-1 bg-slate-900 border border-slate-700 rounded-lg text-white">
+                                    <select name="older_than_days" x-model="pruneDays" class="w-full sm:w-auto text-xs font-bold px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
                                         <option value="365">365 Days (1 Full Year - Recommended for cPanel)</option>
                                         <option value="180">180 Days (6 Months)</option>
                                         <option value="90">90 Days (3 Months)</option>
@@ -970,12 +990,12 @@
                         </label>
 
                         <!-- Strategy 3: Specific Period -->
-                        <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'period' ? 'border-emerald-600 bg-emerald-950/20' : ''">
-                            <input type="radio" name="strategy" value="period" x-model="pruneStrategy" class="mt-0.5 text-emerald-500 focus:ring-emerald-500">
-                            <div class="flex-1">
+                        <label class="flex items-start gap-2.5 sm:gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'period' ? 'border-emerald-600 bg-emerald-950/20' : ''">
+                            <input type="radio" name="strategy" value="period" x-model="pruneStrategy" class="mt-1 text-emerald-500 focus:ring-emerald-500 shrink-0">
+                            <div class="flex-1 min-w-0">
                                 <div class="text-xs font-bold text-white">Delete Specific Year / Month</div>
                                 <p class="text-[11px] text-slate-400 mt-0.5">Prunes daily trade records for an exact historical period.</p>
-                                <div x-show="pruneStrategy === 'period'" class="mt-2 grid grid-cols-2 gap-2">
+                                <div x-show="pruneStrategy === 'period'" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">Year</label>
                                         <select name="year" x-model="pruneYear" class="w-full text-xs font-bold px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
@@ -1017,12 +1037,12 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" @click="pruneModalOpen = false" :disabled="pruneExecuting" class="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer disabled:opacity-50">
+                <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
+                    <button type="button" @click="pruneModalOpen = false" :disabled="pruneExecuting" class="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer disabled:opacity-50 text-center">
                         Cancel
                     </button>
                     <button type="submit" :disabled="pruneExecuting || (pruneStrategy === 'inactive_crops' && (prunePreviewData?.inactive_records_count ?? 0) === 0)" 
-                            class="px-5 py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-500 transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                            class="w-full sm:w-auto px-5 py-2.5 sm:py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-500 transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center">
                         <template x-if="pruneExecuting">
                             <span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                         </template>
@@ -1084,6 +1104,7 @@ function pricesManager() {
         targetDate: '{{ date('Y-m-d') }}',
         fromDate: '{{ date('Y-m-d', strtotime('-90 days')) }}',
         toDate: '{{ date('Y-m-d') }}',
+        activePresetDays: 90,
         updateAnalytics: true,
         pruneStrategy: 'inactive_crops',
         pruneDays: 365,
@@ -1103,6 +1124,7 @@ function pricesManager() {
         agmarknetCaptchaKey: '',
         agmarknetCaptchaImage: '',
         agmarknetCaptchaCode: '',
+        agmarknetCaptchaLoading: false,
         savedSourceCrops: @json($savedSourceCrops ?? []),
         savedAllActiveCrops: @json($savedAllActiveCrops ?? []),
 
@@ -1162,11 +1184,31 @@ function pricesManager() {
         },
 
         setPreset(days) {
+            this.activePresetDays = days;
             const end = new Date();
             const start = new Date();
             start.setDate(end.getDate() - days);
             this.toDate = end.toISOString().split('T')[0];
             this.fromDate = start.toISOString().split('T')[0];
+            this.$nextTick(() => {
+                const fromEl = document.querySelector('input[name="from_date"]');
+                const toEl = document.querySelector('input[name="to_date"]');
+                if (fromEl && fromEl._flatpickr) fromEl._flatpickr.setDate(this.fromDate, false);
+                if (toEl && toEl._flatpickr) toEl._flatpickr.setDate(this.toDate, false);
+            });
+        },
+
+        checkActivePreset() {
+            if (!this.fromDate || !this.toDate) {
+                this.activePresetDays = null;
+                return;
+            }
+            const from = new Date(this.fromDate);
+            const to = new Date(this.toDate);
+            const diffTime = Math.abs(to - from);
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            const presets = [30, 90, 365, 1095, 1825, 2190];
+            this.activePresetDays = presets.includes(diffDays) ? diffDays : null;
         },
 
         showToast(message, type = 'success') {
@@ -1282,6 +1324,7 @@ function pricesManager() {
             if (this.isAgmarknetSourceSelected()) {
                 this.refreshAgmarknetCaptcha();
             }
+            this.checkActivePreset();
         },
 
         splitRangeIntoSlices(fromStr, toStr, sliceDays = 25) {
