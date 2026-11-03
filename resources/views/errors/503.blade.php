@@ -16,9 +16,16 @@
 <body class="min-h-screen flex items-center justify-center p-4 antialiased text-stone-800">
     <div class="max-w-lg w-full bg-white rounded-3xl border-2 border-[#E2DAC8] p-6 sm:p-8 shadow-xl text-center space-y-6">
         @php
-            $appLogo = \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg');
-            $appName = \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava');
-            $appNameKn = \App\Models\SystemSetting::get('application_name_kn', 'ಕೃಷಿ ಬಾಂಧವ');
+            $appLogo = '/icons/icon-192.svg';
+            $appName = 'Krushi Baandhava';
+            $appNameKn = 'ಕೃಷಿ ಬಾಂಧವ';
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('system_settings')) {
+                    $appLogo = \App\Models\SystemSetting::get('app_logo', $appLogo);
+                    $appName = \App\Models\SystemSetting::get('application_name', $appName);
+                    $appNameKn = \App\Models\SystemSetting::get('application_name_kn', $appNameKn);
+                }
+            } catch (\Throwable $ignored) {}
         @endphp
 
         <!-- Branding Logo -->

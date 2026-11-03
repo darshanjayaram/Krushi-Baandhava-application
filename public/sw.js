@@ -1,5 +1,5 @@
-// Krushi Baandhava PWA Service Worker (v6 - Web Push Notifications Active)
-const CACHE_NAME = 'krushi-baandhava-v6';
+// Krushi Baandhava PWA Service Worker (v7 - Scheme Protection & Push Notifications Active)
+const CACHE_NAME = 'krushi-baandhava-v7';
 const STATIC_ASSETS = [
     './offline',
     './manifest.json',
@@ -46,12 +46,22 @@ self.addEventListener('message', (event) => {
 
 // Intercept fetch requests
 self.addEventListener('fetch', (event) => {
-    // Only handle GET requests and exclude admin routes
+    // 1. Strictly ignore unsupported browser schemes (e.g. chrome-extension://, moz-extension://, file://, data:)
+    if (!event.request || !event.request.url || (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://'))) {
+        return;
+    }
+
+    // 2. Only handle GET requests and exclude admin routes
     if (event.request.method !== 'GET' || event.request.url.includes('/admin')) {
         return;
     }
 
-    const url = new URL(event.request.url);
+    let url;
+    try {
+        url = new URL(event.request.url);
+    } catch (e) {
+        return;
+    }
 
     // Strategy 1: Stale-while-revalidate for Vite build chunks & static icons
     if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/icons/')) {
@@ -59,8 +69,8 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE_NAME).then((cache) => {
                 return cache.match(event.request).then((cachedResponse) => {
                     const fetchPromise = fetch(event.request).then((networkResponse) => {
-                        if (networkResponse && networkResponse.status === 200) {
-                            cache.put(event.request, networkResponse.clone());
+                        if (networkResponse && networkResponse.status === 200 && event.request.url.startsWith('http')) {
+                            cache.put(event.request, networkResponse.clone()).catch(() => {});
                         }
                         return networkResponse;
                     }).catch(() => cachedResponse);
@@ -76,11 +86,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                if (response && response.status === 200) {
+                if (response && response.status === 200 && event.request.url.startsWith('http')) {
                     const responseClone = response.clone();
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
-                    });
+                        cache.put(event.request, responseClone).catch(() => {});
+                    }).catch(() => {});
                 }
                 return response;
             })

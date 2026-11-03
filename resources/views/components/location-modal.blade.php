@@ -274,6 +274,14 @@
         <!-- Body Area: GPS Hero + Dropdown Selector Box + Quick Chips (Explicit 20px top padding, 24px side grid) -->
         <div class="kb-modal-body space-y-4">
 
+            <!-- Outside Karnataka Notice (Matching Negilu standard) -->
+            <div x-show="outsideKarnatakaNotice" 
+                 x-cloak 
+                 style="display: none;" 
+                 class="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-600 text-xs sm:text-[13px] font-semibold text-center tracking-wide font-sans shadow-2xs">
+                coordinates outside Karnataka — please pick manually
+            </div>
+
             <!-- 1. GPS Auto-Detect Button Card (Clean White, Soft Light Border) -->
             <button type="button" 
                     @click.stop="detectGPSLocation()" 
@@ -696,6 +704,7 @@ function locationModalHandler() {
         gpsError: null,
         isPermissionDenied: false,
         insecureContextNotice: false,
+        outsideKarnatakaNotice: false,
         searchFilter: '',
         activeDistrictId: {{ $currentActiveId ?? 1 }},
         activeDistrictName: '{{ $currentActiveName }}',
@@ -750,6 +759,7 @@ function locationModalHandler() {
             this.gpsError = null;
             this.isPermissionDenied = false;
             this.insecureContextNotice = false;
+            this.outsideKarnatakaNotice = false;
             this.currentHost = window.location.hostname || '{{ request()->getHost() }}';
             this.deviceType = this.detectDevice();
             this.isHttp = window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
@@ -802,6 +812,7 @@ function locationModalHandler() {
             this.gpsError = null;
             this.isPermissionDenied = false;
             this.insecureContextNotice = false;
+            this.outsideKarnatakaNotice = false;
             this.currentHost = window.location.hostname || '{{ request()->getHost() }}';
             this.deviceType = this.detectDevice();
             this.isHttp = window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
@@ -876,6 +887,8 @@ function locationModalHandler() {
             // Hyperlocal reverse geocode lookup (OpenStreetMap Nominatim via our fast parallel cached proxy)
             let localArea = null;
             let localAreaKn = null;
+            let taluk = null;
+            let talukKn = null;
 
             try {
                 const controller = new AbortController();
@@ -889,15 +902,30 @@ function locationModalHandler() {
                 if (res.ok) {
                     const json = await res.json();
                     if (json && json.success && json.data) {
+                        // Negilu-standard outside Karnataka check
+                        if (json.data.is_outside_karnataka) {
+                            this.isDetecting = false;
+                            this.outsideKarnatakaNotice = true;
+                            this.isDropdownOpen = true;
+                            if (this.$refs.dropdownSearch) {
+                                this.$nextTick(() => {
+                                    setTimeout(() => this.$refs.dropdownSearch && this.$refs.dropdownSearch.focus(), 150);
+                                });
+                            }
+                            return;
+                        }
+
                         localArea = json.data.local_area;
                         localAreaKn = json.data.local_area_kn;
+                        taluk = json.data.taluk || null;
+                        talukKn = json.data.taluk_kn || null;
                     }
                 }
             } catch (err) {
                 console.warn('Reverse geocode lookup bypassed/timed out:', err);
             }
 
-            this.findNearestDistrictAndSelect(lat, lon, localArea, localAreaKn);
+            this.findNearestDistrictAndSelect(lat, lon, localArea, localAreaKn, taluk, talukKn);
         },
 
         async fallbackToIP() {
@@ -933,7 +961,7 @@ function locationModalHandler() {
                 : 'ಸ್ಥಳ ಪತ್ತೆಹಚ್ಚಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಕೆಳಗಿನ ಪಟ್ಟಿಯಿಂದ ನಿಮ್ಮ ಜಿಲ್ಲೆಯನ್ನು ಆರಿಸಿ.';
         },
 
-        findNearestDistrictAndSelect(userLat, userLon, localArea = null, localAreaKn = null) {
+        findNearestDistrictAndSelect(userLat, userLon, localArea = null, localAreaKn = null, taluk = null, talukKn = null) {
             let nearest = null;
             let minDistanceKm = Infinity;
 
@@ -947,20 +975,33 @@ function locationModalHandler() {
                 }
             }
 
+            // Outside Karnataka check (matching Negilu: if coordinates are > 100km from any Karnataka district)
+            if (minDistanceKm > 100) {
+                this.isDetecting = false;
+                this.outsideKarnatakaNotice = true;
+                this.isDropdownOpen = true;
+                if (this.$refs.dropdownSearch) {
+                    this.$nextTick(() => {
+                        setTimeout(() => this.$refs.dropdownSearch && this.$refs.dropdownSearch.focus(), 150);
+                    });
+                }
+                return;
+            }
+
             if (nearest) {
                 const safeAreaKn = (localAreaKn && !/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/i.test(localAreaKn.trim())) ? localAreaKn : (localArea || null);
                 this.isUpdating = true;
                 this.updatingDistrictId = nearest.id;
                 this.updatingDistrictName = localArea ? `${localArea} (${nearest.name})` : nearest.name;
                 this.updatingDistrictNameKn = localArea ? `${safeAreaKn} (${nearest.name_kn || nearest.name})` : (nearest.name_kn || nearest.name);
-                this.saveAndRedirect(nearest.id, nearest.name, userLat, userLon, localArea, safeAreaKn);
+                this.saveAndRedirect(nearest.id, nearest.name, userLat, userLon, localArea, safeAreaKn, taluk, talukKn);
             } else {
                 const fallback = this.districts[0] || { id: 1, name: 'Shivamogga' };
                 this.isUpdating = true;
                 this.updatingDistrictId = fallback.id;
                 this.updatingDistrictName = fallback.name;
                 this.updatingDistrictNameKn = fallback.name_kn || fallback.name;
-                this.saveAndRedirect(fallback.id, fallback.name, null, null, null, null);
+                this.saveAndRedirect(fallback.id, fallback.name, null, null, null, null, null, null);
             }
         },
 
@@ -974,7 +1015,7 @@ function locationModalHandler() {
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         },
 
-        saveAndRedirect(districtId, districtName, lat = null, lon = null, localArea = null, localAreaKn = null) {
+        saveAndRedirect(districtId, districtName, lat = null, lon = null, localArea = null, localAreaKn = null, taluk = null, talukKn = null) {
             // Instantly notify homepage weather widget to show shimmer effect
             window.dispatchEvent(new CustomEvent('weather-updating'));
 
@@ -985,23 +1026,39 @@ function locationModalHandler() {
                 localStorage.setItem('krushi_district_name', districtName);
             }
 
-            // Persist or clear hyper-local place
+            // Persist or clear hyper-local place and taluk
             if (localArea) {
                 const safeKn = (localAreaKn && !/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/i.test(localAreaKn.trim())) ? localAreaKn : localArea;
                 const encArea = encodeURIComponent(localArea);
                 const encAreaKn = encodeURIComponent(safeKn);
                 document.cookie = "selected_local_area=" + encArea + "; path=/; max-age=31536000; SameSite=Lax";
                 document.cookie = "selected_local_area_kn=" + encAreaKn + "; path=/; max-age=31536000; SameSite=Lax";
+                if (taluk) {
+                    document.cookie = "selected_taluk_name=" + encodeURIComponent(taluk) + "; path=/; max-age=31536000; SameSite=Lax";
+                } else {
+                    document.cookie = "selected_taluk_name=; path=/; max-age=0; SameSite=Lax";
+                }
+                if (talukKn) {
+                    document.cookie = "selected_taluk_name_kn=" + encodeURIComponent(talukKn) + "; path=/; max-age=31536000; SameSite=Lax";
+                } else {
+                    document.cookie = "selected_taluk_name_kn=; path=/; max-age=0; SameSite=Lax";
+                }
                 if (window.localStorage) {
                     localStorage.setItem('krushi_local_area', localArea);
                     localStorage.setItem('krushi_local_area_kn', safeKn);
+                    if (taluk) localStorage.setItem('krushi_taluk_name', taluk);
+                    if (talukKn) localStorage.setItem('krushi_taluk_name_kn', talukKn);
                 }
             } else {
                 document.cookie = "selected_local_area=; path=/; max-age=0; SameSite=Lax";
                 document.cookie = "selected_local_area_kn=; path=/; max-age=0; SameSite=Lax";
+                document.cookie = "selected_taluk_name=; path=/; max-age=0; SameSite=Lax";
+                document.cookie = "selected_taluk_name_kn=; path=/; max-age=0; SameSite=Lax";
                 if (window.localStorage) {
                     localStorage.removeItem('krushi_local_area');
                     localStorage.removeItem('krushi_local_area_kn');
+                    localStorage.removeItem('krushi_taluk_name');
+                    localStorage.removeItem('krushi_taluk_name_kn');
                 }
             }
 
@@ -1014,6 +1071,8 @@ function locationModalHandler() {
                 const safeKn = (localAreaKn && !/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/i.test(localAreaKn.trim())) ? localAreaKn : localArea;
                 payload.local_area = localArea;
                 payload.local_area_kn = safeKn;
+                if (taluk) payload.taluk = taluk;
+                if (talukKn) payload.taluk_kn = talukKn;
             }
 
             // Post to backend to persist in session

@@ -102,6 +102,7 @@ class MarketPriceController extends Controller
             ->value('avg_spread') ?? 0;
 
         $crops = Crop::where('is_active', true)->orderBy('name')->get();
+        $allCropsForPrune = Crop::orderBy('name')->get();
         $markets = Market::where('is_active', true)->with('district')->orderBy('name')->get();
         $districts = District::where('is_active', true)->orderBy('name')->get();
         $dataSources = DataSource::orderBy('name')->get();
@@ -189,6 +190,7 @@ class MarketPriceController extends Controller
             'activeMarketsCount',
             'avgSpread',
             'crops',
+            'allCropsForPrune',
             'savedSourceCrops',
             'savedAllActiveCrops',
             'markets',
@@ -536,10 +538,77 @@ class MarketPriceController extends Controller
     }
 
     /**
-     * Async preview metrics for data retention and targeted pruning.
+     * Async metadata endpoint for dynamic dependent dropdowns (Crop -> Years -> Months).
      */
-    public function prunePreview(): JsonResponse
+    public function pruneMetadata(Request $request): JsonResponse
     {
+        $cropId = $request->input('crop_id');
+        $year = $request->input('year');
+
+        // Case 1: If year is specified, return available months for that crop and year
+        if (!empty($year)) {
+            $monthQuery = MarketPrice::whereYear('price_date', (int) $year);
+            if (!empty($cropId)) {
+                $monthQuery->where('crop_id', (int) $cropId);
+            }
+
+            $monthsData = $monthQuery->selectRaw('MONTH(price_date) as mo, COUNT(*) as count')
+                ->groupByRaw('MONTH(price_date)')
+                ->orderBy('mo')
+                ->get()
+                ->map(fn ($r) => [
+                    'month' => (int) $r->mo,
+                    'name' => date('F', mktime(0, 0, 0, (int) $r->mo, 1)),
+                    'name_kn' => match((int) $r->mo) {
+                        1 => 'ಜನವರಿ', 2 => 'ಫೆಬ್ರವರಿ', 3 => 'ಮಾರ್ಚ್', 4 => 'ಏಪ್ರಿಲ್',
+                        5 => 'ಮೇ', 6 => 'ಜೂನ್', 7 => 'ಜುಲೈ', 8 => 'ಆಗಸ್ಟ್',
+                        9 => 'ಸೆಪ್ಟೆಂಬರ್', 10 => 'ಅಕ್ಟೋಬರ್', 11 => 'ನವೆಂಬರ್', 12 => 'ಡಿಸೆಂಬರ್',
+                        default => ''
+                    },
+                    'count' => (int) $r->count,
+                ]);
+
+            return response()->json([
+                'ok' => true,
+                'months' => $monthsData,
+                'total_for_year' => $monthsData->sum('count'),
+            ]);
+        }
+
+        // Case 2: Return available years for the specified crop (or all crops if crop_id is empty)
+        $yearQuery = MarketPrice::query();
+        if (!empty($cropId)) {
+            $yearQuery->where('crop_id', (int) $cropId);
+        }
+
+        $yearsData = $yearQuery->selectRaw('YEAR(price_date) as yr, COUNT(*) as count')
+            ->groupByRaw('YEAR(price_date)')
+            ->orderByDesc('yr')
+            ->get()
+            ->map(fn ($r) => [
+                'year' => (int) $r->yr,
+                'count' => (int) $r->count,
+            ]);
+
+        return response()->json([
+            'ok' => true,
+            'years' => $yearsData,
+            'total_records' => $yearsData->sum('count'),
+        ]);
+    }
+
+    /**
+     * Async preview metrics for data retention and targeted pruning with real-time impact calculations.
+     */
+    public function prunePreview(Request $request): JsonResponse
+    {
+        $strategy = $request->input('strategy', 'crop_period');
+        $cropId = $request->input('crop_id');
+        $year = $request->input('year');
+        $month = $request->input('month');
+        $days = (int) ($request->input('older_than_days') ?: 365);
+
+        // General system metrics
         $inactiveCrops = Crop::where('is_active', false)
             ->withCount('prices')
             ->orderBy('name')
@@ -549,15 +618,64 @@ class MarketPriceController extends Controller
         $activeCropsCount = Crop::where('is_active', true)->count();
         $activeRecordsCount = MarketPrice::whereIn('crop_id', Crop::where('is_active', true)->pluck('id'))->count();
 
-        $krama = DataSource::where('code', 'krama_karnataka')->first();
-        $kramaCropIds = $krama
-            ? \App\Models\DataSourceCropSync::where('data_source_id', $krama->id)->where('is_enabled', true)->pluck('crop_id')->all()
-            : [];
-        $nonKramaRecordsCount = MarketPrice::whereNotIn('crop_id', $kramaCropIds)->count();
-        $nonKramaCropsCount = Crop::whereNotIn('id', $kramaCropIds)->count();
+        // Build specific query for targeted filter
+        $targetQuery = MarketPrice::query();
+        $targetCropModel = null;
+
+        if ($strategy === 'inactive_crops') {
+            $targetQuery->whereIn('crop_id', $inactiveCrops->pluck('id'));
+        } elseif ($strategy === 'age') {
+            $cutoffDate = Carbon::today()->subDays($days)->toDateString();
+            $targetQuery->where('price_date', '<', $cutoffDate);
+        } else {
+            // Crop & Period strategy (default)
+            if (!empty($cropId)) {
+                $targetQuery->where('crop_id', (int) $cropId);
+                $targetCropModel = Crop::find($cropId);
+            }
+            if (!empty($year)) {
+                $targetQuery->whereYear('price_date', (int) $year);
+            }
+            if (!empty($month)) {
+                $targetQuery->whereMonth('price_date', (int) $month);
+            }
+        }
+
+        $matchingCount = (clone $targetQuery)->count();
+        $marketsCount = 0;
+        $sampleMarkets = [];
+        $minDate = null;
+        $maxDate = null;
+
+        if ($matchingCount > 0) {
+            $marketsCount = (clone $targetQuery)->distinct('market_id')->count('market_id');
+            $sampleMarketIds = (clone $targetQuery)->distinct('market_id')->limit(4)->pluck('market_id')->all();
+            $sampleMarkets = Market::whereIn('id', $sampleMarketIds)->pluck('name')->all();
+            $minDate = (clone $targetQuery)->min('price_date');
+            $maxDate = (clone $targetQuery)->max('price_date');
+        }
+
+        // Estimated database savings: average row length ~ 320 bytes (including index overhead)
+        $estSpaceKb = round(($matchingCount * 320) / 1024, 1);
+        $estSpaceFormatted = $estSpaceKb >= 1024 
+            ? round($estSpaceKb / 1024, 2) . ' MB' 
+            : $estSpaceKb . ' KB';
 
         return response()->json([
             'ok' => true,
+            'matching_records_count' => $matchingCount,
+            'markets_count' => $marketsCount,
+            'sample_markets' => $sampleMarkets,
+            'min_date' => $minDate ? Carbon::parse($minDate)->format('d M Y') : null,
+            'max_date' => $maxDate ? Carbon::parse($maxDate)->format('d M Y') : null,
+            'est_space_saved' => $estSpaceFormatted,
+            'crop_info' => $targetCropModel ? [
+                'id' => $targetCropModel->id,
+                'name' => $targetCropModel->name,
+                'name_kn' => $targetCropModel->name_kn,
+                'icon' => $targetCropModel->icon,
+                'is_active' => (bool) $targetCropModel->is_active,
+            ] : null,
             'inactive_crops_count' => $inactiveCrops->count(),
             'inactive_records_count' => $inactiveRecordsCount,
             'inactive_crops' => $inactiveCrops->map(fn ($c) => [
@@ -569,9 +687,6 @@ class MarketPriceController extends Controller
             ])->values(),
             'active_crops_count' => $activeCropsCount,
             'active_records_count' => $activeRecordsCount,
-            'krama_configured_count' => count($kramaCropIds),
-            'non_krama_crops_count' => $nonKramaCropsCount,
-            'non_krama_records_count' => $nonKramaRecordsCount,
             'total_records_count' => MarketPrice::count(),
         ]);
     }
@@ -585,16 +700,20 @@ class MarketPriceController extends Controller
         @ini_set('max_execution_time', '600');
 
         $validated = $request->validate([
-            'strategy' => ['required', 'in:age,period,inactive_crops,non_krama_crops'],
-            'older_than_days' => ['required_if:strategy,age', 'nullable', 'integer', 'min:30'],
-            'year' => ['required_if:strategy,period', 'nullable', 'integer'],
+            'strategy' => ['required', 'in:crop_period,age,period,inactive_crops,non_krama_crops'],
+            'crop_id' => ['nullable', 'integer'],
+            'year' => ['nullable', 'integer'],
             'month' => ['nullable', 'integer', 'between:1,12'],
+            'older_than_days' => ['required_if:strategy,age', 'nullable', 'integer', 'min:30'],
+            'preserve_aggregates' => ['nullable'],
         ]);
 
         $strategy = $validated['strategy'];
         $days = (int) ($validated['older_than_days'] ?? 365);
+        $cropId = $validated['crop_id'] ?? null;
         $targetYear = $validated['year'] ?? null;
         $targetMonth = $validated['month'] ?? null;
+        $preserveAggregates = filter_var($request->input('preserve_aggregates', true), FILTER_VALIDATE_BOOLEAN);
 
         // 1. Build query for records to prune
         $pruneQuery = MarketPrice::query();
@@ -617,13 +736,31 @@ class MarketPriceController extends Controller
             $pruneQuery->where('price_date', '<', $cutoffDate);
             $scopeDescription = "older than {$days} days (before {$cutoffDate})";
         } else {
-            $pruneQuery->whereYear('price_date', (int) $targetYear);
-            if ($targetMonth) {
-                $pruneQuery->whereMonth('price_date', (int) $targetMonth);
-                $scopeDescription = "for period {$targetYear}-" . str_pad($targetMonth, 2, '0', STR_PAD_LEFT);
+            // crop_period or period
+            if (!empty($cropId)) {
+                $pruneQuery->where('crop_id', (int) $cropId);
+                $cropModel = Crop::find($cropId);
+                $cropName = $cropModel ? ($cropModel->name . ($cropModel->name_kn ? " / {$cropModel->name_kn}" : '')) : "Crop #{$cropId}";
             } else {
-                $scopeDescription = "for entire year {$targetYear}";
+                $cropName = "All Commodities";
             }
+
+            if (!empty($targetYear)) {
+                $pruneQuery->whereYear('price_date', (int) $targetYear);
+                $yearDesc = "Year {$targetYear}";
+            } else {
+                $yearDesc = "All Recorded Years";
+            }
+
+            if (!empty($targetMonth)) {
+                $pruneQuery->whereMonth('price_date', (int) $targetMonth);
+                $monthName = date('F', mktime(0, 0, 0, (int) $targetMonth, 1));
+                $periodDesc = "{$monthName} {$yearDesc}";
+            } else {
+                $periodDesc = $yearDesc;
+            }
+
+            $scopeDescription = "{$cropName} • {$periodDesc}";
         }
 
         $totalRecords = (clone $pruneQuery)->count();
@@ -642,7 +779,7 @@ class MarketPriceController extends Controller
         }
 
         // 2. Pre-Aggregation Safety Guard: Compile monthly statistics for active crops prior to date-based pruning
-        if (in_array($strategy, ['age', 'period'], true)) {
+        if ($preserveAggregates && in_array($strategy, ['crop_period', 'age', 'period'], true)) {
             $affectedPeriods = (clone $pruneQuery)
                 ->selectRaw('DISTINCT YEAR(price_date) as yr, MONTH(price_date) as mo')
                 ->get();

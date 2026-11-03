@@ -71,6 +71,8 @@ class AppServiceProvider extends ServiceProvider
 
             $activeLocalArea = $request->cookie('selected_local_area') ?? session('selected_local_area');
             $activeLocalAreaKn = $request->cookie('selected_local_area_kn') ?? session('selected_local_area_kn');
+            $activeTalukName = $request->cookie('selected_taluk_name') ?? session('selected_taluk_name');
+            $activeTalukNameKn = $request->cookie('selected_taluk_name_kn') ?? session('selected_taluk_name_kn');
 
             // If activeLocalAreaKn is broad city while activeLocalArea is a specific locality, fallback to activeLocalArea
             if ($activeLocalArea && $activeLocalAreaKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $activeLocalAreaKn) && !preg_match('/bengaluru|bangalore/i', $activeLocalArea)) {
@@ -80,7 +82,9 @@ class AppServiceProvider extends ServiceProvider
             $view->with('allDistricts', $allDistricts)
                  ->with('activeDistrict', $activeDistrict)
                  ->with('activeLocalArea', $activeLocalArea)
-                 ->with('activeLocalAreaKn', $activeLocalAreaKn);
+                 ->with('activeLocalAreaKn', $activeLocalAreaKn)
+                 ->with('activeTalukName', $activeTalukName)
+                 ->with('activeTalukNameKn', $activeTalukNameKn);
         });
     }
 }

@@ -23,10 +23,11 @@
         $logoVersion = file_exists(public_path(ltrim($appLogo, '/'))) ? filemtime(public_path(ltrim($appLogo, '/'))) : '1';
         $appLogoUrl = asset($appLogo) . '?v=' . $logoVersion;
         $pwaIcon = \App\Models\SystemSetting::get('pwa_icon');
-        if (!$pwaIcon || $pwaIcon === '/icons/icon-512.svg') {
+        if (!$pwaIcon || $pwaIcon === '/icons/icon-512.svg' || $pwaIcon === '/icons/icon-512.png') {
             $pwaIcon = $appLogo;
         }
-        $pwaIconUrl = asset($pwaIcon) . '?v=' . $logoVersion;
+        $pwaIconVersion = file_exists(public_path(ltrim($pwaIcon, '/'))) ? filemtime(public_path(ltrim($pwaIcon, '/'))) : $logoVersion;
+        $pwaIconUrl = asset($pwaIcon) . '?v=' . $pwaIconVersion;
         $appName = \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava');
     @endphp
 
@@ -113,13 +114,23 @@
 
         html[lang="kn"],
         html[lang="kn"] body,
-        html[lang="kn"] *,
+        html[lang="kn"] *:not([class*="fa-"]):not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands),
         html[lang="kn"] input,
         html[lang="kn"] button,
         html[lang="kn"] select,
         html[lang="kn"] textarea,
         .font-kannada {
             font-family: 'Noto Sans Kannada', 'Manrope', sans-serif !important;
+        }
+
+        /* Protect FontAwesome icon fonts in Kannada language mode */
+        html[lang="kn"] [class*="fa-"],
+        html[lang="kn"] .fa,
+        html[lang="kn"] .fas,
+        html[lang="kn"] .far,
+        html[lang="kn"] .fab,
+        html[lang="kn"] .fa-solid {
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", sans-serif !important;
         }
 
         /* 1. Base line-height relaxation for Kannada script vowels/matras */
@@ -701,9 +712,18 @@
                                             $displayAreaDrawer = ($activeLocale === 'kn')
                                                 ? ((!empty($activeLocalAreaKn) && !preg_match('/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/iu', trim($activeLocalAreaKn))) ? $activeLocalAreaKn : $activeLocalArea)
                                                 : $activeLocalArea;
+                                            $talukLabelDrawer = ($activeLocale === 'kn')
+                                                ? ($activeTalukNameKn ?? $activeTalukName ?? null)
+                                                : ($activeTalukName ?? null);
+                                            $districtLabelDrawer = ($activeLocale === 'en')
+                                                ? ($activeDistrict->name ?? 'Shivamogga')
+                                                : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ');
+                                            $subLabelDrawer = ($talukLabelDrawer && strcasecmp(trim($displayAreaDrawer), trim($talukLabelDrawer)) !== 0) ? $talukLabelDrawer : $districtLabelDrawer;
                                         @endphp
                                         {{ $displayAreaDrawer }}
-                                        <span class="text-stone-500 font-medium text-[11px]">({{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }})</span>
+                                        @if(!empty($subLabelDrawer) && strcasecmp(trim($displayAreaDrawer), trim($subLabelDrawer)) !== 0)
+                                            <span class="text-stone-500 font-medium text-[11px]">({{ $subLabelDrawer }})</span>
+                                        @endif
                                     @else
                                         {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Shivamogga') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಶಿವಮೊಗ್ಗ') }}
                                     @endif
@@ -1192,6 +1212,9 @@
             }
         })();
     </script>
+    {{-- Full-Screen App Intro / Onboarding Walkthrough Carousel --}}
+    <x-app-intro-carousel />
+
     {{-- Onboarding "How to Use" Tour --}}
     <x-onboarding-tour />
 

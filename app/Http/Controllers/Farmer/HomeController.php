@@ -276,6 +276,8 @@ class HomeController extends Controller
 
         $activeLocalArea = $request->cookie('selected_local_area') ?? session('selected_local_area');
         $activeLocalAreaKn = $request->cookie('selected_local_area_kn') ?? session('selected_local_area_kn');
+        $activeTalukName = $request->cookie('selected_taluk_name') ?? session('selected_taluk_name');
+        $activeTalukNameKn = $request->cookie('selected_taluk_name_kn') ?? session('selected_taluk_name_kn');
         if ($activeLocalArea && $activeLocalAreaKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $activeLocalAreaKn) && !preg_match('/bengaluru|bangalore/i', $activeLocalArea)) {
             $activeLocalAreaKn = $activeLocalArea;
         }
@@ -300,6 +302,8 @@ class HomeController extends Controller
             'activeDistrict',
             'activeLocalArea',
             'activeLocalAreaKn',
+            'activeTalukName',
+            'activeTalukNameKn',
             'allDistricts',
             'latestPrices',
             'categories',
@@ -340,11 +344,11 @@ class HomeController extends Controller
         // Round to 3 decimal places (~1km radius) for high cache hit rate across local farmers
         $latRound = round((float) $lat, 3);
         $lonRound = round((float) $lon, 3);
-        $cacheKey = "krushi_rev_geo_{$latRound}_{$lonRound}";
+        $cacheKey = "krushi_rev_geo_v12_{$latRound}_{$lonRound}";
 
         $result = \Illuminate\Support\Facades\Cache::remember($cacheKey, 86400, function () use ($latRound, $lonRound) {
             try {
-                // Fetch English and Kannada details concurrently in parallel using Http::pool (zoom 14 for town/city level)
+                // Fetch English and Kannada details concurrently in parallel using Http::pool (zoom 16 for precise village/neighborhood level)
                 $responses = \Illuminate\Support\Facades\Http::pool(fn ($pool) => [
                     $pool->withoutVerifying()
                         ->withHeaders(['User-Agent' => 'KrushiBaandhava/1.0 (https://krushibaandhava.in; contact@krushibaandhava.in)'])
@@ -353,7 +357,7 @@ class HomeController extends Controller
                             'format' => 'jsonv2',
                             'lat' => $latRound,
                             'lon' => $lonRound,
-                            'zoom' => 14,
+                            'zoom' => 16,
                             'accept-language' => 'en',
                         ]),
                     $pool->withoutVerifying()
@@ -363,7 +367,7 @@ class HomeController extends Controller
                             'format' => 'jsonv2',
                             'lat' => $latRound,
                             'lon' => $lonRound,
-                            'zoom' => 14,
+                            'zoom' => 16,
                             'accept-language' => 'kn,en',
                         ]),
                 ]);
@@ -374,7 +378,17 @@ class HomeController extends Controller
                 $addrEn = $resEn['address'] ?? [];
                 $addrKn = $resKn['address'] ?? [];
 
-                // Smart hierarchical extraction: city/town first (except metro Bengaluru where suburb/locality is preferred)
+                // Outside Karnataka check (matching Negilu: if detected location is outside Karnataka, return flag)
+                $countryCode = strtolower($addrEn['country_code'] ?? 'in');
+                $stateEn = $addrEn['state'] ?? '';
+                if ($countryCode !== 'in' || ($stateEn !== '' && !preg_match('/karnataka/i', $stateEn))) {
+                    return [
+                        'is_outside_karnataka' => true,
+                        'message' => 'coordinates outside Karnataka — please pick manually',
+                    ];
+                }
+
+                // Smart hierarchical extraction: city/town/village
                 $extractPlace = function (array $data, ?string $enPlace = null) {
                     $addr = $data['address'] ?? [];
                     $city = $addr['city'] ?? null;
@@ -392,24 +406,25 @@ class HomeController extends Controller
                         if ($local) {
                             return $local;
                         }
-                        // If specific English locality exists, retain that English locality instead of collapsing to broad "Bengaluru" / "ಬೆಂಗಳೂರು"
                         if ($enPlace && !preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $enPlace)) {
                             return $enPlace;
                         }
                         return $city;
                     }
 
-                    // 2. Recognized market town (e.g. Maddur, Tiptur, Arsikere, Sirsi, Gokak, Bailhongal)
+                    // 2. Recognized village / hamlet (e.g. Kuppalli, Hadaganimakki)
+                    if ($village) return $village;
+
+                    // 3. Recognized market town (e.g. Maddur, Tiptur, Arsikere, Sirsi, Gokak, Bailhongal)
                     if ($town) {
                         return $town;
                     }
 
-                    // 3. Suburb / Village / Quarter for rural or semi-urban areas
+                    // 4. Suburb / Quarter for semi-urban areas
                     if ($suburb) return $suburb;
-                    if ($village) return $village;
                     if ($quarter) return $quarter;
 
-                    // 4. County/Taluk check (e.g. "Madduru taluk" -> "Maddur")
+                    // 5. County/Taluk check (e.g. "Madduru taluk" -> "Maddur")
                     if (!empty($addr['county'])) {
                         $cleanCounty = trim(preg_replace('/\b(taluk|taluka|hobli)\b/iu', '', $addr['county']));
                         if (!empty($cleanCounty)) {
@@ -417,16 +432,15 @@ class HomeController extends Controller
                         }
                     }
 
-                    // 5. Recognized City across Karnataka (e.g. Shivamogga, Hubballi, Mysuru, Belagavi, Mangaluru, Davanagere)
+                    // 6. Recognized City across Karnataka (e.g. Shivamogga, Hubballi, Mysuru, Belagavi, Mangaluru, Davanagere)
                     if ($city) {
-                        // If English has a specific locality/suburb/village, do not collapse to broad district/city
                         if ($enPlace && !preg_match('/' . preg_quote($city, '/') . '/iu', $enPlace) && !preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $enPlace)) {
                             return $enPlace;
                         }
                         return $city;
                     }
 
-                    // 6. Hamlet / Neighbourhood / Root Name fallback
+                    // 7. Hamlet / Neighbourhood / Root Name fallback
                     if ($hamlet) return $hamlet;
                     if ($neighbourhood) return $neighbourhood;
 
@@ -445,9 +459,24 @@ class HomeController extends Controller
                     $placeKn = $placeEn;
                 }
 
+                // Taluk extraction (e.g. "Tirthahalli taluk" / "ತೀರ್ಥಹಳ್ಳಿ ತಾಲ್ಲೂಕು")
+                $countyEn = $addrEn['county'] ?? null;
+                $countyKn = $addrKn['county'] ?? null;
+                $talukEn = null;
+                $talukKn = null;
+
+                if ($countyEn) {
+                    $talukEn = preg_match('/taluk/i', $countyEn) ? $countyEn : "{$countyEn} taluk";
+                }
+                if ($countyKn) {
+                    $talukKn = preg_match('/ತಾಲ್ಲೂಕು|ತಾಲೂಕು/iu', $countyKn) ? $countyKn : "{$countyKn} ತಾಲ್ಲೂಕು";
+                }
+
                 return [
                     'local_area' => $placeEn ?: $placeKn,
                     'local_area_kn' => $placeKn ?: $placeEn,
+                    'taluk' => $talukEn,
+                    'taluk_kn' => $talukKn,
                     'postcode' => $addrEn['postcode'] ?? $addrKn['postcode'] ?? null,
                     'city' => $addrEn['city'] ?? $addrEn['town'] ?? null,
                     'state_district' => $addrEn['state_district'] ?? null,
@@ -481,6 +510,8 @@ class HomeController extends Controller
         $lon = $request->input('longitude');
         $localArea = $request->input('local_area');
         $localAreaKn = $request->input('local_area_kn');
+        $talukName = $request->input('taluk');
+        $talukNameKn = $request->input('taluk_kn');
 
         $district = null;
         if ($districtId) {
@@ -514,7 +545,7 @@ class HomeController extends Controller
             session(['selected_district_id' => $district->id]);
             cookie()->queue('selected_district_id', $district->id, 525600);
 
-            // Persist or clear hyper-local place name
+            // Persist or clear hyper-local place name & taluk
             if ($localArea) {
                 $safeKn = $localAreaKn;
                 if ($safeKn && preg_match('/bengaluru|bangalore|ಬೆಂಗಳೂರು/iu', $safeKn) && !preg_match('/bengaluru|bangalore/i', $localArea)) {
@@ -524,14 +555,28 @@ class HomeController extends Controller
                 session([
                     'selected_local_area' => $localArea,
                     'selected_local_area_kn' => $safeKn ?: $localArea,
+                    'selected_taluk_name' => $talukName,
+                    'selected_taluk_name_kn' => $talukNameKn,
                 ]);
                 cookie()->queue('selected_local_area', $localArea, 525600);
                 cookie()->queue('selected_local_area_kn', $safeKn ?: $localArea, 525600);
+                if ($talukName) {
+                    cookie()->queue('selected_taluk_name', $talukName, 525600);
+                } else {
+                    cookie()->queue(cookie()->forget('selected_taluk_name'));
+                }
+                if ($talukNameKn) {
+                    cookie()->queue('selected_taluk_name_kn', $talukNameKn, 525600);
+                } else {
+                    cookie()->queue(cookie()->forget('selected_taluk_name_kn'));
+                }
             } else {
-                // User explicitly selected district from dropdown: clear previous GPS local area
-                session()->forget(['selected_local_area', 'selected_local_area_kn']);
+                // User explicitly selected district from dropdown: clear previous GPS local area & taluk
+                session()->forget(['selected_local_area', 'selected_local_area_kn', 'selected_taluk_name', 'selected_taluk_name_kn']);
                 cookie()->queue(cookie()->forget('selected_local_area'));
                 cookie()->queue(cookie()->forget('selected_local_area_kn'));
+                cookie()->queue(cookie()->forget('selected_taluk_name'));
+                cookie()->queue(cookie()->forget('selected_taluk_name_kn'));
             }
 
             $weatherService = app(\App\Services\Weather\WeatherSyncService::class);

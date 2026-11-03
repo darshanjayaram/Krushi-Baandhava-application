@@ -149,9 +149,18 @@
                                         $displayArea = ($activeLocale === 'kn')
                                             ? ((!empty($activeLocalAreaKn) && !preg_match('/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/iu', trim($activeLocalAreaKn))) ? $activeLocalAreaKn : $activeLocalArea)
                                             : $activeLocalArea;
+                                        $talukLabel = ($activeLocale === 'kn')
+                                            ? ($activeTalukNameKn ?? $activeTalukName ?? null)
+                                            : ($activeTalukName ?? null);
+                                        $districtLabel = ($activeLocale === 'kn')
+                                            ? ($activeDistrict->name_kn ?? $activeDistrict->name ?? '')
+                                            : ($activeDistrict->name ?? '');
+                                        $subLabel = ($talukLabel && strcasecmp(trim($displayArea), trim($talukLabel)) !== 0) ? $talukLabel : $districtLabel;
                                     @endphp
                                     {{ $displayArea }}
-                                    <span class="text-amber-200/90 font-medium text-[11px] sm:text-xs">({{ $activeLocale === 'kn' ? ($activeDistrict->name_kn ?? $activeDistrict->name ?? '') : ($activeDistrict->name ?? '') }})</span>
+                                    @if(!empty($subLabel) && strcasecmp(trim($displayArea), trim($subLabel)) !== 0)
+                                        <span class="text-amber-200/90 font-medium text-[11px] sm:text-xs">({{ $subLabel }})</span>
+                                    @endif
                                 @else
                                     {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
                                 @endif
@@ -172,9 +181,14 @@
 
                 <!-- Search Bar (Row 2 on Mobile, Expanded Right Column on Desktop) -->
                 <div class="relative flex-1 min-w-0" @click.away="closeSearch(true)">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#1C5A2C] text-xs transition-colors duration-200 cursor-pointer"
-                       @click="toggleSearch()"
-                       title="{{ $activeLocale === 'en' ? 'Toggle search' : 'ಹುಡುಕಾಟ' }}"></i>
+                    <button type="button"
+                            @click="toggleSearch()"
+                            class="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#1C5A2C] transition-colors duration-200 cursor-pointer p-0.5 flex items-center justify-center z-10"
+                            title="{{ $activeLocale === 'en' ? 'Toggle search' : 'ಹುಡುಕಾಟ' }}">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </button>
                     
                     <input type="text"
                            x-ref="searchInput"
@@ -183,7 +197,7 @@
                            @focus="performSearch(true)"
                            @keydown.escape.stop="clearSearch()"
                            placeholder="{{ $activeLocale === 'en' ? 'Search any crop or mandi (e.g. Arecanut, Pepper, Tomato)...' : 'ಯಾವುದೇ ಬೆಳೆ ಅಥವಾ ಮಂಡಿ ಹುಡುಕಿ... (ಅಡಿಕೆ, ಕಾಳುಮೆಣಸು, ಟೊಮೆಟೊ)' }}"
-                           class="home-search-input w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-white border border-[#D9CEB8] text-xs sm:text-sm font-semibold text-amber-300 placeholder-stone-400 focus:outline-none focus:border-[#1C5A2C] focus:ring-2 focus:ring-[#1C5A2C]/20 focus:bg-emerald-50/10 shadow-inner transition-all duration-200 {{ $activeLocale === 'kn' ? 'font-kannada search-input-kn' : 'font-sans' }}">
+                           class="home-search-input w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-xl bg-white border border-[#D9CEB8] text-xs sm:text-sm font-semibold text-stone-800 placeholder-stone-400 focus:outline-none focus:border-[#1C5A2C] focus:ring-2 focus:ring-[#1C5A2C]/20 focus:bg-emerald-50/10 shadow-inner transition-all duration-200 {{ $activeLocale === 'kn' ? 'font-kannada search-input-kn' : 'font-sans' }}">
 
                     <!-- Clear / Close ✕ Button with smooth scale/fade transition -->
                     <button type="button"
@@ -196,8 +210,10 @@
                             x-transition:leave-end="opacity-0 scale-75"
                             @click.stop="clearSearch()"
                             title="{{ $activeLocale === 'en' ? 'Close search' : 'ಹುಡುಕಾಟ ಮುಚ್ಚಿ' }}"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs cursor-pointer p-1" style="display: none;">
-                        <i class="fa-solid fa-circle-xmark"></i>
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs cursor-pointer p-1 z-10" style="display: none;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
                     </button>
 
                     <!-- AMAZON-STYLE LIVE FLOATING DROPDOWN WITH SILKY SMOOTH SLIDE & FADE -->
@@ -522,9 +538,18 @@
                                         $displayAreaWeather = ($activeLocale === 'kn')
                                             ? ((!empty($activeLocalAreaKn) && !preg_match('/^(ಬೆಂಗಳೂರು|Bengaluru|Bangalore)$/iu', trim($activeLocalAreaKn))) ? $activeLocalAreaKn : $activeLocalArea)
                                             : $activeLocalArea;
+                                        $talukLabelWeather = ($activeLocale === 'kn')
+                                            ? ($activeTalukNameKn ?? $activeTalukName ?? null)
+                                            : ($activeTalukName ?? null);
+                                        $districtLabelWeather = ($activeLocale === 'kn')
+                                            ? ($activeDistrict->name_kn ?? $activeDistrict->name ?? '')
+                                            : ($activeDistrict->name ?? '');
+                                        $subLabelWeather = ($talukLabelWeather && strcasecmp(trim($displayAreaWeather), trim($talukLabelWeather)) !== 0) ? $talukLabelWeather : $districtLabelWeather;
                                     @endphp
                                     {{ $displayAreaWeather }}
-                                    <span class="text-xs text-emerald-200/90 font-medium">({{ $activeLocale === 'kn' ? ($activeDistrict->name_kn ?? $activeDistrict->name ?? '') : ($activeDistrict->name ?? '') }})</span>
+                                    @if(!empty($subLabelWeather) && strcasecmp(trim($displayAreaWeather), trim($subLabelWeather)) !== 0)
+                                        <span class="text-xs text-emerald-200/90 font-medium">({{ $subLabelWeather }})</span>
+                                    @endif
                                 @else
                                     {{ $activeLocale === 'en' ? ($activeDistrict->name ?? 'Karnataka') : ($activeDistrict->name_kn ?? $activeDistrict->name ?? 'ಕರ್ನಾಟಕ') }}
                                 @endif
@@ -717,7 +742,11 @@
 
                 <!-- Live Client-side & Voice-Ready Search Input with Smooth Focus & Transitions -->
                 <div class="relative flex-1 sm:w-72">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs transition-colors duration-200"></i>
+                    <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 flex items-center pointer-events-none">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
                     <input type="text" 
                            x-model="searchQuery" 
                            @input.debounce.150ms="filterCrops()"
@@ -733,7 +762,9 @@
                             x-transition:leave-end="opacity-0 scale-75"
                             @click="searchQuery = ''; filterCrops()" 
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs cursor-pointer p-0.5" style="display: none;">
-                        <i class="fa-solid fa-circle-xmark"></i>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
                     </button>
                 </div>
 

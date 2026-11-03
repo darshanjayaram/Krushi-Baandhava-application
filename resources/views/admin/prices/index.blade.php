@@ -897,126 +897,216 @@
              x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
-             class="relative z-10 bg-slate-900 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-700 text-white my-auto max-h-[92vh] overflow-y-auto scrollbar-thin">
+             class="relative z-10 bg-slate-900 rounded-2xl max-w-xl sm:max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-slate-700 text-white my-auto max-h-[92vh] overflow-y-auto scrollbar-thin">
             
+            <!-- Modal Header -->
             <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-800">
                 <div>
                     <h3 class="text-sm sm:text-base font-black text-rose-300 flex items-center gap-2">
                         <span>🗑️</span> Data Retention & Safe Pruning Manager
                     </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Reclaim MySQL disk space by safely pruning old daily records.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Safely prune historical daily records crop-wise and year-wise while preserving monthly trends.</p>
                 </div>
-                <button @click="pruneModalOpen = false" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer p-1 shrink-0">✕</button>
+                <button @click="pruneModalOpen = false" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer p-1 shrink-0 transition">✕</button>
             </div>
 
             <form @submit.prevent="executeAsyncPrune()" class="mt-4 space-y-4">
                 @csrf
 
+                <!-- Strategy Selector Tabs -->
                 <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Pruning Strategy</label>
-                        <button type="button" @click="fetchPrunePreview()" :disabled="prunePreviewLoading" class="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pruning Strategy (ಕಾರ್ಯತಂತ್ರ)</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <!-- Strategy 1: Crop & Timeframe (Primary & Recommended) -->
+                        <button type="button" @click="onPruneStrategyChange('crop_period')"
+                                class="p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between"
+                                :class="pruneStrategy === 'crop_period' ? 'border-emerald-500 bg-emerald-950/30 text-white shadow-sm ring-1 ring-emerald-500/50' : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'">
+                            <div class="flex items-center gap-1.5 font-bold text-xs">
+                                <span>🎯</span>
+                                <span :class="pruneStrategy === 'crop_period' ? 'text-emerald-300 font-black' : ''">Crop & Year</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-1">Specific crop & year filter</span>
+                        </button>
+
+                        <!-- Strategy 2: Rolling Age -->
+                        <button type="button" @click="onPruneStrategyChange('age')"
+                                class="p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between"
+                                :class="pruneStrategy === 'age' ? 'border-emerald-500 bg-emerald-950/30 text-white shadow-sm ring-1 ring-emerald-500/50' : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'">
+                            <div class="flex items-center gap-1.5 font-bold text-xs">
+                                <span>⏳</span>
+                                <span :class="pruneStrategy === 'age' ? 'text-emerald-300 font-black' : ''">Rolling Age</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-1">Older than 365/180 days</span>
+                        </button>
+
+                        <!-- Strategy 3: Inactive Crops -->
+                        <button type="button" @click="onPruneStrategyChange('inactive_crops')"
+                                class="p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between"
+                                :class="pruneStrategy === 'inactive_crops' ? 'border-amber-500 bg-amber-950/30 text-white shadow-sm ring-1 ring-amber-500/50' : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'">
+                            <div class="flex items-center gap-1.5 font-bold text-xs">
+                                <span>💤</span>
+                                <span :class="pruneStrategy === 'inactive_crops' ? 'text-amber-300 font-black' : ''">Inactive Crops</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-1">Deactivated crops cleanup</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STRATEGY 1 FORM CONTROLS: Crop & Timeframe Filter (Responsive Cascading Dropdowns) -->
+                <div x-show="pruneStrategy === 'crop_period'" class="space-y-3.5 p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                    <!-- 1. Crop Selection (Full Width on all screens) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                            <span>1. Select Commodity / Crop (ಬೆಳೆ ಆಯ್ಕೆ)</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Leave as "All" for all crops</span>
+                        </label>
+                        <select x-model="pruneCropId" @change="onPruneCropChange()"
+                                class="w-full text-xs sm:text-sm font-bold px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition cursor-pointer">
+                            <option value="">🌾 All Commodities (ಎಲ್ಲಾ ಬೆಳೆಗಳು)</option>
+                            <optgroup label="Active Commodities (ಸಕ್ರಿಯ ಬೆಳೆಗಳು)">
+                                @foreach($allCropsForPrune->where('is_active', true) as $cp)
+                                    <option value="{{ $cp->id }}">{{ $cp->name }} • {{ $cp->name_kn }}</option>
+                                @endforeach
+                            </optgroup>
+                            @if($allCropsForPrune->where('is_active', false)->count() > 0)
+                                <optgroup label="Inactive Commodities (ನಿಷ್ಕ್ರಿಯ ಬೆಳೆಗಳು)">
+                                    @foreach($allCropsForPrune->where('is_active', false) as $cp)
+                                        <option value="{{ $cp->id }}">⚠️ {{ $cp->name }} • {{ $cp->name_kn }} (Inactive)</option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                        </select>
+                    </div>
+
+                    <!-- 2 & 3. Dynamic Year and Month Selection (Grid: 1 col on mobile, 2 cols on desktop) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- 2. Dynamic Year Selection (Async Loaded) -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                                <span>2. Select Year (ವರ್ಷ)</span>
+                                <template x-if="pruneCropYearsLoading">
+                                    <span class="text-[10px] text-emerald-400 font-medium animate-pulse">Loading years...</span>
+                                </template>
+                            </label>
+                            <select x-model="pruneYear" @change="onPruneYearChange()" :disabled="pruneCropYearsLoading"
+                                    class="w-full text-xs sm:text-sm font-bold px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition cursor-pointer disabled:opacity-50">
+                                <option value="">📅 All Recorded Years (ಎಲ್ಲಾ ವರ್ಷಗಳು)</option>
+                                <template x-for="y in pruneCropYears" :key="y.year">
+                                    <option :value="y.year" x-text="y.year + ' (' + Number(y.count).toLocaleString() + ' rows)'"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- 3. Dynamic Month Selection (Async Loaded) -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                                <span>3. Select Month (ತಿಂಗಳು)</span>
+                                <template x-if="pruneCropMonthsLoading">
+                                    <span class="text-[10px] text-emerald-400 font-medium animate-pulse">Loading months...</span>
+                                </template>
+                            </label>
+                            <select x-model="pruneMonth" @change="onPruneMonthChange()" :disabled="pruneCropMonthsLoading"
+                                    class="w-full text-xs sm:text-sm font-bold px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition cursor-pointer disabled:opacity-50">
+                                <option value="">🗓️ Entire Year (All Months - ಪೂರ್ಣ ವರ್ಷ)</option>
+                                <template x-for="m in pruneCropMonths" :key="m.month">
+                                    <option :value="m.month" x-text="m.name + ' • ' + m.name_kn + ' (' + Number(m.count).toLocaleString() + ' rows)'"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STRATEGY 2 FORM CONTROLS: Rolling Age -->
+                <div x-show="pruneStrategy === 'age'" class="p-3 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+                    <label class="block text-xs font-bold text-slate-300">Keep Recent Rolling Records:</label>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <select name="older_than_days" x-model="pruneDays" @change="fetchPrunePreview()"
+                                class="w-full sm:w-auto text-xs sm:text-sm font-bold px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white">
+                            <option value="365">365 Days (1 Full Year - Recommended)</option>
+                            <option value="180">180 Days (6 Months)</option>
+                            <option value="90">90 Days (3 Months)</option>
+                        </select>
+                        <span class="text-xs text-slate-400">Daily rows older than this cutoff will be purged.</span>
+                    </div>
+                </div>
+
+                <!-- STRATEGY 3 FORM CONTROLS: Inactive Crops -->
+                <div x-show="pruneStrategy === 'inactive_crops'" class="p-3 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-300 font-bold">Targeted Inactive Commodities:</span>
+                        <span class="font-mono text-amber-400 font-bold" x-text="(prunePreviewData?.inactive_crops_count ?? 0) + ' Crops (' + (prunePreviewData?.inactive_records_count ?? 0).toLocaleString() + ' rows)'"></span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        Safely cleans up historical prices for disabled crops (<code class="text-amber-300 font-mono text-[10px]">is_active = false</code>). Active commodities remain 100% untouched.
+                    </p>
+                </div>
+
+                <!-- ============================================================== -->
+                <!-- 📊 LIVE IMPACT PREVIEW CARD (REAL-TIME INSTANT FEEDBACK)       -->
+                <!-- ============================================================== -->
+                <div class="rounded-xl border border-slate-800 bg-slate-950/90 p-3.5 sm:p-4 space-y-3">
+                    <!-- Top Bar: Crop and Period Identity -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black uppercase tracking-wider text-slate-400">Live Impact Preview</span>
+                            <template x-if="prunePreviewLoading">
+                                <span class="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin"></span>
+                            </template>
+                        </div>
+                        <button type="button" @click="fetchPrunePreview()" :disabled="prunePreviewLoading"
+                                class="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 cursor-pointer">
                             <span :class="prunePreviewLoading ? 'animate-spin' : ''">🔄</span>
-                            <span x-text="prunePreviewLoading ? 'Refreshing...' : 'Refresh Metrics'"></span>
+                            <span>Refresh</span>
                         </button>
                     </div>
 
-                    <div class="space-y-2.5">
-                        <!-- Strategy 1 (NEW & RECOMMENDED): Inactive / Disabled Crops Targeted Cleanup -->
-                        <label class="flex items-start gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'inactive_crops' ? 'border-amber-500 bg-amber-950/25 shadow-sm' : ''">
-                            <input type="radio" name="strategy" value="inactive_crops" x-model="pruneStrategy" class="mt-1 text-amber-500 focus:ring-amber-500 shrink-0">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
-                                    <div class="text-xs font-black text-amber-300 flex items-center gap-1.5 leading-snug">
-                                        <span>🎯</span>
-                                        <span>Prune Records for Inactive Crops</span>
-                                    </div>
-                                    <template x-if="prunePreviewData">
-                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800/80 font-bold shrink-0 self-start sm:self-auto"
-                                              x-text="(prunePreviewData.inactive_records_count || 0).toLocaleString() + ' records (' + (prunePreviewData.inactive_crops_count || 0) + ' crops)'">
-                                        </span>
-                                    </template>
-                                </div>
-                                <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                                    Safely removes historical daily trade records <strong class="text-white">only for deactivated commodities</strong> (<code class="text-amber-300 font-mono text-[10px]">is_active = false</code>). Preserves all historical rates and forecasts for your active crops.
-                                </p>
-                                
-                                <div x-show="pruneStrategy === 'inactive_crops'" class="mt-3 space-y-2.5">
-                                    <!-- Comparison Stats -->
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-                                        <div>
-                                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Protected Active Crops:</span>
-                                            <span class="text-emerald-400 font-black text-xs" x-text="(prunePreviewData?.active_crops_count ?? '...') + ' Active (' + (prunePreviewData?.active_records_count?.toLocaleString() ?? '...') + ' rows)'"></span>
-                                        </div>
-                                        <div>
-                                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Targeted For Pruning:</span>
-                                            <span class="text-rose-400 font-black text-xs" x-text="(prunePreviewData?.inactive_crops_count ?? '...') + ' Inactive (' + (prunePreviewData?.inactive_records_count?.toLocaleString() ?? '...') + ' rows)'"></span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Inactive Crops Drawer -->
-                                    <div x-data="{ showList: false }" class="pt-0.5">
-                                        <button type="button" @click="showList = !showList" class="text-[11px] font-bold text-amber-400 hover:text-amber-300 transition flex items-center gap-1 cursor-pointer">
-                                            <span x-text="showList ? '▲ Hide Crop List' : '▼ Inspect All Inactive Crops (' + (prunePreviewData?.inactive_crops_count ?? 0) + ')'"></span>
-                                        </button>
-                                        <div x-show="showList" class="mt-2 max-h-36 overflow-y-auto p-2 bg-slate-950 rounded-xl border border-slate-800 flex flex-wrap gap-1.5 scrollbar-thin">
-                                            <template x-for="c in prunePreviewData?.inactive_crops || []" :key="c.id">
-                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-slate-900 border border-slate-800 text-slate-300">
-                                                    <span class="text-white font-medium" x-text="c.name"></span>
-                                                    <span class="text-slate-500 font-mono" x-text="'(' + c.records_count.toLocaleString() + ')'"></span>
-                                                </span>
-                                            </template>
-                                        </div>
-                                    </div>
-                                </div>
+                    <!-- 3 High-Visibility Stat Boxes -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5">
+                        <!-- Stat 1: Target Records -->
+                        <div class="p-2.5 sm:p-3 rounded-xl bg-slate-900 border border-slate-800">
+                            <span class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Rows to Prune</span>
+                            <div class="text-base sm:text-lg font-black text-rose-400"
+                                 x-text="(prunePreviewData?.matching_records_count ?? 0).toLocaleString()">
                             </div>
-                        </label>
+                            <span class="text-[10px] text-slate-500">Daily trade entries</span>
+                        </div>
 
-                        <!-- Strategy 2: Age Based -->
-                        <label class="flex items-start gap-2.5 sm:gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'age' ? 'border-emerald-600 bg-emerald-950/20' : ''">
-                            <input type="radio" name="strategy" value="age" x-model="pruneStrategy" class="mt-1 text-emerald-500 focus:ring-emerald-500 shrink-0">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-xs font-bold text-white">Prune Daily Records by Age (Rolling Window)</div>
-                                <p class="text-[11px] text-slate-400 mt-0.5">Keeps recent daily records and automatically cleans up older rows.</p>
-                                <div x-show="pruneStrategy === 'age'" class="mt-2 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                                    <span class="text-xs text-slate-400 font-medium">Keep last:</span>
-                                    <select name="older_than_days" x-model="pruneDays" class="w-full sm:w-auto text-xs font-bold px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
-                                        <option value="365">365 Days (1 Full Year - Recommended for cPanel)</option>
-                                        <option value="180">180 Days (6 Months)</option>
-                                        <option value="90">90 Days (3 Months)</option>
-                                    </select>
-                                </div>
+                        <!-- Stat 2: APMC Mandis -->
+                        <div class="p-2.5 sm:p-3 rounded-xl bg-slate-900 border border-slate-800">
+                            <span class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Affected Mandis</span>
+                            <div class="text-base sm:text-lg font-black text-cyan-400"
+                                 x-text="(prunePreviewData?.markets_count ?? 0) + ' APMCs'">
                             </div>
-                        </label>
+                            <div class="text-[10px] text-slate-500 truncate"
+                                 x-text="prunePreviewData?.sample_markets?.length ? prunePreviewData.sample_markets.join(', ') : 'Across Karnataka'">
+                            </div>
+                        </div>
 
-                        <!-- Strategy 3: Specific Period -->
-                        <label class="flex items-start gap-2.5 sm:gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-slate-700 transition" :class="pruneStrategy === 'period' ? 'border-emerald-600 bg-emerald-950/20' : ''">
-                            <input type="radio" name="strategy" value="period" x-model="pruneStrategy" class="mt-1 text-emerald-500 focus:ring-emerald-500 shrink-0">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-xs font-bold text-white">Delete Specific Year / Month</div>
-                                <p class="text-[11px] text-slate-400 mt-0.5">Prunes daily trade records for an exact historical period.</p>
-                                <div x-show="pruneStrategy === 'period'" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">Year</label>
-                                        <select name="year" x-model="pruneYear" class="w-full text-xs font-bold px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
-                                            @foreach($availableYears as $yr)
-                                                <option value="{{ $yr }}">{{ $yr }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">Month (Optional)</label>
-                                        <select name="month" x-model="pruneMonth" class="w-full text-xs font-bold px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white">
-                                            <option value="">Entire Year (All Months)</option>
-                                            @for($m = 1; $m <= 12; $m++)
-                                                <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
-                                            @endfor
-                                        </select>
-                                    </div>
-                                </div>
+                        <!-- Stat 3: Storage Freed -->
+                        <div class="p-2.5 sm:p-3 rounded-xl bg-slate-900 border border-slate-800">
+                            <span class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Est. Space Saved</span>
+                            <div class="text-base sm:text-lg font-black text-emerald-400"
+                                 x-text="prunePreviewData?.est_space_saved ?? '0 KB'">
                             </div>
-                        </label>
+                            <span class="text-[10px] text-slate-500">Reclaimed disk space</span>
+                        </div>
                     </div>
+
+                    <!-- Date Span Telemetry -->
+                    <template x-if="prunePreviewData?.min_date && prunePreviewData?.matching_records_count > 0">
+                        <div class="flex flex-wrap items-center justify-between text-[11px] text-slate-400 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-800">
+                            <span>📅 Date Boundaries:</span>
+                            <span class="text-white font-mono font-bold" x-text="prunePreviewData.min_date + ' → ' + prunePreviewData.max_date"></span>
+                        </div>
+                    </template>
+
+                    <!-- Zero Records Alert -->
+                    <template x-if="!prunePreviewLoading && (prunePreviewData?.matching_records_count ?? 0) === 0">
+                        <div class="p-2.5 rounded-lg bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs flex items-center gap-2">
+                            <span>ℹ️</span>
+                            <span>No historical daily records match this combination. No deletion will occur.</span>
+                        </div>
+                    </template>
                 </div>
 
                 <!-- Async Status Box / Alerts -->
@@ -1025,28 +1115,32 @@
                     <span x-text="pruneAsyncError"></span>
                 </div>
 
-                <!-- Safety Guard Guarantee -->
+                <!-- Safety Guard Option Banner -->
                 <div class="bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-800/60 flex items-start gap-2.5 text-xs text-emerald-200">
-                    <span class="text-base shrink-0">🛡️</span>
-                    <div>
-                        <div class="font-black text-white text-[11px] uppercase tracking-wide">Pre-Aggregation Safety Guard Active:</div>
-                        <p class="text-[11px] text-emerald-300/90 mt-0.5 leading-relaxed">
-                            Before daily rows are removed, the system compiles and saves permanent monthly summaries in <code class="bg-emerald-950 px-1 py-0.5 rounded text-emerald-300 font-mono">price_monthly_statistics</code>. 
-                            <strong>"Best Months to Sell" and long-term 5-year trends will never break.</strong>
-                        </p>
-                    </div>
+                    <input type="checkbox" x-model="prunePreserveAggregates" id="prunePreserveCheck"
+                           class="mt-0.5 rounded border-emerald-700 text-emerald-600 focus:ring-emerald-500 bg-slate-900 shrink-0">
+                    <label for="prunePreserveCheck" class="cursor-pointer select-none">
+                        <span class="font-black text-white text-[11px] uppercase tracking-wide block">🛡️ Pre-Aggregation Safety Guard (Recommended)</span>
+                        <span class="text-[11px] text-emerald-300/90 mt-0.5 leading-relaxed block">
+                            Automatically aggregates monthly averages into <code class="bg-emerald-950 px-1 py-0.5 rounded text-emerald-300 font-mono">price_monthly_statistics</code> before daily rows are removed. 
+                            <strong>5-Year historical price trends and "Best Months to Sell" on the farmer portal will remain 100% functional.</strong>
+                        </span>
+                    </label>
                 </div>
 
+                <!-- Responsive Modal Action Buttons -->
                 <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
-                    <button type="button" @click="pruneModalOpen = false" :disabled="pruneExecuting" class="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer disabled:opacity-50 text-center">
+                    <button type="button" @click="pruneModalOpen = false" :disabled="pruneExecuting"
+                            class="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-bold text-slate-300 bg-slate-800 rounded-xl hover:bg-slate-700 transition cursor-pointer disabled:opacity-50 text-center">
                         Cancel
                     </button>
-                    <button type="submit" :disabled="pruneExecuting || (pruneStrategy === 'inactive_crops' && (prunePreviewData?.inactive_records_count ?? 0) === 0)" 
+                    <button type="submit" 
+                            :disabled="pruneExecuting || (prunePreviewData?.matching_records_count ?? 0) === 0"
                             class="w-full sm:w-auto px-5 py-2.5 sm:py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-500 transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center">
                         <template x-if="pruneExecuting">
                             <span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                         </template>
-                        <span x-text="pruneExecuting ? 'Pruning in Chunks...' : '⚠️ Execute Safe Prune'"></span>
+                        <span x-text="pruneExecuting ? 'Pruning in Chunks...' : ('⚠️ Execute Safe Prune (' + ((prunePreviewData?.matching_records_count ?? 0).toLocaleString()) + ' Rows)')"></span>
                     </button>
                 </div>
             </form>
@@ -1106,10 +1200,16 @@ function pricesManager() {
         toDate: '{{ date('Y-m-d') }}',
         activePresetDays: 90,
         updateAnalytics: true,
-        pruneStrategy: 'inactive_crops',
-        pruneDays: 365,
-        pruneYear: '{{ count($availableYears) > 1 ? $availableYears[1] : (date('Y') - 1) }}',
+        pruneStrategy: 'crop_period',
+        pruneCropId: '',
+        pruneCropYears: [],
+        pruneCropYearsLoading: false,
+        pruneYear: '',
+        pruneCropMonths: [],
+        pruneCropMonthsLoading: false,
         pruneMonth: '',
+        pruneDays: 365,
+        prunePreserveAggregates: true,
         pruneExecuting: false,
         prunePreviewLoading: false,
         prunePreviewData: null,
@@ -1221,17 +1321,98 @@ function pricesManager() {
             }, 6000);
         },
 
-        async openPruneModal() {
-            this.pruneStrategy = 'inactive_crops';
+        async openPruneModal(defaultCropId = '', defaultYear = '', defaultMonth = '') {
+            this.pruneStrategy = 'crop_period';
             this.pruneAsyncError = '';
+            this.pruneCropId = defaultCropId ? String(defaultCropId) : '';
+            this.pruneYear = defaultYear ? String(defaultYear) : '';
+            this.pruneMonth = defaultMonth ? String(defaultMonth) : '';
+            this.prunePreserveAggregates = true;
             this.pruneModalOpen = true;
+
+            await this.fetchCropYears(this.pruneCropId);
+            if (this.pruneYear) {
+                await this.fetchCropMonths(this.pruneCropId, this.pruneYear);
+            }
+            await this.fetchPrunePreview();
+        },
+
+        async onPruneCropChange() {
+            this.pruneYear = '';
+            this.pruneMonth = '';
+            this.pruneCropMonths = [];
+            await this.fetchCropYears(this.pruneCropId);
+            await this.fetchPrunePreview();
+        },
+
+        async fetchCropYears(cropId) {
+            this.pruneCropYearsLoading = true;
+            try {
+                const url = '{{ route('admin.prices.prune-metadata') }}' + (cropId ? '?crop_id=' + cropId : '');
+                const res = await fetch(url, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.pruneCropYears = data.years || [];
+                }
+            } catch (e) {
+                console.warn('Failed to load crop years:', e);
+            } finally {
+                this.pruneCropYearsLoading = false;
+            }
+        },
+
+        async onPruneYearChange() {
+            this.pruneMonth = '';
+            if (this.pruneYear) {
+                await this.fetchCropMonths(this.pruneCropId, this.pruneYear);
+            } else {
+                this.pruneCropMonths = [];
+            }
+            await this.fetchPrunePreview();
+        },
+
+        async fetchCropMonths(cropId, year) {
+            this.pruneCropMonthsLoading = true;
+            try {
+                let url = '{{ route('admin.prices.prune-metadata') }}?year=' + year;
+                if (cropId) url += '&crop_id=' + cropId;
+                const res = await fetch(url, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.pruneCropMonths = data.months || [];
+                }
+            } catch (e) {
+                console.warn('Failed to load crop months:', e);
+            } finally {
+                this.pruneCropMonthsLoading = false;
+            }
+        },
+
+        async onPruneMonthChange() {
+            await this.fetchPrunePreview();
+        },
+
+        async onPruneStrategyChange(newStrategy) {
+            this.pruneStrategy = newStrategy;
+            this.pruneAsyncError = '';
             await this.fetchPrunePreview();
         },
 
         async fetchPrunePreview() {
             this.prunePreviewLoading = true;
             try {
-                const res = await fetch('{{ route('admin.prices.prune-preview') }}', {
+                const params = new URLSearchParams({
+                    strategy: this.pruneStrategy,
+                    crop_id: this.pruneCropId || '',
+                    year: this.pruneYear || '',
+                    month: this.pruneMonth || '',
+                    older_than_days: this.pruneDays || 365
+                });
+                const res = await fetch('{{ route('admin.prices.prune-preview') }}?' + params.toString(), {
                     headers: { 'Accept': 'application/json' }
                 });
                 const data = await res.json();
@@ -1246,7 +1427,13 @@ function pricesManager() {
         },
 
         async executeAsyncPrune() {
-            if (!confirm('Execute this safe pruning operation? Monthly trends and active crop forecasts are permanently preserved.')) {
+            const count = this.prunePreviewData?.matching_records_count ?? 0;
+            if (count === 0 && this.pruneStrategy !== 'inactive_crops') {
+                this.showToast('No matching records found to prune.', 'warning');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to execute this safe pruning operation?\n\nTarget records: ${count.toLocaleString()} rows\nPreserve monthly statistics: ${this.prunePreserveAggregates ? 'YES (Recommended)' : 'NO'}`)) {
                 return;
             }
 
@@ -1263,9 +1450,11 @@ function pricesManager() {
                     },
                     body: JSON.stringify({
                         strategy: this.pruneStrategy,
+                        crop_id: this.pruneCropId || null,
+                        year: this.pruneYear || null,
+                        month: this.pruneMonth || null,
                         older_than_days: this.pruneDays,
-                        year: this.pruneYear,
-                        month: this.pruneMonth
+                        preserve_aggregates: this.prunePreserveAggregates
                     })
                 });
 
@@ -1274,10 +1463,9 @@ function pricesManager() {
                 if (data.ok) {
                     this.pruneModalOpen = false;
                     this.showToast(data.message, 'success');
-                    await this.fetchPrunePreview();
                     setTimeout(() => {
                         window.location.reload();
-                    }, 2200);
+                    }, 1800);
                 } else {
                     this.pruneAsyncError = data.message || 'Pruning operation completed with no records removed.';
                     this.showToast(this.pruneAsyncError, 'warning');
@@ -1291,11 +1479,7 @@ function pricesManager() {
         },
 
         openPruneForPeriod(yr, mo) {
-            this.pruneStrategy = 'period';
-            this.pruneYear = yr;
-            this.pruneMonth = mo;
-            this.pruneModalOpen = true;
-            this.fetchPrunePreview();
+            this.openPruneModal('', yr, mo);
         },
 
         resetSyncModal() {

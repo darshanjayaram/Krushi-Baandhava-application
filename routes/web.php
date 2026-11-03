@@ -71,7 +71,9 @@ Route::get('/sitemap.xml', [\App\Http\Controllers\Farmer\SitemapController::clas
 
 // Farmer Feedback & Grievance Helpdesk
 Route::get('/feedback', [\App\Http\Controllers\Farmer\FeedbackController::class, 'create'])->name('farmer.feedback.create');
-Route::post('/feedback', [\App\Http\Controllers\Farmer\FeedbackController::class, 'store'])->name('farmer.feedback.store');
+Route::post('/feedback', [\App\Http\Controllers\Farmer\FeedbackController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('farmer.feedback.store');
 
 Route::get('/login', fn () => redirect()->route('admin.login'))->name('login');
 
@@ -174,6 +176,7 @@ Route::prefix('admin')->group(function () {
         // Market Prices
         Route::get('/prices', [MarketPriceController::class, 'index'])->name('admin.prices.index');
         Route::get('/prices/prune-preview', [MarketPriceController::class, 'prunePreview'])->name('admin.prices.prune-preview');
+        Route::get('/prices/prune-metadata', [MarketPriceController::class, 'pruneMetadata'])->name('admin.prices.prune-metadata');
         Route::post('/prices/sync', [MarketPriceController::class, 'sync'])->name('admin.prices.sync');
         Route::post('/prices/sync-range', [MarketPriceController::class, 'syncRange'])->name('admin.prices.sync-range');
         Route::post('/prices/prune', [MarketPriceController::class, 'prune'])->name('admin.prices.prune');
@@ -233,7 +236,6 @@ Route::prefix('admin')->group(function () {
             Route::post('/settings/clear-cache', [SystemSettingController::class, 'clearCache'])->name('admin.settings.clear-cache');
             Route::post('/settings/optimize', [SystemSettingController::class, 'optimizeApp'])->name('admin.settings.optimize');
             Route::post('/settings/update-database', [SystemSettingController::class, 'updateDatabase'])->name('admin.settings.update-database');
-            Route::get('/settings/update-database', [SystemSettingController::class, 'updateDatabase']);
             Route::post('/settings/prune-data', [SystemSettingController::class, 'pruneData'])->name('admin.settings.prune-data');
             Route::post('/settings/trigger-forecasting', [SystemSettingController::class, 'triggerForecasting'])->name('admin.settings.trigger-forecasting');
         });
@@ -289,3 +291,19 @@ Route::prefix('admin')->group(function () {
         });
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Catch-All Fallback Route (Graceful 404 Error Handling)
+|--------------------------------------------------------------------------
+*/
+Route::fallback(function (\Illuminate\Http\Request $request) {
+    if ($request->is('api/*') || $request->wantsJson()) {
+        return response()->json([
+            'ok' => false,
+            'message' => 'The requested endpoint was not found.',
+        ], 404);
+    }
+    return response()->view('errors.404', [], 404);
+});
+

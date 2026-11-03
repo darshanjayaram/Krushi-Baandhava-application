@@ -99,7 +99,23 @@ class FeedbackController extends Controller
             'farmer_phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+\s\-]{10,15}$/'],
             'farmer_email' => 'nullable|email|max:120',
             'photo' => 'nullable|file|image|mimes:jpeg,png,jpg,webp|max:10240', // max 10MB
-            'voice' => 'nullable|file|max:20480', // max 20MB (audio/webm, audio/wav, audio/mp3, audio/ogg, audio/mp4, audio/aac)
+            'voice' => [
+                'nullable',
+                'file',
+                'max:20480', // max 20MB
+                function ($attribute, $value, $fail) {
+                    $allowedMimes = [
+                        'audio/webm', 'audio/wav', 'audio/x-wav', 'audio/mp3', 'audio/mpeg',
+                        'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'video/webm', 'application/octet-stream'
+                    ];
+                    $allowedExts = ['webm', 'wav', 'mp3', 'ogg', 'm4a', 'aac'];
+                    $mime = strtolower((string) $value->getClientMimeType());
+                    $ext = strtolower((string) $value->getClientOriginalExtension());
+                    if (!in_array($mime, $allowedMimes, true) && !in_array($ext, $allowedExts, true)) {
+                        $fail('ಧ್ವನಿ ರೆಕಾರ್ಡಿಂಗ್ ಮಾನ್ಯವಾದ ಆಡಿಯೋ ಫೈಲ್ ಆಗಿರಬೇಕು (Voice recording must be a valid audio file: WebM, WAV, MP3, OGG, or M4A).');
+                    }
+                }
+            ],
             'voice_duration' => 'nullable|integer',
         ], [
             'farmer_phone.required' => 'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ (Please enter your mobile phone number).',
@@ -123,24 +139,40 @@ class FeedbackController extends Controller
             return back()->withErrors(['message' => $errorMsg])->withInput();
         }
 
-        // 3. Process photo upload
+        // 3. Process photo upload (strictly sanitized extension)
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photoFile = $request->file('photo');
-            $filename = 'photo_' . time() . '_' . Str::random(8) . '.' . $photoFile->getClientOriginalExtension();
+            $allowedPhotoExts = ['jpg', 'jpeg', 'png', 'webp'];
+            $clientExt = strtolower($photoFile->getClientOriginalExtension());
+            $safeExt = in_array($clientExt, $allowedPhotoExts, true) ? $clientExt : 'jpg';
+            $filename = 'photo_' . time() . '_' . Str::random(8) . '.' . $safeExt;
             $photoPath = $photoFile->storeAs('uploads/feedback/photos', $filename, 'public');
         }
 
-        // 4. Process voice note upload
+        // 4. Process voice note upload (strictly sanitized extension & whitelisted audio types)
         $voicePath = null;
         if ($request->hasFile('voice')) {
             $voiceFile = $request->file('voice');
-            $extension = $voiceFile->getClientOriginalExtension();
-            if (empty($extension)) {
-                $mime = $voiceFile->getClientMimeType();
-                $extension = str_contains($mime, 'wav') ? 'wav' : (str_contains($mime, 'mp4') ? 'm4a' : (str_contains($mime, 'ogg') ? 'ogg' : 'webm'));
+            $allowedVoiceExts = ['webm', 'wav', 'mp3', 'ogg', 'm4a', 'aac'];
+            $clientExt = strtolower($voiceFile->getClientOriginalExtension());
+            $mime = strtolower((string) $voiceFile->getClientMimeType());
+
+            if (in_array($clientExt, $allowedVoiceExts, true)) {
+                $safeExt = $clientExt;
+            } elseif (str_contains($mime, 'wav')) {
+                $safeExt = 'wav';
+            } elseif (str_contains($mime, 'mp3') || str_contains($mime, 'mpeg')) {
+                $safeExt = 'mp3';
+            } elseif (str_contains($mime, 'ogg')) {
+                $safeExt = 'ogg';
+            } elseif (str_contains($mime, 'mp4') || str_contains($mime, 'm4a') || str_contains($mime, 'aac')) {
+                $safeExt = 'm4a';
+            } else {
+                $safeExt = 'webm';
             }
-            $voiceFilename = 'voice_' . time() . '_' . Str::random(8) . '.' . $extension;
+
+            $voiceFilename = 'voice_' . time() . '_' . Str::random(8) . '.' . $safeExt;
             $voicePath = $voiceFile->storeAs('uploads/feedback/voice', $voiceFilename, 'public');
         }
 

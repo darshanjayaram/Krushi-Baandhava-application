@@ -134,15 +134,31 @@
 
 html[lang="kn"],
 html[lang="kn"] body,
-html[lang="kn"] *,
+html[lang="kn"] *:not([class*="fa-"]):not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands),
 html[lang="kn"] input,
 html[lang="kn"] button,
 html[lang="kn"] select,
 html[lang="kn"] textarea,
 .font-kannada,
 [lang="kn"],
-[lang="kn"] * {
+[lang="kn"] *:not([class*="fa-"]):not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands) {
     font-family: 'Noto Sans Kannada', 'Manrope', sans-serif !important;
+}
+
+/* Protect FontAwesome icon fonts in Kannada language mode */
+html[lang="kn"] [class*="fa-"],
+html[lang="kn"] .fa,
+html[lang="kn"] .fas,
+html[lang="kn"] .far,
+html[lang="kn"] .fab,
+html[lang="kn"] .fa-solid,
+[lang="kn"] [class*="fa-"],
+[lang="kn"] .fa,
+[lang="kn"] .fas,
+[lang="kn"] .far,
+[lang="kn"] .fab,
+[lang="kn"] .fa-solid {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", sans-serif !important;
 }
 
 /* 1. Base line-height relaxation for Kannada script vowels/matras */

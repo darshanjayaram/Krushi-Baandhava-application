@@ -26,8 +26,12 @@ class PwaManifestService
         $icons = [];
 
         // 1. Check for custom uploaded branding logo or PWA icon
-        $customLogo = SystemSetting::get('pwa_icon') ?: SystemSetting::get('app_logo');
-        if ($customLogo && $customLogo !== '/icons/icon-192.svg' && $customLogo !== '/icons/icon-512.svg') {
+        $pwaCustom = SystemSetting::get('pwa_icon');
+        $appLogo = SystemSetting::get('app_logo');
+        $customLogo = ($pwaCustom && !in_array($pwaCustom, ['/icons/icon-512.svg', '/icons/icon-512.png', '/icons/icon-192.svg', '/icons/icon-192.png']))
+            ? $pwaCustom
+            : ($appLogo ?: $pwaCustom);
+        if ($customLogo && !in_array($customLogo, ['/icons/icon-192.svg', '/icons/icon-512.svg', '/icons/icon-192.png', '/icons/icon-512.png'])) {
             $cleanPath = ltrim($customLogo, '/');
             if (file_exists(public_path($cleanPath))) {
                 $ext = strtolower(pathinfo($cleanPath, PATHINFO_EXTENSION));

@@ -1,7 +1,7 @@
 @php
     $activeLocale = app()->getLocale();
     $isEn = ($activeLocale === 'en');
-    $appLogo = \App\Models\SystemSetting::get('app_logo', '/uploads/branding/app_logo_1790493250.png');
+    $appLogo = \App\Models\SystemSetting::get('app_logo', '/icons/icon-192.svg');
     $logoVersion = file_exists(public_path(ltrim($appLogo, '/'))) ? filemtime(public_path(ltrim($appLogo, '/'))) : '1';
     $appLogoUrl = asset($appLogo) . '?v=' . $logoVersion;
     $appName = \App\Models\SystemSetting::get('application_name', 'Krushi Baandhava');
